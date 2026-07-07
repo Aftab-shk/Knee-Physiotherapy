@@ -1,0 +1,35 @@
+# ── Python ───────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+physio-env/
+venv/
+env/
+*.egg-info/
+
+# ── Model weights (large — never commit binaries to git) ────────────────
+model/*.pt
+model/*.pth
+model/training_curves.png
+model/confusion_matrix.png
+model/*.json
+
+# ── Datasets (large — never commit to git) ───────────────────────────────
+data/
+combined/
+*.zip
+
+# ── Environment / secrets ────────────────────────────────────────────────
+.env
+.env.local
+
+# ── OS / editor ───────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ── Docker ────────────────────────────────────────────────────────────────
+*.log

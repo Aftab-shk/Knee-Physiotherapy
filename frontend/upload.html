@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analyse X-ray — PhysioAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:       #0c1a35;
+      --navy-mid:   #1a3060;
+      --teal:       #0d9488;
+      --teal-light: #14b8a6;
+      --red:        #dc2626;
+      --white:      #ffffff;
+      --off-white:  #f4f8ff;
+      --border:     #dde8f5;
+      --slate:      #64748b;
+      --text:       #1e2d4a;
+      --mono:       'JetBrains Mono', monospace;
+      --display:    'Space Grotesk', sans-serif;
+      --body:       'Plus Jakarta Sans', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--body);
+      color: var(--text);
+      background: var(--off-white);
+      min-height: 100vh;
+    }
+
+    /* ── Top nav ─────────────────────────────────────────────────────── */
+    .topnav {
+      background: var(--navy);
+      padding: 0 40px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 0 rgba(255,255,255,.05);
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .nav-logo-mark {
+      width: 30px; height: 30px;
+      background: var(--teal);
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+    }
+    .nav-logo-text {
+      font-family: var(--display);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--white);
+    }
+    .nav-steps {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nav-step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: rgba(255,255,255,.4);
+    }
+    .nav-step.active { color: var(--teal-light); }
+    .nav-step.done { color: rgba(255,255,255,.6); }
+    .nav-step-num {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      border: 1.5px solid currentColor;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+    }
+    .nav-step.active .nav-step-num {
+      background: var(--teal);
+      border-color: var(--teal);
+      color: var(--white);
+    }
+    .nav-step.done .nav-step-num {
+      background: rgba(255,255,255,.15);
+      border-color: transparent;
+    }
+    .nav-step-sep {
+      width: 24px; height: 1px;
+      background: rgba(255,255,255,.15);
+    }
+    .nav-right { display: flex; gap: 12px; align-items: center; }
+    .nav-home {
+      font-size: 13px;
+      color: rgba(255,255,255,.5);
+      text-decoration: none;
+      transition: color .2s;
+    }
+    .nav-home:hover { color: var(--white); }
+
+    /* ── Page layout ─────────────────────────────────────────────────── */
+    .page { max-width: 860px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    /* ── Demo banner ─────────────────────────────────────────────────── */
+    .demo-banner {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      border-radius: 10px;
+      padding: 12px 18px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      color: #92400e;
+    }
+    .demo-banner.visible { display: flex; }
+
+    /* ── Upload panel ────────────────────────────────────────────────── */
+    .upload-panel {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(12,26,53,.05);
+    }
+    .panel-header {
+      padding: 24px 28px 0;
+    }
+    .panel-title {
+      font-family: var(--display);
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--navy);
+      margin-bottom: 4px;
+    }
+    .panel-sub { font-size: 14px; color: var(--slate); }
+    .panel-divider { height: 1px; background: var(--border); margin: 20px 0; }
+    .panel-body { padding: 0 28px 28px; }
+
+    /* ── Drop zone ───────────────────────────────────────────────────── */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--teal);
+      background: rgba(13,148,136,.03);
+    }
+    .drop-zone.has-file {
+      border-color: var(--teal);
+      background: rgba(13,148,136,.04);
+    }
+    .drop-icon { font-size: 36px; margin-bottom: 12px; display: block; }
+    .drop-title {
+      font-family: var(--display);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--navy);
+      margin-bottom: 6px;
+    }
+    .drop-sub { font-size: 13px; color: var(--slate); }
+    .drop-sub span { color: var(--teal); font-weight: 600; cursor: pointer; }
+    .drop-input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .drop-preview {
+      display: none;
+      align-items: center;
+      gap: 16px;
+    }
+    .drop-preview.visible { display: flex; }
+    .drop-preview-img {
+      width: 72px; height: 72px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .drop-preview-info { text-align: left; }
+    .drop-preview-name {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--navy);
+      margin-bottom: 3px;
+    }
+    .drop-preview-size { font-size: 12px; color: var(--slate); }
+    .drop-preview-change {
+      font-size: 12px;
+      color: var(--teal);
+      cursor: pointer;
+      text-decoration: underline;
+      margin-top: 4px;
+    }
+
+    /* ── Form fields ─────────────────────────────────────────────────── */
+    .fields-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .field-full { grid-column: 1 / -1; }
+
+    .field { }
+    .field-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--navy);
+      margin-bottom: 7px;
+    }
+    .field-required {
+      color: var(--teal);
+      margin-left: 2px;
+    }
+    .field-select, .field-input-num {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      font-family: var(--body);
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      transition: border-color .2s;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+    }
+    .field-input-num {
+      background-image: none;
+      padding-right: 14px;
+    }
+    .field-select:focus, .field-input-num:focus { border-color: var(--teal); }
+    .field-select:disabled, .field-input-num:disabled {
+      background: #f1f5f9;
+      color: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    /* Knee side radio buttons */
+    .knee-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .knee-opt {
+      position: relative;
+    }
+    .knee-opt input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .knee-opt-label {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 12px 8px;
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--slate);
+      text-align: center;
+    }
+    .knee-opt-label .opt-icon { font-size: 22px; }
+    .knee-opt input:checked + .knee-opt-label {
+      border-color: var(--teal);
+      background: rgba(13,148,136,.06);
+      color: var(--teal);
+    }
+    .knee-opt-label:hover { border-color: var(--teal); color: var(--navy); }
+
+    /* ── Submit button ───────────────────────────────────────────────── */
+    .submit-wrap { margin-top: 24px; }
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      background: var(--teal);
+      border: none;
+      border-radius: 10px;
+      font-family: var(--display);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--white);
+      cursor: pointer;
+      transition: background .2s, transform .15s, box-shadow .2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 3px 12px rgba(13,148,136,.25);
+    }
+    .btn-submit:hover { background: var(--teal-light); transform: translateY(-1px); }
+    .btn-submit:disabled {
+      background: #94a3b8;
+      box-shadow: none;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .btn-disclaimer {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--slate);
+    }
+
+    /* ── Loading ─────────────────────────────────────────────────────── */
+    .loading-panel {
+      display: none;
+      text-align: center;
+      padding: 60px 24px;
+    }
+    .loading-panel.visible { display: block; }
+    .loading-spinner {
+      width: 48px; height: 48px;
+      border: 3px solid var(--border);
+      border-top-color: var(--teal);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-title {
+      font-family: var(--display);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--navy);
+      margin-bottom: 8px;
+    }
+    .loading-sub { font-size: 14px; color: var(--slate); }
+    .loading-steps {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-top: 24px;
+    }
+    .loading-step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: #94a3b8;
+    }
+    .loading-step.active { color: var(--teal); }
+    .loading-step.done { color: #22c55e; }
+    .loading-step-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .loading-step.active .loading-step-dot { animation: pulse 1s ease infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* ── Error panel ─────────────────────────────────────────────────── */
+    .error-panel {
+      display: none;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-top: 20px;
+    }
+    .error-panel.visible { display: flex; gap: 12px; align-items: flex-start; }
+    .error-icon { font-size: 20px; flex-shrink: 0; }
+    .error-title {
+      font-family: var(--display);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--red);
+      margin-bottom: 4px;
+    }
+    .error-desc { font-size: 13px; color: #7f1d1d; }
+    .error-retry {
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--red);
+      text-decoration: underline;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+      font-family: var(--body);
+    }
+
+    /* ── Results ─────────────────────────────────────────────────────── */
+    .results {
+      display: none;
+      margin-top: 24px;
+      animation: fadeIn .4s ease;
+    }
+    .results.visible { display: block; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+    /* Summary cards row */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .summary-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 16px;
+      text-align: center;
+    }
+    .summary-card-value {
+      font-family: var(--mono);
+      font-size: 28px;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .summary-card-label {
+      font-size: 12px;
+      color: var(--slate);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      font-family: var(--mono);
+    }
+    .kl-0 { color: #16a34a; }
+    .kl-1 { color: #65a30d; }
+    .kl-2 { color: #d97706; }
+    .kl-3 { color: #ea580c; }
+    .kl-4 { color: var(--red); }
+
+    /* Rationale + phase box */
+    .rationale-box {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--teal);
+      border-radius: 0 12px 12px 0;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+    }
+    .rationale-phase {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 6px;
+    }
+    .rationale-goal {
+      font-family: var(--display);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--navy);
+      margin-bottom: 8px;
+    }
+    .rationale-text { font-size: 14px; color: var(--slate); line-height: 1.7; }
+
+    /* Exercises section */
+    .exercises-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .exercises-title {
+      font-family: var(--display);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--navy);
+    }
+    .exercises-count {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--slate);
+      background: var(--off-white);
+      border-radius: 100px;
+      padding: 3px 12px;
+    }
+    .exercise-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 10px;
+      transition: box-shadow .2s;
+    }
+    .exercise-card:hover { box-shadow: 0 2px 12px rgba(12,26,53,.06); }
+    .exercise-header {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+    .exercise-header-left { display: flex; align-items: center; gap: 14px; }
+    .exercise-num {
+      width: 30px; height: 30px;
+      background: var(--off-white);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--slate);
+      flex-shrink: 0;
+    }
+    .exercise-name {
+      font-family: var(--display);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--navy);
+    }
+    .exercise-desc {
+      font-size: 13px;
+      color: var(--slate);
+      margin-top: 2px;
+    }
+    .exercise-header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .exercise-reps {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--slate);
+      white-space: nowrap;
+    }
+    .angle-badge {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 5px;
+      white-space: nowrap;
+    }
+    .angle-badge.normal {
+      background: rgba(13,148,136,.1);
+      color: var(--teal);
+      border: 1px solid rgba(13,148,136,.25);
+    }
+    .angle-badge.capped {
+      background: rgba(245,158,11,.1);
+      color: #d97706;
+      border: 1px solid rgba(245,158,11,.3);
+    }
+    .exercise-chevron {
+      font-size: 12px;
+      color: #94a3b8;
+      transition: transform .2s;
+      margin-left: 4px;
+    }
+    .exercise-card.open .exercise-chevron { transform: rotate(180deg); }
+
+    .exercise-body {
+      display: none;
+      padding: 0 20px 20px;
+      border-top: 1px solid var(--border);
+    }
+    .exercise-card.open .exercise-body { display: block; }
+
+    .exercise-body-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      padding-top: 16px;
+    }
+    .ex-section-title {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--slate);
+      margin-bottom: 8px;
+    }
+    .instructions-list {
+      list-style: none;
+      padding: 0;
+    }
+    .instructions-list li {
+      display: flex;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 8px;
+      line-height: 1.55;
+    }
+    .instructions-list li::before {
+      content: counter(step);
+      counter-increment: step;
+      width: 20px; height: 20px;
+      background: var(--teal);
+      border-radius: 50%;
+      color: var(--white);
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .instructions-list { counter-reset: step; }
+
+    .caution-box {
+      margin-top: 12px;
+      grid-column: 1 / -1;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #9a3412;
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-start-exercise {
+      grid-column: 1 / -1;
+      margin-top: 16px;
+      width: 100%;
+      padding: 12px;
+      background: var(--navy);
+      border: none;
+      border-radius: 9px;
+      font-family: var(--display);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--white);
+      cursor: pointer;
+      transition: background .2s, transform .15s;
+    }
+    .btn-start-exercise:hover { background: var(--teal); transform: translateY(-1px); }
+
+    /* Disclaimer */
+    .disclaimer-box {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--slate);
+      line-height: 1.6;
+      display: flex;
+      gap: 10px;
+    }
+    .disclaimer-icon { font-size: 16px; flex-shrink: 0; }
+
+    /* ── New analysis button ──────────────────────────────────────────── */
+    .new-analysis-bar {
+      display: flex;
+      justify-content: center;
+      margin-top: 24px;
+    }
+    .btn-new {
+      padding: 12px 28px;
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-family: var(--display);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--navy);
+      cursor: pointer;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .btn-new:hover { border-color: var(--teal); box-shadow: 0 2px 12px rgba(13,148,136,.12); }
+
+    @media (max-width: 768px) {
+      .topnav { padding: 0 20px; }
+      .nav-steps { display: none; }
+      .fields-grid { grid-template-columns: 1fr; }
+      .summary-grid { grid-template-columns: 1fr 1fr; }
+      .exercise-body-grid { grid-template-columns: 1fr; }
+      .page { padding: 24px 16px 60px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Top nav -->
+<nav class="topnav">
+  <a href="index.html" class="nav-logo">
+    <span class="nav-logo-mark">🦴</span>
+    <span class="nav-logo-text">PhysioAI</span>
+  </a>
+  <div class="nav-steps">
+    <div class="nav-step active" id="step1-indicator">
+      <div class="nav-step-num">1</div>
+      Upload X-ray
+    </div>
+    <div class="nav-step-sep"></div>
+    <div class="nav-step" id="step2-indicator">
+      <div class="nav-step-num">2</div>
+      Results
+    </div>
+  </div>
+  <div class="nav-right">
+    <a href="index.html" class="nav-home">← Home</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- Demo mode banner (shown if API returns demo_mode: true) -->
+  <div class="demo-banner" id="demo-banner">
+    ⚠️ <strong>Demo mode active</strong> — the model hasn't been trained yet, so grades are simulated. All clinical logic (exercise selection, angle limits) runs normally.
+  </div>
+
+  <!-- Upload panel -->
+  <div class="upload-panel" id="upload-panel">
+    <div class="panel-header">
+      <div class="panel-title">Analyse your knee X-ray</div>
+      <div class="panel-sub">Upload an X-ray and enter your surgery details to receive your personalised exercise plan.</div>
+    </div>
+    <div class="panel-divider"></div>
+    <div class="panel-body">
+
+      <!-- Drop zone -->
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" class="drop-input" id="file-input" accept="image/jpeg,image/png,image/jpg">
+        <div id="drop-idle">
+          <span class="drop-icon">🩻</span>
+          <div class="drop-title">Drop your knee X-ray here</div>
+          <p class="drop-sub">Drag and drop, or <span onclick="document.getElementById('file-input').click()">browse to upload</span>. JPEG or PNG, up to 10 MB.</p>
+        </div>
+        <div class="drop-preview" id="drop-preview">
+          <img class="drop-preview-img" id="preview-img" src="" alt="X-ray preview">
+          <div class="drop-preview-info">
+            <div class="drop-preview-name" id="preview-name">—</div>
+            <div class="drop-preview-size" id="preview-size">—</div>
+            <div class="drop-preview-change" onclick="clearFile()">Change file</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form fields -->
+      <div class="fields-grid">
+
+        <!-- Knee side -->
+        <div class="field field-full">
+          <label class="field-label">Which knee is this X-ray? <span class="field-required">*</span></label>
+          <div class="knee-options">
+            <label class="knee-opt">
+              <input type="radio" name="knee_side" value="left" id="knee-left">
+              <span class="knee-opt-label">
+                <span class="opt-icon">🦵</span>
+                Left knee
+              </span>
+            </label>
+            <label class="knee-opt">
+              <input type="radio" name="knee_side" value="right" id="knee-right" checked>
+              <span class="knee-opt-label">
+                <span class="opt-icon">🦵</span>
+                Right knee
+              </span>
+            </label>
+            <label class="knee-opt">
+              <input type="radio" name="knee_side" value="both" id="knee-both">
+              <span class="knee-opt-label">
+                <span class="opt-icon">🦵</span>
+                Both knees
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Surgery type -->
+        <div class="field">
+          <label class="field-label" for="surgery-type">Surgery / condition type <span class="field-required">*</span></label>
+          <select class="field-select" id="surgery-type">
+            <option value="">Select type…</option>
+            <option value="acl">ACL Reconstruction</option>
+            <option value="tkr">Total Knee Replacement (TKR)</option>
+            <option value="meniscus">Meniscus Repair</option>
+            <option value="arthroscopy">Knee Arthroscopy</option>
+            <option value="none">No surgery — OA management only</option>
+          </select>
+        </div>
+
+        <!-- Weeks post-op -->
+        <div class="field" id="weeks-field">
+          <label class="field-label" for="weeks-input">Weeks since surgery <span class="field-required">*</span></label>
+          <input
+            class="field-input-num"
+            type="number"
+            id="weeks-input"
+            min="0"
+            max="520"
+            placeholder="e.g. 4"
+            disabled
+          >
+        </div>
+
+      </div>
+
+      <!-- Error panel -->
+      <div class="error-panel" id="error-panel">
+        <span class="error-icon">❌</span>
+        <div>
+          <div class="error-title" id="error-title">Something went wrong</div>
+          <div class="error-desc" id="error-desc">Please check your inputs and try again.</div>
+          <button class="error-retry" onclick="resetForm()">Try again</button>
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <div class="submit-wrap" id="submit-wrap">
+        <button class="btn-submit" id="submit-btn" disabled>
+          Analyse X-ray →
+        </button>
+        <div class="btn-disclaimer">
+          ⚠️ For informational purposes only — not a substitute for medical advice.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading panel (replaces upload panel during analysis) -->
+  <div class="loading-panel" id="loading-panel">
+    <div class="loading-spinner"></div>
+    <div class="loading-title">Analysing your X-ray…</div>
+    <div class="loading-sub">This usually takes 2–4 seconds.</div>
+    <div class="loading-steps">
+      <div class="loading-step active" id="lstep1">
+        <div class="loading-step-dot"></div>
+        Quality check
+      </div>
+      <div class="loading-step" id="lstep2">
+        <div class="loading-step-dot"></div>
+        KL classification
+      </div>
+      <div class="loading-step" id="lstep3">
+        <div class="loading-step-dot"></div>
+        Prescription
+      </div>
+    </div>
+  </div>
+
+  <!-- Results section -->
+  <div class="results" id="results">
+
+    <!-- Summary cards -->
+    <div class="summary-grid" id="summary-grid"></div>
+
+    <!-- Phase + rationale -->
+    <div class="rationale-box" id="rationale-box"></div>
+
+    <!-- Exercises -->
+    <div class="exercises-header">
+      <div class="exercises-title">Your exercise plan</div>
+      <div class="exercises-count" id="exercises-count"></div>
+    </div>
+    <div id="exercise-list"></div>
+
+    <!-- Disclaimer -->
+    <div class="disclaimer-box">
+      <span class="disclaimer-icon">⚠️</span>
+      <span id="disclaimer-text"></span>
+    </div>
+
+    <!-- New analysis -->
+    <div class="new-analysis-bar">
+      <button class="btn-new" onclick="resetForm()">← Analyse a different X-ray</button>
+    </div>
+
+  </div>
+
+</div><!-- /page -->
+
+<script>
+  const API_BASE = 'http://127.0.0.1:8000';
+
+  let selectedFile = null;
+
+  const dropZone   = document.getElementById('drop-zone');
+  const fileInput  = document.getElementById('file-input');
+  const surgeryEl  = document.getElementById('surgery-type');
+  const weeksEl    = document.getElementById('weeks-input');
+  const weeksField = document.getElementById('weeks-field');
+  const submitBtn  = document.getElementById('submit-btn');
+
+  // ── File handling ──────────────────────────────────────────────────────
+  function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function setFile(file) {
+    if (!file) return;
+    if (!['image/jpeg','image/png','image/jpg'].includes(file.type)) {
+      showError('Invalid file type', 'Please upload a JPEG or PNG image.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      showError('File too large', 'Please upload an image under 10 MB.');
+      return;
+    }
+    selectedFile = file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      document.getElementById('preview-img').src = e.target.result;
+      document.getElementById('preview-name').textContent = file.name;
+      document.getElementById('preview-size').textContent = formatBytes(file.size);
+      document.getElementById('drop-idle').style.display = 'none';
+      document.getElementById('drop-preview').classList.add('visible');
+      dropZone.classList.add('has-file');
+    };
+    reader.readAsDataURL(file);
+    validateForm();
+  }
+
+  function clearFile() {
+    selectedFile = null;
+    fileInput.value = '';
+    document.getElementById('drop-idle').style.display = 'block';
+    document.getElementById('drop-preview').classList.remove('visible');
+    dropZone.classList.remove('has-file');
+    validateForm();
+  }
+
+  fileInput.addEventListener('change', (e) => setFile(e.target.files[0]));
+
+  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    setFile(e.dataTransfer.files[0]);
+  });
+
+  // ── Surgery type ───────────────────────────────────────────────────────
+  surgeryEl.addEventListener('change', () => {
+    const isNone = surgeryEl.value === 'none';
+    const isEmpty = surgeryEl.value === '';
+    weeksEl.disabled = isNone || isEmpty;
+    weeksEl.value = '';
+    if (isNone) {
+      weeksEl.placeholder = 'N/A — no surgery';
+    } else if (!isEmpty) {
+      weeksEl.placeholder = 'e.g. 4';
+    }
+    validateForm();
+  });
+
+  weeksEl.addEventListener('input', validateForm);
+
+  // ── Form validation ────────────────────────────────────────────────────
+  function validateForm() {
+    const hasFile     = !!selectedFile;
+    const hasSurgery  = !!surgeryEl.value;
+    const kneeChecked = !!document.querySelector('input[name="knee_side"]:checked');
+    const weeksOk     = surgeryEl.value === 'none' || surgeryEl.value === '' ||
+                        (weeksEl.value !== '' && parseInt(weeksEl.value) >= 0);
+    submitBtn.disabled = !(hasFile && hasSurgery && kneeChecked && weeksOk);
+  }
+
+  document.querySelectorAll('input[name="knee_side"]').forEach(r => r.addEventListener('change', validateForm));
+
+  // ── Submit ─────────────────────────────────────────────────────────────
+  submitBtn.addEventListener('click', analyseXray);
+
+  async function analyseXray() {
+    hideError();
+
+    const kneeSide   = document.querySelector('input[name="knee_side"]:checked').value;
+    const surgeryType = surgeryEl.value;
+    const weeksVal   = weeksEl.value;
+
+    const formData = new FormData();
+    formData.append('image', selectedFile);
+    formData.append('knee_side', kneeSide);
+    formData.append('surgery_type', surgeryType);
+    if (surgeryType !== 'none' && weeksVal !== '') {
+      formData.append('weeks_post_op', parseInt(weeksVal));
+    }
+
+    // Show loading
+    document.getElementById('upload-panel').style.display = 'none';
+    showLoading();
+
+    try {
+      // Animate loading steps
+      await animateLoadingSteps();
+
+      const response = await fetch(`${API_BASE}/analyse-xray`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.detail || `Server error ${response.status}`);
+      }
+
+      const data = await response.json();
+      hideLoading();
+      renderResults(data);
+
+    } catch (err) {
+      hideLoading();
+      document.getElementById('upload-panel').style.display = 'block';
+      showError(
+        'Analysis failed',
+        err.message.includes('Failed to fetch')
+          ? 'Could not connect to the backend. Make sure the server is running at localhost:8000.'
+          : err.message
+      );
+    }
+  }
+
+  async function animateLoadingSteps() {
+    const steps = ['lstep1','lstep2','lstep3'];
+    for (let i = 0; i < steps.length; i++) {
+      await new Promise(r => setTimeout(r, 600));
+      if (i > 0) document.getElementById(steps[i-1]).className = 'loading-step done';
+      document.getElementById(steps[i]).className = 'loading-step active';
+    }
+    await new Promise(r => setTimeout(r, 400));
+  }
+
+  // ── Render results ─────────────────────────────────────────────────────
+  function renderResults(data) {
+    // Update nav steps
+    document.getElementById('step1-indicator').className = 'nav-step done';
+    document.getElementById('step2-indicator').className = 'nav-step active';
+
+    // Demo banner
+    if (data.demo_mode) {
+      document.getElementById('demo-banner').classList.add('visible');
+    }
+
+    // Summary cards
+    const klColors = ['kl-0','kl-1','kl-2','kl-3','kl-4'];
+    const summaryEl = document.getElementById('summary-grid');
+    summaryEl.innerHTML = `
+      <div class="summary-card">
+        <span class="summary-card-value ${klColors[data.kl_grade]}">KL ${data.kl_grade}</span>
+        <span class="summary-card-label">Grade</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-card-value" style="color: var(--navy)">${data.health_score}</span>
+        <span class="summary-card-label">Health Score</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-card-value" style="color: var(--teal)">${data.max_angle}°</span>
+        <span class="summary-card-label">Safe Ceiling</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-card-value" style="font-size:16px; color: var(--navy)">${Math.round(data.confidence * 100)}%</span>
+        <span class="summary-card-label">Confidence</span>
+      </div>
+    `;
+
+    // Rationale box
+    document.getElementById('rationale-box').innerHTML = `
+      <div class="rationale-phase">${data.rehab_phase_label}</div>
+      <div class="rationale-goal">${data.rehab_phase_goal}</div>
+      <div class="rationale-text">${data.rationale}</div>
+    `;
+
+    // Exercise list
+    const exercises = data.exercise_list;
+    document.getElementById('exercises-count').textContent = `${exercises.length} exercises`;
+    const listEl = document.getElementById('exercise-list');
+    listEl.innerHTML = '';
+
+    exercises.forEach((ex, idx) => {
+      const card = document.createElement('div');
+      card.className = 'exercise-card';
+
+      const repText = ex.hold_seconds
+        ? `Hold ${ex.hold_seconds}s × ${ex.target_sets} sets`
+        : `${ex.target_reps} reps × ${ex.target_sets} sets`;
+
+      const badgeClass = ex.angle_capped ? 'angle-badge capped' : 'angle-badge normal';
+      const badgeText  = ex.angle_capped
+        ? `⚠ ${ex.angle_limit}° (capped)`
+        : `✓ Up to ${ex.angle_limit}°`;
+
+      const instructionsHTML = ex.instructions
+        .map(step => `<li>${step}</li>`)
+        .join('');
+
+      const cautionHTML = ex.cautions
+        ? `<div class="caution-box">⚠️ ${ex.cautions}</div>`
+        : '';
+
+      card.innerHTML = `
+        <div class="exercise-header" onclick="toggleExercise(this)">
+          <div class="exercise-header-left">
+            <div class="exercise-num">${idx + 1}</div>
+            <div>
+              <div class="exercise-name">${ex.name}</div>
+              <div class="exercise-desc">${ex.description}</div>
+            </div>
+          </div>
+          <div class="exercise-header-right">
+            <span class="exercise-reps">${repText}</span>
+            <span class="${badgeClass}">${badgeText}</span>
+            <span class="exercise-chevron">▾</span>
+          </div>
+        </div>
+        <div class="exercise-body">
+          <div class="exercise-body-grid">
+            <div>
+              <div class="ex-section-title">Instructions</div>
+              <ol class="instructions-list">${instructionsHTML}</ol>
+            </div>
+            <div>
+              <div class="ex-section-title">Details</div>
+              <div style="font-size:13px; color: var(--slate); line-height:1.7">
+                <div><strong style="color:var(--navy)">Target:</strong> ${repText}</div>
+                <div><strong style="color:var(--navy)">Angle limit:</strong> ${ex.angle_limit}° ${ex.angle_capped ? '(reduced from standard by X-ray)' : ''}</div>
+                ${ex.hold_seconds ? `<div><strong style="color:var(--navy)">Hold:</strong> ${ex.hold_seconds} seconds at end range</div>` : ''}
+              </div>
+            </div>
+            ${cautionHTML}
+          </div>
+          <button class="btn-start-exercise" data-idx="${idx}">▶ Start exercise with webcam tracker</button>
+        </div>
+      `;
+
+      listEl.appendChild(card);
+
+      // Wire the Start button — stops the header-toggle click from firing too
+      card.querySelector('.btn-start-exercise').addEventListener('click', (e) => {
+        e.stopPropagation();
+        launchTracker(ex, data.knee_side, data.rehab_phase_label);
+      });
+    });
+
+    // Disclaimer
+    document.getElementById('disclaimer-text').textContent = data.disclaimer;
+
+    // Show results
+    document.getElementById('results').classList.add('visible');
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function launchTracker(exercise, kneeSide, phaseLabel) {
+    sessionStorage.setItem('physioai_current_exercise', JSON.stringify(exercise));
+    sessionStorage.setItem('physioai_knee_side', kneeSide);
+    sessionStorage.setItem('physioai_phase_label', phaseLabel);
+    window.location.href = 'tracker.html';
+  }
+
+  function toggleExercise(header) {
+    header.closest('.exercise-card').classList.toggle('open');
+  }
+
+
+  // ── Error / loading helpers ────────────────────────────────────────────
+  function showError(title, desc) {
+    document.getElementById('error-title').textContent = title;
+    document.getElementById('error-desc').textContent  = desc;
+    document.getElementById('error-panel').classList.add('visible');
+    document.getElementById('submit-btn').disabled = false;
+  }
+
+  function hideError() {
+    document.getElementById('error-panel').classList.remove('visible');
+  }
+
+  function showLoading() {
+    // Reset steps
+    ['lstep1','lstep2','lstep3'].forEach((id, i) => {
+      document.getElementById(id).className = i === 0 ? 'loading-step active' : 'loading-step';
+    });
+    document.getElementById('loading-panel').classList.add('visible');
+  }
+
+  function hideLoading() {
+    document.getElementById('loading-panel').classList.remove('visible');
+  }
+
+  function resetForm() {
+    // Reset all UI
+    clearFile();
+    surgeryEl.value = '';
+    weeksEl.value = '';
+    weeksEl.disabled = true;
+    weeksEl.placeholder = 'e.g. 4';
+    document.getElementById('results').classList.remove('visible');
+    document.getElementById('upload-panel').style.display = 'block';
+    document.getElementById('demo-banner').classList.remove('visible');
+    hideError();
+    validateForm();
+
+    // Reset nav steps
+    document.getElementById('step1-indicator').className = 'nav-step active';
+    document.getElementById('step2-indicator').className = 'nav-step';
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>
