@@ -1,31 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Log in — PhysioAI</title>
+  <title>Log in — Knee-Physiotherapy</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet">
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --navy:       #0c1a35;
-      --navy-mid:   #1a3060;
-      --teal:       #0d9488;
-      --teal-light: #14b8a6;
-      --red:        #dc2626;
-      --white:      #ffffff;
-      --border:     rgba(255,255,255,.12);
-      --border-focus: rgba(13,148,136,.6);
-      --input-bg:   rgba(255,255,255,.05);
-      --text-dim:   rgba(255,255,255,.5);
-      --mono:       'JetBrains Mono', monospace;
-      --display:    'Space Grotesk', sans-serif;
-      --body:       'Plus Jakarta Sans', sans-serif;
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
-    html, body {
+    :root {
+      --navy: #132733;
+      --navy-rgb: 19, 39, 51;
+      --navy-mid: #1f3949;
+      --navy-mid-rgb: 31, 57, 73;
+      --blue: #629bb5;
+      --blue-rgb: 98, 155, 182;
+      --teal: #447f98;
+      --teal-rgb: 68, 127, 152;
+      --teal-light: #629bb5;
+      --teal-light-rgb: 98, 155, 182;
+      --red: #dc2626;
+      --white: #ffffff;
+      --border: rgba(255, 255, 255, .12);
+      --border-focus: rgba(var(--teal-rgb), .6);
+      --input-bg: rgba(255, 255, 255, .05);
+      --text-dim: rgba(255, 255, 255, .5);
+      --mono: 'JetBrains Mono', monospace;
+      --display: 'Space Grotesk', sans-serif;
+      --body: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    html,
+    body {
       height: 100%;
       font-family: var(--body);
     }
@@ -43,17 +59,22 @@
     body::before {
       content: '';
       position: fixed;
-      width: 600px; height: 600px;
-      background: radial-gradient(circle, rgba(13,148,136,.12) 0%, transparent 65%);
-      top: -200px; right: -200px;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(var(--teal-rgb), .12) 0%, transparent 65%);
+      top: -200px;
+      right: -200px;
       pointer-events: none;
     }
+
     body::after {
       content: '';
       position: fixed;
-      width: 400px; height: 400px;
-      background: radial-gradient(circle, rgba(37,99,235,.08) 0%, transparent 65%);
-      bottom: -100px; left: -100px;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(var(--blue-rgb), .08) 0%, transparent 65%);
+      bottom: -100px;
+      left: -100px;
       pointer-events: none;
     }
 
@@ -66,27 +87,27 @@
       position: relative;
       z-index: 1;
     }
+
     .logo {
       display: flex;
       align-items: center;
       gap: 10px;
       text-decoration: none;
     }
-    .logo-mark {
-      width: 36px; height: 36px;
-      background: var(--teal);
-      border-radius: 9px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
+
+    .logo-img {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
     }
+
     .logo-text {
       font-family: var(--display);
       font-size: 20px;
       font-weight: 700;
       color: var(--white);
     }
+
     .back-link {
       font-size: 14px;
       color: var(--text-dim);
@@ -96,7 +117,10 @@
       gap: 6px;
       transition: color .2s;
     }
-    .back-link:hover { color: var(--white); }
+
+    .back-link:hover {
+      color: var(--white);
+    }
 
     /* ── Main layout ────────────────────────────────────────────────── */
     .main {
@@ -113,16 +137,24 @@
     .card {
       width: 100%;
       max-width: 420px;
-      background: rgba(255,255,255,.04);
+      background: rgba(255, 255, 255, .04);
       border: 1px solid var(--border);
       border-radius: 20px;
       padding: 44px 40px;
       backdrop-filter: blur(12px);
       animation: slideUp .4s ease;
     }
+
     @keyframes slideUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to   { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .card-eyebrow {
@@ -133,6 +165,7 @@
       color: var(--teal-light);
       margin-bottom: 10px;
     }
+
     .card-title {
       font-family: var(--display);
       font-size: 26px;
@@ -140,6 +173,7 @@
       color: var(--white);
       margin-bottom: 6px;
     }
+
     .card-sub {
       font-size: 14px;
       color: var(--text-dim);
@@ -148,14 +182,18 @@
     }
 
     /* ── Form ───────────────────────────────────────────────────────── */
-    .field { margin-bottom: 18px; }
+    .field {
+      margin-bottom: 18px;
+    }
+
     .field-label {
       display: block;
       font-size: 13px;
       font-weight: 500;
-      color: rgba(255,255,255,.65);
+      color: rgba(255, 255, 255, .65);
       margin-bottom: 7px;
     }
+
     .field-input {
       width: 100%;
       background: var(--input-bg);
@@ -168,19 +206,30 @@
       outline: none;
       transition: border-color .2s, background .2s;
     }
-    .field-input::placeholder { color: rgba(255,255,255,.25); }
+
+    .field-input::placeholder {
+      color: rgba(255, 255, 255, .25);
+    }
+
     .field-input:focus {
       border-color: var(--border-focus);
-      background: rgba(13,148,136,.06);
+      background: rgba(var(--teal-rgb), .06);
     }
-    .field-input.error { border-color: var(--red) !important; }
+
+    .field-input.error {
+      border-color: var(--red) !important;
+    }
+
     .field-error {
       display: none;
       font-size: 12px;
       color: #fca5a5;
       margin-top: 5px;
     }
-    .field-error.visible { display: block; }
+
+    .field-error.visible {
+      display: block;
+    }
 
     .forgot {
       display: block;
@@ -192,7 +241,10 @@
       margin-bottom: 18px;
       transition: color .2s;
     }
-    .forgot:hover { color: var(--teal-light); }
+
+    .forgot:hover {
+      color: var(--teal-light);
+    }
 
     /* ── Buttons ─────────────────────────────────────────────────────── */
     .btn-login {
@@ -212,9 +264,20 @@
       justify-content: center;
       gap: 8px;
     }
-    .btn-login:hover { background: var(--teal-light); transform: translateY(-1px); }
-    .btn-login:active { transform: translateY(0); }
-    .btn-login.loading { opacity: .7; pointer-events: none; }
+
+    .btn-login:hover {
+      background: var(--teal-light);
+      transform: translateY(-1px);
+    }
+
+    .btn-login:active {
+      transform: translateY(0);
+    }
+
+    .btn-login.loading {
+      opacity: .7;
+      pointer-events: none;
+    }
 
     .divider {
       display: flex;
@@ -222,8 +285,18 @@
       gap: 12px;
       margin: 20px 0;
     }
-    .divider-line { flex: 1; height: 1px; background: var(--border); }
-    .divider-text { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
+
+    .divider-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .divider-text {
+      font-size: 12px;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
 
     .btn-guest {
       width: 100%;
@@ -234,11 +307,15 @@
       font-family: var(--body);
       font-size: 14px;
       font-weight: 500;
-      color: rgba(255,255,255,.65);
+      color: rgba(255, 255, 255, .65);
       cursor: pointer;
       transition: border-color .2s, color .2s;
     }
-    .btn-guest:hover { border-color: rgba(255,255,255,.35); color: var(--white); }
+
+    .btn-guest:hover {
+      border-color: rgba(255, 255, 255, .35);
+      color: var(--white);
+    }
 
     /* ── Footer text ─────────────────────────────────────────────────── */
     .card-footer {
@@ -247,31 +324,44 @@
       font-size: 13px;
       color: var(--text-dim);
     }
+
     .card-footer a {
       color: var(--teal-light);
       text-decoration: none;
       font-weight: 500;
     }
-    .card-footer a:hover { text-decoration: underline; }
+
+    .card-footer a:hover {
+      text-decoration: underline;
+    }
 
     /* ── Info strip ──────────────────────────────────────────────────── */
     .info-strip {
       margin-top: 28px;
       padding: 14px 16px;
-      background: rgba(13,148,136,.08);
-      border: 1px solid rgba(13,148,136,.2);
+      background: rgba(var(--teal-rgb), .08);
+      border: 1px solid rgba(var(--teal-rgb), .2);
       border-radius: 10px;
       display: flex;
       gap: 10px;
       align-items: flex-start;
     }
-    .info-strip-icon { font-size: 16px; margin-top: 1px; flex-shrink: 0; }
+
+    .info-strip-icon {
+      font-size: 16px;
+      margin-top: 1px;
+      flex-shrink: 0;
+    }
+
     .info-strip-text {
       font-size: 12px;
-      color: rgba(255,255,255,.5);
+      color: rgba(255, 255, 255, .5);
       line-height: 1.6;
     }
-    .info-strip-text strong { color: var(--teal-light); }
+
+    .info-strip-text strong {
+      color: var(--teal-light);
+    }
 
     /* ── Toast ────────────────────────────────────────────────────────── */
     .toast {
@@ -279,8 +369,8 @@
       bottom: 32px;
       left: 50%;
       transform: translateX(-50%) translateY(80px);
-      background: #1e3a6e;
-      border: 1px solid rgba(13,148,136,.3);
+      background: var(--navy-mid);
+      border: 1px solid rgba(var(--teal-rgb), .3);
       border-radius: 10px;
       padding: 12px 20px;
       font-size: 14px;
@@ -289,21 +379,30 @@
       transition: transform .3s ease;
       white-space: nowrap;
     }
-    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
 
     @media (max-width: 480px) {
-      .topbar { padding: 16px 20px; }
-      .card { padding: 32px 24px; }
+      .topbar {
+        padding: 16px 20px;
+      }
+
+      .card {
+        padding: 32px 24px;
+      }
     }
   </style>
 </head>
+
 <body>
 
   <!-- Top bar -->
   <div class="topbar">
     <a href="index.html" class="logo">
-      <span class="logo-mark">🦴</span>
-      <span class="logo-text">PhysioAI</span>
+      <img src="logo.png" alt="Knee-Physiotherapy Logo" class="logo-img">
+      <span class="logo-text">Knee-Physiotherapy</span>
     </a>
     <a href="index.html" class="back-link">← Back to home</a>
   </div>
@@ -312,34 +411,22 @@
   <div class="main">
     <div class="card">
       <div class="card-eyebrow">Welcome back</div>
-      <h1 class="card-title">Log in to PhysioAI</h1>
+      <h1 class="card-title">Log in to Knee-Physiotherapy</h1>
       <p class="card-sub">Access your X-ray analysis and exercise programme.</p>
 
       <form id="login-form" novalidate>
 
         <div class="field">
           <label class="field-label" for="email">Email address</label>
-          <input
-            class="field-input"
-            type="email"
-            id="email"
-            name="email"
-            placeholder="you@example.com"
-            autocomplete="email"
-          >
+          <input class="field-input" type="email" id="email" name="email" placeholder="you@example.com"
+            autocomplete="email">
           <span class="field-error" id="email-error">Please enter a valid email address.</span>
         </div>
 
         <div class="field">
           <label class="field-label" for="password">Password</label>
-          <input
-            class="field-input"
-            type="password"
-            id="password"
-            name="password"
-            placeholder="Enter your password"
-            autocomplete="current-password"
-          >
+          <input class="field-input" type="password" id="password" name="password" placeholder="Enter your password"
+            autocomplete="current-password">
           <span class="field-error" id="password-error">Password must be at least 6 characters.</span>
         </div>
 
@@ -370,7 +457,6 @@
         <span class="info-strip-icon">🔒</span>
         <span class="info-strip-text">
           <strong>Your data stays on your device.</strong>
-          PhysioAI does not upload your X-rays to any server after initial analysis.
         </span>
       </div>
     </div>
@@ -378,76 +464,77 @@
 
   <div class="toast" id="toast"></div>
 
-<script>
-  const form      = document.getElementById('login-form');
-  const emailEl   = document.getElementById('email');
-  const passEl    = document.getElementById('password');
-  const emailErr  = document.getElementById('email-error');
-  const passErr   = document.getElementById('password-error');
-  const loginBtn  = document.getElementById('login-btn');
-  const btnText   = document.getElementById('login-btn-text');
-  const guestBtn  = document.getElementById('guest-btn');
-  const signupLink = document.getElementById('signup-link');
-  const toast     = document.getElementById('toast');
+  <script>
+    const form = document.getElementById('login-form');
+    const emailEl = document.getElementById('email');
+    const passEl = document.getElementById('password');
+    const emailErr = document.getElementById('email-error');
+    const passErr = document.getElementById('password-error');
+    const loginBtn = document.getElementById('login-btn');
+    const btnText = document.getElementById('login-btn-text');
+    const guestBtn = document.getElementById('guest-btn');
+    const signupLink = document.getElementById('signup-link');
+    const toast = document.getElementById('toast');
 
-  function showToast(msg, duration = 2500) {
-    toast.textContent = msg;
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), duration);
-  }
-
-  function clearErrors() {
-    [emailEl, passEl].forEach(el => el.classList.remove('error'));
-    [emailErr, passErr].forEach(el => el.classList.remove('visible'));
-  }
-
-  function validateEmail(val) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
-  }
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    clearErrors();
-
-    const emailVal = emailEl.value.trim();
-    const passVal  = passEl.value;
-    let valid = true;
-
-    if (!validateEmail(emailVal)) {
-      emailEl.classList.add('error');
-      emailErr.classList.add('visible');
-      valid = false;
+    function showToast(msg, duration = 2500) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), duration);
     }
-    if (passVal.length < 6) {
-      passEl.classList.add('error');
-      passErr.classList.add('visible');
-      valid = false;
+
+    function clearErrors() {
+      [emailEl, passEl].forEach(el => el.classList.remove('error'));
+      [emailErr, passErr].forEach(el => el.classList.remove('visible'));
     }
-    if (!valid) return;
 
-    // Simulate login (no real auth yet — redirect to upload)
-    loginBtn.classList.add('loading');
-    btnText.textContent = 'Logging in…';
+    function validateEmail(val) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
+    }
 
-    await new Promise(r => setTimeout(r, 800));
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearErrors();
 
-    showToast('✓ Logged in — redirecting…');
-    setTimeout(() => {
-      window.location.href = 'upload.html';
-    }, 900);
-  });
+      const emailVal = emailEl.value.trim();
+      const passVal = passEl.value;
+      let valid = true;
 
-  guestBtn.addEventListener('click', () => {
-    showToast('Continuing as guest…');
-    setTimeout(() => {
-      window.location.href = 'upload.html';
-    }, 700);
-  });
+      if (!validateEmail(emailVal)) {
+        emailEl.classList.add('error');
+        emailErr.classList.add('visible');
+        valid = false;
+      }
+      if (passVal.length < 6) {
+        passEl.classList.add('error');
+        passErr.classList.add('visible');
+        valid = false;
+      }
+      if (!valid) return;
 
-  signupLink.addEventListener('click', (e) => {
-    e.preventDefault();
-    showToast('Sign-up coming soon. Continue as guest for now.');
-  });
-</script>
+      // Simulate login (no real auth yet — redirect to upload)
+      loginBtn.classList.add('loading');
+      btnText.textContent = 'Logging in…';
+
+      await new Promise(r => setTimeout(r, 800));
+
+      showToast('✓ Logged in — redirecting…');
+      setTimeout(() => {
+        window.location.href = 'upload.html';
+      }, 900);
+    });
+
+    guestBtn.addEventListener('click', () => {
+      showToast('Continuing as guest…');
+      setTimeout(() => {
+        window.location.href = 'upload.html';
+      }, 700);
+    });
+
+    signupLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      showToast('Sign-up coming soon. Continue as guest for now.');
+    });
+  </script>
 </body>
+
 </html>

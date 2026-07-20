@@ -1,32 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PhysioAI — Knee Rehabilitation, Guided by Your X-ray</title>
+  <title>Knee Rehabilitation, Guided by Your X-ray</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet">
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --navy:       #0c1a35;
-      --navy-mid:   #1a3060;
-      --blue:       #2563eb;
-      --teal:       #0d9488;
-      --teal-light: #14b8a6;
-      --red:        #dc2626;
-      --white:      #ffffff;
-      --off-white:  #f4f8ff;
-      --border:     #dde8f5;
-      --slate:      #64748b;
-      --text:       #1e2d4a;
-      --mono:       'JetBrains Mono', monospace;
-      --display:    'Space Grotesk', sans-serif;
-      --body:       'Plus Jakarta Sans', sans-serif;
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
-    html { scroll-behavior: smooth; }
+    :root {
+      --navy: #132733;
+      --navy-rgb: 19, 39, 51;
+      --navy-mid: #1f3949;
+      --navy-mid-rgb: 31, 57, 73;
+      --blue: #629bb5;
+      --blue-rgb: 98, 155, 182;
+      --teal: #447f98;
+      --teal-rgb: 68, 127, 152;
+      --teal-light: #629bb5;
+      --teal-light-rgb: 98, 155, 182;
+      --red: #dc2626;
+      --white: #ffffff;
+      --off-white: #d6ebf3; /* Ice Blue */
+      --border: #dadee1; /* Platinum */
+      --slate: #5a7380;
+      --text: #1b2f3a;
+      --mono: 'JetBrains Mono', monospace;
+      --display: 'Space Grotesk', sans-serif;
+      --body: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
 
     body {
       font-family: var(--body);
@@ -39,7 +55,9 @@
     /* ── Nav ─────────────────────────────────────────────────────────── */
     nav {
       position: fixed;
-      top: 0; left: 0; right: 0;
+      top: 0;
+      left: 0;
+      right: 0;
       z-index: 100;
       padding: 18px 40px;
       display: flex;
@@ -47,10 +65,12 @@
       justify-content: space-between;
       transition: background .3s, box-shadow .3s;
     }
+
     nav.solid {
       background: var(--navy);
-      box-shadow: 0 2px 20px rgba(0,0,0,.3);
+      box-shadow: 0 2px 20px rgba(0, 0, 0, .3);
     }
+
     .nav-logo {
       font-family: var(--display);
       font-size: 22px;
@@ -61,37 +81,41 @@
       align-items: center;
       gap: 10px;
     }
-    .nav-logo-mark {
-      width: 32px; height: 32px;
-      background: var(--teal);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
+
+    .nav-logo-img {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
     }
+
     .nav-links {
       display: flex;
       align-items: center;
       gap: 32px;
       list-style: none;
     }
+
     .nav-links a {
-      color: rgba(255,255,255,.75);
+      color: rgba(255, 255, 255, .75);
       text-decoration: none;
       font-size: 14px;
       font-weight: 500;
       transition: color .2s;
     }
-    .nav-links a:hover { color: var(--white); }
+
+    .nav-links a:hover {
+      color: var(--white);
+    }
+
     .nav-actions {
       display: flex;
       align-items: center;
       gap: 12px;
     }
+
     .btn-ghost {
       padding: 8px 20px;
-      border: 1.5px solid rgba(255,255,255,.3);
+      border: 1.5px solid rgba(255, 255, 255, .3);
       border-radius: 8px;
       color: var(--white);
       text-decoration: none;
@@ -99,7 +123,12 @@
       font-weight: 500;
       transition: border-color .2s, background .2s;
     }
-    .btn-ghost:hover { border-color: rgba(255,255,255,.7); background: rgba(255,255,255,.05); }
+
+    .btn-ghost:hover {
+      border-color: rgba(255, 255, 255, .7);
+      background: rgba(255, 255, 255, .05);
+    }
+
     .btn-primary {
       padding: 9px 22px;
       background: var(--teal);
@@ -110,12 +139,16 @@
       font-weight: 600;
       transition: background .2s, transform .15s;
     }
-    .btn-primary:hover { background: var(--teal-light); transform: translateY(-1px); }
+
+    .btn-primary:hover {
+      background: var(--teal-light);
+      transform: translateY(-1px);
+    }
 
     /* ── Hero ────────────────────────────────────────────────────────── */
     .hero {
       min-height: 100vh;
-      background: linear-gradient(135deg, var(--navy) 0%, #1a3a6e 55%, #0a3845 100%);
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 55%, #183344 100%);
       display: grid;
       grid-template-columns: 1fr 1fr;
       align-items: center;
@@ -124,21 +157,29 @@
       position: relative;
       overflow: hidden;
     }
+
     .hero::before {
       content: '';
       position: absolute;
-      width: 600px; height: 600px;
-      background: radial-gradient(circle, rgba(13,148,136,.15) 0%, transparent 70%);
-      top: -100px; right: -100px;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(var(--teal-rgb), .15) 0%, transparent 70%);
+      top: -100px;
+      right: -100px;
       pointer-events: none;
     }
-    .hero-content { position: relative; z-index: 1; }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+    }
+
     .hero-eyebrow {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      background: rgba(13,148,136,.15);
-      border: 1px solid rgba(13,148,136,.4);
+      background: rgba(var(--teal-rgb), .15);
+      border: 1px solid rgba(var(--teal-rgb), .4);
       border-radius: 100px;
       padding: 5px 14px;
       margin-bottom: 24px;
@@ -148,16 +189,29 @@
       text-transform: uppercase;
       color: var(--teal-light);
     }
+
     .hero-eyebrow-dot {
-      width: 6px; height: 6px;
+      width: 6px;
+      height: 6px;
       background: var(--teal);
       border-radius: 50%;
       animation: pulse 2s ease-in-out infinite;
     }
+
     @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: .5; transform: scale(.8); }
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: .5;
+        transform: scale(.8);
+      }
     }
+
     .hero-title {
       font-family: var(--display);
       font-size: clamp(36px, 5vw, 58px);
@@ -167,19 +221,25 @@
       letter-spacing: -.02em;
       margin-bottom: 20px;
     }
-    .hero-title .accent { color: var(--teal-light); }
+
+    .hero-title .accent {
+      color: var(--teal-light);
+    }
+
     .hero-sub {
       font-size: 17px;
-      color: rgba(255,255,255,.65);
+      color: rgba(255, 255, 255, .65);
       max-width: 480px;
       margin-bottom: 36px;
       line-height: 1.7;
     }
+
     .hero-actions {
       display: flex;
       gap: 14px;
       flex-wrap: wrap;
     }
+
     .btn-hero-primary {
       display: inline-flex;
       align-items: center;
@@ -193,19 +253,21 @@
       font-size: 15px;
       font-weight: 600;
       transition: background .2s, transform .15s, box-shadow .2s;
-      box-shadow: 0 4px 20px rgba(13,148,136,.4);
+      box-shadow: 0 4px 20px rgba(var(--teal-rgb), .4);
     }
+
     .btn-hero-primary:hover {
       background: var(--teal-light);
       transform: translateY(-2px);
-      box-shadow: 0 8px 30px rgba(13,148,136,.5);
+      box-shadow: 0 8px 30px rgba(var(--teal-rgb), .5);
     }
+
     .btn-hero-secondary {
       display: inline-flex;
       align-items: center;
       gap: 8px;
       padding: 14px 28px;
-      border: 1.5px solid rgba(255,255,255,.25);
+      border: 1.5px solid rgba(255, 255, 255, .25);
       border-radius: 10px;
       color: var(--white);
       text-decoration: none;
@@ -213,7 +275,11 @@
       font-weight: 500;
       transition: border-color .2s, background .2s;
     }
-    .btn-hero-secondary:hover { border-color: rgba(255,255,255,.6); background: rgba(255,255,255,.05); }
+
+    .btn-hero-secondary:hover {
+      border-color: rgba(255, 255, 255, .6);
+      background: rgba(255, 255, 255, .05);
+    }
 
     /* ── Angle Gauge (Signature Element) ─────────────────────────────── */
     .gauge-wrapper {
@@ -223,9 +289,10 @@
       position: relative;
       z-index: 1;
     }
+
     .gauge-card {
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid rgba(255, 255, 255, .12);
       border-radius: 20px;
       padding: 32px 40px 24px;
       text-align: center;
@@ -233,15 +300,21 @@
       width: 100%;
       max-width: 380px;
     }
+
     .gauge-label {
       font-family: var(--mono);
       font-size: 10px;
       letter-spacing: .14em;
       text-transform: uppercase;
-      color: rgba(255,255,255,.45);
+      color: rgba(255, 255, 255, .45);
       margin-bottom: 16px;
     }
-    .gauge-svg { width: 100%; max-width: 300px; }
+
+    .gauge-svg {
+      width: 100%;
+      max-width: 300px;
+    }
+
     .gauge-reading {
       font-family: var(--mono);
       font-size: 42px;
@@ -250,37 +323,45 @@
       margin: 8px 0 2px;
       letter-spacing: -.02em;
     }
+
     .gauge-reading-label {
       font-size: 13px;
       color: var(--teal-light);
       font-weight: 500;
     }
+
     .gauge-meta {
       display: flex;
       justify-content: space-between;
       margin-top: 20px;
       padding-top: 16px;
-      border-top: 1px solid rgba(255,255,255,.08);
+      border-top: 1px solid rgba(255, 255, 255, .08);
     }
-    .gauge-meta-item { text-align: center; }
+
+    .gauge-meta-item {
+      text-align: center;
+    }
+
     .gauge-meta-value {
       font-family: var(--mono);
       font-size: 18px;
       font-weight: 600;
       color: var(--white);
     }
+
     .gauge-meta-key {
       font-size: 11px;
-      color: rgba(255,255,255,.45);
+      color: rgba(255, 255, 255, .45);
       text-transform: uppercase;
       letter-spacing: .08em;
     }
+
     .gauge-limit-badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: rgba(220,38,38,.15);
-      border: 1px solid rgba(220,38,38,.35);
+      background: rgba(220, 38, 38, .15);
+      border: 1px solid rgba(220, 38, 38, .35);
       border-radius: 6px;
       padding: 3px 10px;
       font-family: var(--mono);
@@ -291,20 +372,43 @@
 
     /* Needle animation */
     @keyframes sweep {
-      0%   { transform: rotate(-90deg); }
-      40%  { transform: rotate(-15deg); }
-      55%  { transform: rotate(-15deg); }
-      65%  { transform: rotate(5deg); }   /* slightly past limit — triggers "alert" */
-      75%  { transform: rotate(-15deg); } /* corrects */
-      100% { transform: rotate(-15deg); }
+      0% {
+        transform: rotate(-90deg);
+      }
+
+      40% {
+        transform: rotate(-15deg);
+      }
+
+      55% {
+        transform: rotate(-15deg);
+      }
+
+      65% {
+        transform: rotate(5deg);
+      }
+
+      /* slightly past limit — triggers "alert" */
+      75% {
+        transform: rotate(-15deg);
+      }
+
+      /* corrects */
+      100% {
+        transform: rotate(-15deg);
+      }
     }
+
     .needle-group {
       transform-origin: 150px 160px;
       animation: sweep 4s ease-in-out infinite;
     }
 
     /* ── Section shared ───────────────────────────────────────────────── */
-    section { padding: 96px 80px; }
+    section {
+      padding: 96px 80px;
+    }
+
     .section-eyebrow {
       font-family: var(--mono);
       font-size: 11px;
@@ -313,6 +417,7 @@
       color: var(--teal);
       margin-bottom: 12px;
     }
+
     .section-title {
       font-family: var(--display);
       font-size: clamp(28px, 4vw, 42px);
@@ -322,6 +427,7 @@
       letter-spacing: -.02em;
       margin-bottom: 16px;
     }
+
     .section-sub {
       font-size: 16px;
       color: var(--slate);
@@ -330,23 +436,37 @@
     }
 
     /* ── How it works ────────────────────────────────────────────────── */
-    .how-it-works { background: var(--off-white); }
-    .hiw-header { text-align: center; margin-bottom: 60px; }
-    .hiw-header .section-sub { margin: 0 auto; }
+    .how-it-works {
+      background: var(--off-white);
+    }
+
+    .hiw-header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .hiw-header .section-sub {
+      margin: 0 auto;
+    }
+
     .steps {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 2px;
       position: relative;
     }
+
     .steps::before {
       content: '';
       position: absolute;
-      top: 36px; left: 10%; right: 10%;
+      top: 36px;
+      left: 10%;
+      right: 10%;
       height: 1px;
       background: linear-gradient(90deg, var(--teal) 0%, var(--teal-light) 100%);
       z-index: 0;
     }
+
     .step {
       background: var(--white);
       border: 1px solid var(--border);
@@ -357,9 +477,15 @@
       z-index: 1;
       transition: transform .2s, box-shadow .2s;
     }
-    .step:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(12,26,53,.08); }
+
+    .step:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(var(--navy-rgb), .08);
+    }
+
     .step-num {
-      width: 52px; height: 52px;
+      width: 52px;
+      height: 52px;
       background: var(--teal);
       border-radius: 50%;
       font-family: var(--mono);
@@ -372,11 +498,13 @@
       margin: 0 auto 20px;
       border: 4px solid var(--off-white);
     }
+
     .step-icon {
       font-size: 28px;
       margin-bottom: 12px;
       display: block;
     }
+
     .step-title {
       font-family: var(--display);
       font-size: 16px;
@@ -384,7 +512,12 @@
       color: var(--navy);
       margin-bottom: 8px;
     }
-    .step-desc { font-size: 14px; color: var(--slate); line-height: 1.6; }
+
+    .step-desc {
+      font-size: 14px;
+      color: var(--slate);
+      line-height: 1.6;
+    }
 
     /* ── Safety callout ──────────────────────────────────────────────── */
     .safety-callout {
@@ -392,12 +525,18 @@
       text-align: center;
       padding: 80px;
     }
-    .safety-callout-inner { max-width: 700px; margin: 0 auto; }
+
+    .safety-callout-inner {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
     .safety-icon {
       font-size: 48px;
       margin-bottom: 24px;
       display: block;
     }
+
     .safety-title {
       font-family: var(--display);
       font-size: clamp(24px, 4vw, 40px);
@@ -406,14 +545,25 @@
       line-height: 1.2;
       margin-bottom: 16px;
     }
-    .safety-title .red-word { color: #f87171; }
-    .safety-desc { font-size: 16px; color: rgba(255,255,255,.6); line-height: 1.7; margin-bottom: 32px; }
+
+    .safety-title .red-word {
+      color: #f87171;
+    }
+
+    .safety-desc {
+      font-size: 16px;
+      color: rgba(255, 255, 255, .6);
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+
     .safety-tags {
       display: flex;
       justify-content: center;
       gap: 12px;
       flex-wrap: wrap;
     }
+
     .safety-tag {
       padding: 6px 16px;
       border-radius: 100px;
@@ -422,30 +572,50 @@
       font-weight: 600;
       letter-spacing: .05em;
     }
-    .safety-tag.teal { background: rgba(13,148,136,.2); color: var(--teal-light); border: 1px solid rgba(13,148,136,.4); }
-    .safety-tag.red  { background: rgba(220,38,38,.2);  color: #fca5a5;           border: 1px solid rgba(220,38,38,.4);  }
+
+    .safety-tag.teal {
+      background: rgba(var(--teal-rgb), .2);
+      color: var(--teal-light);
+      border: 1px solid rgba(var(--teal-rgb), .4);
+    }
+
+    .safety-tag.red {
+      background: rgba(220, 38, 38, .2);
+      color: #fca5a5;
+      border: 1px solid rgba(220, 38, 38, .4);
+    }
 
     /* ── Features ────────────────────────────────────────────────────── */
-    .features { background: var(--white); }
-    .features-header { margin-bottom: 52px; }
+    .features {
+      background: var(--white);
+    }
+
+    .features-header {
+      margin-bottom: 52px;
+    }
+
     .features-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 20px;
     }
+
     .feature-card {
       border: 1px solid var(--border);
       border-radius: 14px;
       padding: 28px;
       transition: border-color .2s, box-shadow .2s;
     }
+
     .feature-card:hover {
       border-color: var(--teal);
-      box-shadow: 0 4px 24px rgba(13,148,136,.08);
+      box-shadow: 0 4px 24px rgba(var(--teal-rgb), .08);
     }
+
     .feature-icon {
-      width: 44px; height: 44px;
-      background: rgba(13,148,136,.1);
+      width: 44px;
+      height: 44px;
+      background: rgba(var(--teal-rgb), .1);
       border-radius: 10px;
       display: flex;
       align-items: center;
@@ -453,6 +623,7 @@
       font-size: 20px;
       margin-bottom: 16px;
     }
+
     .feature-title {
       font-family: var(--display);
       font-size: 16px;
@@ -460,7 +631,13 @@
       color: var(--navy);
       margin-bottom: 8px;
     }
-    .feature-desc { font-size: 14px; color: var(--slate); line-height: 1.65; }
+
+    .feature-desc {
+      font-size: 14px;
+      color: var(--slate);
+      line-height: 1.65;
+    }
+
     .feature-tag {
       display: inline-block;
       margin-top: 12px;
@@ -469,7 +646,7 @@
       letter-spacing: .08em;
       text-transform: uppercase;
       color: var(--teal);
-      background: rgba(13,148,136,.08);
+      background: rgba(var(--teal-rgb), .08);
       border-radius: 4px;
       padding: 2px 8px;
     }
@@ -479,17 +656,20 @@
       background: var(--navy);
       padding: 64px 80px;
     }
+
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 1px;
-      background: rgba(255,255,255,.08);
+      background: rgba(255, 255, 255, .08);
     }
+
     .stat {
       background: var(--navy);
       padding: 32px;
       text-align: center;
     }
+
     .stat-val {
       font-family: var(--mono);
       font-size: 44px;
@@ -498,14 +678,20 @@
       letter-spacing: -.02em;
       display: block;
     }
-    .stat-label { font-size: 14px; color: rgba(255,255,255,.5); margin-top: 4px; }
+
+    .stat-label {
+      font-size: 14px;
+      color: rgba(255, 255, 255, .5);
+      margin-top: 4px;
+    }
 
     /* ── CTA ─────────────────────────────────────────────────────────── */
     .cta-section {
-      background: linear-gradient(135deg, var(--teal) 0%, #0891b2 100%);
+      background: linear-gradient(135deg, var(--teal) 0%, var(--blue) 100%);
       text-align: center;
       padding: 96px 80px;
     }
+
     .cta-title {
       font-family: var(--display);
       font-size: clamp(28px, 4vw, 44px);
@@ -513,7 +699,13 @@
       color: var(--white);
       margin-bottom: 14px;
     }
-    .cta-sub { font-size: 17px; color: rgba(255,255,255,.8); margin-bottom: 36px; }
+
+    .cta-sub {
+      font-size: 17px;
+      color: rgba(255, 255, 255, .8);
+      margin-bottom: 36px;
+    }
+
     .btn-cta {
       display: inline-flex;
       align-items: center;
@@ -527,9 +719,13 @@
       font-size: 16px;
       font-weight: 700;
       transition: transform .15s, box-shadow .2s;
-      box-shadow: 0 4px 20px rgba(0,0,0,.2);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, .2);
     }
-    .btn-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,.25); }
+
+    .btn-cta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, .25);
+    }
 
     /* ── Footer ──────────────────────────────────────────────────────── */
     footer {
@@ -540,7 +736,9 @@
       gap: 40px;
       align-items: start;
     }
-    .footer-brand { }
+
+    .footer-brand {}
+
     .footer-logo {
       font-family: var(--display);
       font-size: 20px;
@@ -548,32 +746,55 @@
       color: var(--white);
       margin-bottom: 10px;
     }
-    .footer-tagline { font-size: 13px; color: rgba(255,255,255,.4); line-height: 1.6; max-width: 300px; }
+
+    .footer-tagline {
+      font-size: 13px;
+      color: rgba(255, 255, 255, .4);
+      line-height: 1.6;
+      max-width: 300px;
+    }
+
     .footer-disclaimer {
       font-size: 11px;
-      color: rgba(255,255,255,.25);
+      color: rgba(255, 255, 255, .25);
       line-height: 1.6;
       margin-top: 16px;
       font-style: italic;
     }
-    .footer-links { display: flex; justify-content: flex-end; gap: 40px; }
+
+    .footer-links {
+      display: flex;
+      justify-content: flex-end;
+      gap: 40px;
+    }
+
     .footer-col h5 {
       font-family: var(--mono);
       font-size: 10px;
       letter-spacing: .12em;
       text-transform: uppercase;
-      color: rgba(255,255,255,.35);
+      color: rgba(255, 255, 255, .35);
       margin-bottom: 12px;
     }
-    .footer-col ul { list-style: none; }
-    .footer-col li { margin-bottom: 8px; }
+
+    .footer-col ul {
+      list-style: none;
+    }
+
+    .footer-col li {
+      margin-bottom: 8px;
+    }
+
     .footer-col a {
       font-size: 13px;
-      color: rgba(255,255,255,.5);
+      color: rgba(255, 255, 255, .5);
       text-decoration: none;
       transition: color .2s;
     }
-    .footer-col a:hover { color: var(--white); }
+
+    .footer-col a:hover {
+      color: var(--white);
+    }
 
     /* ── Scroll reveal ───────────────────────────────────────────────── */
     .reveal {
@@ -581,344 +802,328 @@
       transform: translateY(24px);
       transition: opacity .6s ease, transform .6s ease;
     }
-    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
 
     /* ── Responsive ──────────────────────────────────────────────────── */
     @media (max-width: 1024px) {
-      .hero { grid-template-columns: 1fr; padding: 100px 40px 60px; }
-      .gauge-wrapper { display: none; }
-      section { padding: 72px 40px; }
-      .steps { grid-template-columns: 1fr 1fr; }
-      .steps::before { display: none; }
-      .features-grid { grid-template-columns: 1fr 1fr; }
-      .stats-grid { grid-template-columns: 1fr 1fr; }
-      footer { grid-template-columns: 1fr; }
-      .footer-links { justify-content: flex-start; }
+      .hero {
+        grid-template-columns: 1fr;
+        padding: 100px 40px 60px;
+      }
+
+      .gauge-wrapper {
+        display: none;
+      }
+
+      section {
+        padding: 72px 40px;
+      }
+
+      .steps {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .steps::before {
+        display: none;
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      footer {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-links {
+        justify-content: flex-start;
+      }
     }
+
     @media (max-width: 640px) {
-      nav { padding: 16px 20px; }
-      .nav-links { display: none; }
-      .hero { padding: 90px 24px 48px; }
-      section { padding: 56px 24px; }
-      .steps { grid-template-columns: 1fr; }
-      .features-grid { grid-template-columns: 1fr; }
-      .stats-grid { grid-template-columns: 1fr 1fr; }
-      .stats { padding: 48px 24px; }
-      .safety-callout, .cta-section { padding: 60px 24px; }
-      footer { padding: 40px 24px; }
+      nav {
+        padding: 16px 20px;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .hero {
+        padding: 90px 24px 48px;
+      }
+
+      section {
+        padding: 56px 24px;
+      }
+
+      .steps {
+        grid-template-columns: 1fr;
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .stats {
+        padding: 48px 24px;
+      }
+
+      .safety-callout,
+      .cta-section {
+        padding: 60px 24px;
+      }
+
+      footer {
+        padding: 40px 24px;
+      }
     }
   </style>
 </head>
+
 <body>
 
-<!-- ── Nav ──────────────────────────────────────────────────────────────── -->
-<nav id="nav">
-  <a href="index.html" class="nav-logo">
-    <span class="nav-logo-mark">🦴</span>
-    PhysioAI
-  </a>
-  <ul class="nav-links">
-    <li><a href="#how-it-works">How it works</a></li>
-    <li><a href="#features">Features</a></li>
-    <li><a href="#safety">Safety</a></li>
-  </ul>
-  <div class="nav-actions">
-    <a href="login.html" class="btn-ghost">Log in</a>
-    <a href="login.html" class="btn-primary">Get started →</a>
-  </div>
-</nav>
-
-<!-- ── Hero ─────────────────────────────────────────────────────────────── -->
-<section class="hero">
-  <div class="hero-content">
-    <div class="hero-eyebrow">
-      <span class="hero-eyebrow-dot"></span>
-      AI-Assisted Knee Rehabilitation
+  <!-- ── Nav ──────────────────────────────────────────────────────────────── -->
+  <nav id="nav">
+    <a href="index.html" class="nav-logo">
+      <img src="logo.png" alt="Knee-Physiotherapy Logo" class="nav-logo-img">
+      Knee-Physiotherapy
+    </a>
+    <ul class="nav-links">
+      <li><a href="#how-it-works">How it works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#safety">Safety</a></li>
+    </ul>
+    <div class="nav-actions">
+      <a href="login.html" class="btn-ghost">Log in</a>
+      <a href="login.html" class="btn-primary">Get started</a>
     </div>
-    <h1 class="hero-title">
-      Recovery guided<br>
-      by your <span class="accent">X-ray</span>
-    </h1>
-    <p class="hero-sub">
-      Upload your knee X-ray. Enter your surgery details. Get a personalised exercise programme — then follow along as the system watches your knee angle in real time and alerts you the moment you go too far.
-    </p>
-    <div class="hero-actions">
-      <a href="login.html" class="btn-hero-primary">
-        Get started free →
-      </a>
-      <a href="#how-it-works" class="btn-hero-secondary">
-        See how it works
-      </a>
-    </div>
-  </div>
+  </nav>
 
-  <!-- Angle Gauge — the signature element -->
-  <div class="gauge-wrapper">
-    <div class="gauge-card">
-      <div class="gauge-label">Live Angle Monitor</div>
-
-      <svg class="gauge-svg" viewBox="0 0 300 175" xmlns="http://www.w3.org/2000/svg">
-        <!-- Background arc -->
-        <path d="M 20 160 A 130 130 0 0 1 280 160" fill="none" stroke="#1e3a6e" stroke-width="22" stroke-linecap="round"/>
-        <!-- Safe zone: 0° to 90° (right to top) -->
-        <path d="M 280 160 A 130 130 0 0 0 150 30" fill="none" stroke="#0d9488" stroke-width="22" stroke-linecap="round"/>
-        <!-- Danger zone: 90° to 180° (top to left) -->
-        <path d="M 150 30 A 130 130 0 0 0 20 160" fill="none" stroke="#dc2626" stroke-width="22" stroke-linecap="round" opacity="0.5"/>
-        <!-- Limit marker at 90° -->
-        <line x1="150" y1="18" x2="150" y2="42" stroke="#ffffff" stroke-width="2.5" opacity="0.8"/>
-        <text x="150" y="12" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9" fill="rgba(255,255,255,0.5)" letter-spacing="1">X-RAY LIMIT</text>
-        <!-- Degree labels -->
-        <text x="280" y="178" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="rgba(255,255,255,0.4)">0°</text>
-        <text x="20" y="178" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="rgba(255,255,255,0.4)">180°</text>
-        <text x="150" y="52" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="rgba(13,148,136,0.8)">90°</text>
-        <!-- Needle (animated) -->
-        <g class="needle-group">
-          <line x1="150" y1="160" x2="268" y2="116" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
-          <circle cx="150" cy="160" r="7" fill="#ffffff"/>
-          <circle cx="150" cy="160" r="4" fill="#0d9488"/>
-        </g>
-      </svg>
-
-      <div class="gauge-reading" id="gauge-num">67°</div>
-      <div class="gauge-reading-label">Current knee angle</div>
-      <div class="gauge-limit-badge">
-        ⚠ Limit: 90° (KL Grade 2)
+  <!-- ── Hero ─────────────────────────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-eyebrow">
+        <span class="hero-eyebrow-dot"></span>
+        AI-Assisted Knee Rehabilitation
       </div>
-
-      <div class="gauge-meta">
-        <div class="gauge-meta-item">
-          <div class="gauge-meta-value" style="color: #5eead4">Grade 2</div>
-          <div class="gauge-meta-key">KL Grade</div>
-        </div>
-        <div class="gauge-meta-item">
-          <div class="gauge-meta-value">60/100</div>
-          <div class="gauge-meta-key">Health Score</div>
-        </div>
-        <div class="gauge-meta-item">
-          <div class="gauge-meta-value" style="color: #5eead4">Phase II</div>
-          <div class="gauge-meta-key">Protocol</div>
-        </div>
+      <h1 class="hero-title">
+        Recovery guided<br>
+        by your <span class="accent">X-ray</span>
+      </h1>
+      <p class="hero-sub">
+        Upload your knee X-ray. Enter your surgery details. Get a personalised exercise programme — then follow along as
+        the system watches your knee angle in real time and alerts you the moment you go too far.
+      </p>
+      <div class="hero-actions">
+        <a href="login.html" class="btn-hero-primary">
+          Get started free →
+        </a>
+        <a href="#how-it-works" class="btn-hero-secondary">
+          See how it works
+        </a>
       </div>
     </div>
-  </div>
-</section>
 
-<!-- ── How it works ──────────────────────────────────────────────────────── -->
-<section class="how-it-works" id="how-it-works">
-  <div class="hiw-header reveal">
-    <div class="section-eyebrow">Process</div>
-    <h2 class="section-title">Four steps to safer recovery</h2>
-    <p class="section-sub">From X-ray to guided exercise in minutes. Every step is informed by your specific imaging and surgery history.</p>
-  </div>
+    <!-- Angle Gauge — the signature element -->
+    <div class="gauge-wrapper">
+      <div class="gauge-card">
+        <div class="gauge-label">Live Angle Monitor</div>
 
-  <div class="steps">
-    <div class="step reveal">
-      <div class="step-num">1</div>
-      <span class="step-icon">🩻</span>
-      <div class="step-title">Upload your X-ray</div>
-      <p class="step-desc">Photograph or scan your knee X-ray and upload it. Tell us which knee — left, right, or both.</p>
-    </div>
-    <div class="step reveal">
-      <div class="step-num">2</div>
-      <span class="step-icon">📋</span>
-      <div class="step-title">Enter your surgery details</div>
-      <p class="step-desc">Select your procedure type — ACL reconstruction, TKR, meniscus repair, arthroscopy, or OA management — and how many weeks it's been.</p>
-    </div>
-    <div class="step reveal">
-      <div class="step-num">3</div>
-      <span class="step-icon">🎯</span>
-      <div class="step-title">Get your personalised plan</div>
-      <p class="step-desc">AI grades your X-ray (KL Grade 0–4) and combines it with your recovery stage to prescribe the right exercises — with safe angle limits for each.</p>
-    </div>
-    <div class="step reveal">
-      <div class="step-num">4</div>
-      <span class="step-icon">📹</span>
-      <div class="step-title">Exercise with live oversight</div>
-      <p class="step-desc">The webcam tracks your knee angle in real time. Go past your limit and the screen turns red with an audible alarm — instantly.</p>
-    </div>
-  </div>
-</section>
+        <svg class="gauge-svg" viewBox="0 0 300 175" xmlns="http://www.w3.org/2000/svg">
+          <!-- Background arc -->
+          <path d="M 20 160 A 130 130 0 0 1 280 160" fill="none" stroke="var(--navy-mid)" stroke-width="22"
+            stroke-linecap="round" />
+          <!-- Safe zone: 0° to 90° (right to top) -->
+          <path d="M 280 160 A 130 130 0 0 0 150 30" fill="none" stroke="var(--teal)" stroke-width="22"
+            stroke-linecap="round" />
+          <!-- Danger zone: 90° to 180° (top to left) -->
+          <path d="M 150 30 A 130 130 0 0 0 20 160" fill="none" stroke="#dc2626" stroke-width="22"
+            stroke-linecap="round" opacity="0.5" />
+          <!-- Limit marker at 90° -->
+          <line x1="150" y1="18" x2="150" y2="42" stroke="#ffffff" stroke-width="2.5" opacity="0.8" />
+          <text x="150" y="12" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9"
+            fill="rgba(255,255,255,0.5)" letter-spacing="1">X-RAY LIMIT</text>
+          <!-- Degree labels -->
+          <text x="280" y="178" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11"
+            fill="rgba(255,255,255,0.4)">0°</text>
+          <text x="20" y="178" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11"
+            fill="rgba(255,255,255,0.4)">180°</text>
+          <text x="150" y="52" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11"
+            fill="rgba(var(--teal-rgb),0.8)">90°</text>
+          <!-- Needle (animated) -->
+          <g class="needle-group">
+            <line x1="150" y1="160" x2="268" y2="116" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+            <circle cx="150" cy="160" r="7" fill="#ffffff" />
+            <circle cx="150" cy="160" r="4" fill="var(--teal)" />
+          </g>
+        </svg>
 
-<!-- ── Safety callout ────────────────────────────────────────────────────── -->
-<section class="safety-callout" id="safety">
-  <div class="safety-callout-inner reveal">
-    <span class="safety-icon">🔴</span>
-    <h2 class="safety-title">
-      The moment you exceed the safe limit —<br>
-      your screen turns <span class="red-word">red</span> and the alarm sounds.
-    </h2>
-    <p class="safety-desc">
-      Every exercise has its own angle limit — derived from your X-ray severity and your recovery protocol. The webcam tracker enforces it in real time at under 100ms latency. No delay. No guessing. No re-injury from going a degree too far.
-    </p>
-    <div class="safety-tags">
-      <span class="safety-tag teal">✓ Within safe range</span>
-      <span class="safety-tag red">⚠ Limit exceeded — stop</span>
-      <span class="safety-tag teal">✓ Auto-resumes when corrected</span>
-    </div>
-  </div>
-</section>
+        <div class="gauge-reading" id="gauge-num">67°</div>
+        <div class="gauge-reading-label">Current knee angle</div>
+        <div class="gauge-limit-badge">
+          ⚠ Limit: 90° (KL Grade 2)
+        </div>
 
-<!-- ── Features ──────────────────────────────────────────────────────────── -->
-<section class="features" id="features">
-  <div class="features-header reveal">
-    <div class="section-eyebrow">What it does</div>
-    <h2 class="section-title">Built on clinical logic, not guesswork</h2>
-    <p class="section-sub">Every feature in PhysioAI is grounded in a real clinical rule. Nothing is invented.</p>
-  </div>
+        <div class="gauge-meta">
+          <div class="gauge-meta-item">
+            <div class="gauge-meta-value" style="color: var(--blue)">Grade 2</div>
+            <div class="gauge-meta-key">KL Grade</div>
+          </div>
+          <div class="gauge-meta-item">
+            <div class="gauge-meta-value">60/100</div>
+            <div class="gauge-meta-key">Health Score</div>
+          </div>
+          <div class="gauge-meta-item">
+            <div class="gauge-meta-value" style="color: var(--blue)">Phase II</div>
+            <div class="gauge-meta-key">Protocol</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  <div class="features-grid">
-    <div class="feature-card reveal">
-      <div class="feature-icon">🧠</div>
-      <div class="feature-title">AI KL Grade Classification</div>
-      <p class="feature-desc">EfficientNet-B4 trained on 12,000+ knee X-rays classifies your joint as KL Grade 0–4. Includes CLAHE preprocessing for X-ray contrast enhancement.</p>
-      <span class="feature-tag">ResNet → EfficientNet-B4</span>
+  <!-- ── How it works ──────────────────────────────────────────────────────── -->
+  <section class="how-it-works" id="how-it-works">
+    <div class="hiw-header reveal">
+      <div class="section-eyebrow">Process</div>
+      <h2 class="section-title">Four steps to safer recovery</h2>
+      <p class="section-sub">From X-ray to guided exercise in minutes. Every step is informed by your specific imaging
+        and surgery history.</p>
     </div>
-    <div class="feature-card reveal">
-      <div class="feature-icon">🔬</div>
-      <div class="feature-title">Surgery-Aware Protocols</div>
-      <p class="feature-desc">16 distinct exercise sets across ACL, TKR, meniscus repair, and arthroscopy — each phase gated by weeks since surgery, not by imaging alone.</p>
-      <span class="feature-tag">4 surgery types · 4 phases each</span>
-    </div>
-    <div class="feature-card reveal">
-      <div class="feature-icon">📐</div>
-      <div class="feature-title">The Two-Input Architecture</div>
-      <p class="feature-desc">The X-ray sets the ceiling. Your surgery stage selects the exercises. Neither input alone is enough. This is what separates PhysioAI from every other tool.</p>
-      <span class="feature-tag">Core clinical innovation</span>
-    </div>
-    <div class="feature-card reveal">
-      <div class="feature-icon">🎥</div>
-      <div class="feature-title">Real-Time Safety Lock</div>
-      <p class="feature-desc">MediaPipe BlazePose tracks hip, knee, and ankle landmarks at 24+ fps. The safety lock fires in under 100ms — red screen and audio alarm — when any limit is crossed.</p>
-      <span class="feature-tag">Sub-100ms latency</span>
-    </div>
-    <div class="feature-card reveal">
-      <div class="feature-icon">🏠</div>
-      <div class="feature-title">Runs Entirely On-Device</div>
-      <p class="feature-desc">No patient data is sent to any server after setup. Inference, angle tracking, and session storage all run locally. Safe for clinic deployment behind a firewall.</p>
-      <span class="feature-tag">No cloud dependency</span>
-    </div>
-    <div class="feature-card reveal">
-      <div class="feature-icon">📊</div>
-      <div class="feature-title">Progress Reports</div>
-      <p class="feature-desc">Every session logs your angle time-series and rep completion. Progress charts show your ROM improving over time. Export a PDF report for your physiotherapist.</p>
-      <span class="feature-tag">Physiotherapist-ready</span>
-    </div>
-  </div>
-</section>
 
-<!-- ── Stats ─────────────────────────────────────────────────────────────── -->
-<div class="stats">
-  <div class="stats-grid">
-    <div class="stat reveal">
-      <span class="stat-val">12k+</span>
-      <span class="stat-label">Training X-rays</span>
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-num">1</div>
+        <span class="step-icon">🩻</span>
+        <div class="step-title">Upload your X-ray</div>
+        <p class="step-desc">Photograph or scan your knee X-ray and upload it. Tell us which knee — left, right, or
+          both.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">2</div>
+        <span class="step-icon">📋</span>
+        <div class="step-title">Enter your surgery details</div>
+        <p class="step-desc">Select your procedure type — ACL reconstruction, TKR, meniscus repair, arthroscopy, or OA
+          management — and how many weeks it's been.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">3</div>
+        <span class="step-icon">🎯</span>
+        <div class="step-title">Get your personalised plan</div>
+        <p class="step-desc">AI grades your X-ray (KL Grade 0–4) and combines it with your recovery stage to prescribe
+          the right exercises — with safe angle limits for each.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">4</div>
+        <span class="step-icon">📹</span>
+        <div class="step-title">Exercise with live oversight</div>
+        <p class="step-desc">The webcam tracks your knee angle in real time. Go past your limit and the screen turns red
+          with an audible alarm — instantly.</p>
+      </div>
     </div>
-    <div class="stat reveal">
-      <span class="stat-val">16</span>
-      <span class="stat-label">Protocol sets</span>
-    </div>
-    <div class="stat reveal">
-      <span class="stat-val">58</span>
-      <span class="stat-label">Exercises</span>
-    </div>
-    <div class="stat reveal">
-      <span class="stat-val">&lt;100ms</span>
-      <span class="stat-label">Safety lock latency</span>
-    </div>
-  </div>
-</div>
+  </section>
 
-<!-- ── CTA ───────────────────────────────────────────────────────────────── -->
-<section class="cta-section">
-  <div class="reveal">
-    <h2 class="cta-title">Start your safer recovery today</h2>
-    <p class="cta-sub">No subscription. No cloud account. Just upload your X-ray and get started.</p>
-    <a href="login.html" class="btn-cta">Get started — it's free →</a>
-  </div>
-</section>
-
-<!-- ── Footer ────────────────────────────────────────────────────────────── -->
-<footer>
-  <div class="footer-brand">
-    <div class="footer-logo">🦴 PhysioAI</div>
-    <p class="footer-tagline">AI-assisted knee rehabilitation. Guided by your X-ray. Safe by design.</p>
-    <p class="footer-disclaimer">
-      ⚠️ PhysioAI is an informational wellness tool and is not a substitute for professional medical advice. Always consult your physiotherapist or surgeon before starting any exercise programme.
-    </p>
-  </div>
-  <div class="footer-links">
-    <div class="footer-col">
-      <h5>Product</h5>
-      <ul>
-        <li><a href="#how-it-works">How it works</a></li>
-        <li><a href="#features">Features</a></li>
-        <li><a href="#safety">Safety system</a></li>
-        <li><a href="login.html">Get started</a></li>
-      </ul>
+  <!-- ── Safety callout ────────────────────────────────────────────────────── -->
+  <section class="safety-callout" id="safety">
+    <div class="safety-callout-inner reveal">
+      <span class="safety-icon">🔴</span>
+      <h2 class="safety-title">
+        The moment you exceed the safe limit —<br>
+        your screen turns <span class="red-word">red</span> and the alarm sounds.
+      </h2>
+      <p class="safety-desc">
+        Every exercise has its own angle limit — derived from your X-ray severity and your recovery protocol. The webcam
+        tracker enforces it in real time at under 100ms latency. No delay. No guessing. No re-injury from going a degree
+        too far.
+      </p>
+      <div class="safety-tags">
+        <span class="safety-tag teal">✓ Within safe range</span>
+        <span class="safety-tag red">⚠ Limit exceeded — stop</span>
+        <span class="safety-tag teal">✓ Auto-resumes when corrected</span>
+      </div>
     </div>
-    <div class="footer-col">
-      <h5>Clinical</h5>
-      <ul>
-        <li><a href="#">KL Grading</a></li>
-        <li><a href="#">ACL Protocol</a></li>
-        <li><a href="#">TKR Protocol</a></li>
-        <li><a href="#">OA Management</a></li>
-      </ul>
+  </section>
+
+  <!-- ── CTA ───────────────────────────────────────────────────────────────── -->
+  <section class="cta-section">
+    <div class="reveal">
+      <h2 class="cta-title">Start your safer recovery today</h2>
+      <a href="login.html" class="btn-cta">Get started →</a>
     </div>
-  </div>
-</footer>
+  </section>
 
-<script>
-  // Nav becomes solid on scroll
-  const nav = document.getElementById('nav');
-  window.addEventListener('scroll', () => {
-    nav.classList.toggle('solid', window.scrollY > 60);
-  });
+  <!-- ── Footer ────────────────────────────────────────────────────────────── -->
+  <footer>
+    <div class="footer-brand">
 
-  // Scroll reveal with IntersectionObserver
-  const reveals = document.querySelectorAll('.reveal');
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry, i) => {
-      if (entry.isIntersecting) {
-        // Stagger delay for siblings
-        const siblings = Array.from(entry.target.parentElement.querySelectorAll('.reveal'));
-        const idx = siblings.indexOf(entry.target);
-        entry.target.style.transitionDelay = `${idx * 80}ms`;
-        entry.target.classList.add('visible');
-        observer.unobserve(entry.target);
-      }
+    </div>
+  </footer>
+
+  <script>
+    // Nav becomes solid on scroll
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('solid', window.scrollY > 60);
     });
-  }, { threshold: 0.12 });
-  reveals.forEach(el => observer.observe(el));
 
-  // Animate gauge reading number to match needle
-  const gaugeNum = document.getElementById('gauge-num');
-  let angle = 0;
-  const targets = [67, 67, 67, 88, 92, 67, 67]; // mirrors the CSS animation keyframes
-  const durations = [0, 1600, 2200, 2600, 3000, 3400, 4000];
-  function animateGauge() {
-    const totalDur = 4000;
-    let start = null;
-    function step(ts) {
-      if (!start) start = ts;
-      const elapsed = (ts - start) % totalDur;
-      let currentAngle = 67;
-      for (let i = durations.length - 1; i >= 0; i--) {
-        if (elapsed >= durations[i]) {
-          const nextIdx = Math.min(i + 1, targets.length - 1);
-          const progress = (elapsed - durations[i]) / Math.max(1, durations[nextIdx] - durations[i]);
-          currentAngle = Math.round(targets[i] + (targets[nextIdx] - targets[i]) * Math.min(progress, 1));
-          break;
+    // Scroll reveal with IntersectionObserver
+    const reveals = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          // Stagger delay for siblings
+          const siblings = Array.from(entry.target.parentElement.querySelectorAll('.reveal'));
+          const idx = siblings.indexOf(entry.target);
+          entry.target.style.transitionDelay = `${idx * 80}ms`;
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
         }
+      });
+    }, { threshold: 0.12 });
+    reveals.forEach(el => observer.observe(el));
+
+    // Animate gauge reading number to match needle
+    const gaugeNum = document.getElementById('gauge-num');
+    let angle = 0;
+    const targets = [67, 67, 67, 88, 92, 67, 67]; // mirrors the CSS animation keyframes
+    const durations = [0, 1600, 2200, 2600, 3000, 3400, 4000];
+    function animateGauge() {
+      const totalDur = 4000;
+      let start = null;
+      function step(ts) {
+        if (!start) start = ts;
+        const elapsed = (ts - start) % totalDur;
+        let currentAngle = 67;
+        for (let i = durations.length - 1; i >= 0; i--) {
+          if (elapsed >= durations[i]) {
+            const nextIdx = Math.min(i + 1, targets.length - 1);
+            const progress = (elapsed - durations[i]) / Math.max(1, durations[nextIdx] - durations[i]);
+            currentAngle = Math.round(targets[i] + (targets[nextIdx] - targets[i]) * Math.min(progress, 1));
+            break;
+          }
+        }
+        gaugeNum.textContent = currentAngle + '°';
+        // Change color if over limit
+        gaugeNum.style.color = currentAngle >= 90 ? '#fca5a5' : '#ffffff';
+        requestAnimationFrame(step);
       }
-      gaugeNum.textContent = currentAngle + '°';
-      // Change color if over limit
-      gaugeNum.style.color = currentAngle >= 90 ? '#fca5a5' : '#ffffff';
       requestAnimationFrame(step);
     }
-    requestAnimationFrame(step);
-  }
-  animateGauge();
-</script>
+    animateGauge();
+  </script>
 </body>
+
 </html>

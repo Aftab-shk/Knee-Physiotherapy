@@ -1,30 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Exercise Tracker — PhysioAI</title>
+  <title>Exercise Tracker — Knee-Physiotherapy</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet">
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     :root {
-      --navy:       #0c1a35;
-      --teal:       #0d9488;
-      --teal-light: #14b8a6;
+      --navy:       #132733;
+      --navy-rgb:   19, 39, 51;
+      --navy-mid:   #1f3949;
+      --navy-mid-rgb: 31, 57, 73;
+      --blue:       #629bb5;
+      --blue-rgb:   98, 155, 182;
+      --teal:       #447f98;
+      --teal-rgb:   68, 127, 152;
+      --teal-light: #629bb5;
+      --teal-light-rgb: 98, 155, 182;
       --red:        #dc2626;
       --white:      #ffffff;
-      --off-white:  #f4f8ff;
-      --border:     #dde8f5;
-      --slate:      #64748b;
-      --text:       #1e2d4a;
+      --off-white:  #d6ebf3; /* Ice Blue */
+      --border:     #dadee1; /* Platinum */
+      --slate:      #5a7380;
+      --text:       #1b2f3a;
       --mono:       'JetBrains Mono', monospace;
       --display:    'Space Grotesk', sans-serif;
       --body:       'Plus Jakarta Sans', sans-serif;
     }
 
-    html, body { height: 100%; }
+    html,
+    body {
+      height: 100%;
+    }
+
     body {
       font-family: var(--body);
       color: var(--text);
@@ -35,7 +55,7 @@
     /* ── Top bar ─────────────────────────────────────────────────────── */
     .topbar {
       height: 56px;
-      background: rgba(0,0,0,.3);
+      background: rgba(0, 0, 0, .3);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -43,9 +63,15 @@
       position: relative;
       z-index: 50;
     }
-    .topbar-left { display: flex; align-items: center; gap: 16px; }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
     .back-btn {
-      color: rgba(255,255,255,.7);
+      color: rgba(255, 255, 255, .7);
       text-decoration: none;
       font-size: 14px;
       display: flex;
@@ -53,20 +79,30 @@
       gap: 6px;
       transition: color .2s;
     }
-    .back-btn:hover { color: var(--white); }
+
+    .back-btn:hover {
+      color: var(--white);
+    }
+
     .exercise-title {
       font-family: var(--display);
       font-size: 16px;
       font-weight: 600;
       color: var(--white);
     }
-    .topbar-right { display: flex; align-items: center; gap: 16px; }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
     .phase-chip {
       font-family: var(--mono);
       font-size: 11px;
       color: var(--teal-light);
-      background: rgba(13,148,136,.15);
-      border: 1px solid rgba(13,148,136,.3);
+      background: rgba(var(--teal-rgb),.15);
+      border: 1px solid rgba(var(--teal-rgb),.3);
       border-radius: 100px;
       padding: 4px 12px;
     }
@@ -84,15 +120,21 @@
 
     #video {
       position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       object-fit: cover;
-      transform: scaleX(-1); /* mirror like a real mirror */
+      transform: scaleX(-1);
+      /* mirror like a real mirror */
     }
+
     #overlay-canvas {
       position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       transform: scaleX(-1);
       pointer-events: none;
     }
@@ -101,7 +143,7 @@
     .pre-start {
       position: absolute;
       inset: 0;
-      background: rgba(12,26,53,.92);
+      background: rgba(var(--navy-rgb),.92);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -110,8 +152,16 @@
       text-align: center;
       padding: 24px;
     }
-    .pre-start.hidden { display: none; }
-    .pre-start-icon { font-size: 56px; margin-bottom: 20px; }
+
+    .pre-start.hidden {
+      display: none;
+    }
+
+    .pre-start-icon {
+      font-size: 56px;
+      margin-bottom: 20px;
+    }
+
     .pre-start-title {
       font-family: var(--display);
       font-size: 24px;
@@ -119,19 +169,21 @@
       color: var(--white);
       margin-bottom: 10px;
     }
+
     .pre-start-desc {
       font-size: 15px;
-      color: rgba(255,255,255,.6);
+      color: rgba(255, 255, 255, .6);
       max-width: 420px;
       line-height: 1.7;
       margin-bottom: 28px;
     }
+
     .pre-start-limit {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      background: rgba(13,148,136,.15);
-      border: 1px solid rgba(13,148,136,.35);
+      background: rgba(var(--teal-rgb),.15);
+      border: 1px solid rgba(var(--teal-rgb),.35);
       border-radius: 10px;
       padding: 10px 20px;
       font-family: var(--mono);
@@ -139,6 +191,7 @@
       color: var(--teal-light);
       margin-bottom: 28px;
     }
+
     .btn-start-cam {
       padding: 14px 32px;
       background: var(--teal);
@@ -151,35 +204,54 @@
       cursor: pointer;
       transition: background .2s, transform .15s;
     }
-    .btn-start-cam:hover { background: var(--teal-light); transform: translateY(-1px); }
+
+    .btn-start-cam:hover {
+      background: var(--teal-light);
+      transform: translateY(-1px);
+    }
+
     .cam-permission-note {
       margin-top: 16px;
       font-size: 12px;
-      color: rgba(255,255,255,.4);
+      color: rgba(255, 255, 255, .4);
     }
 
     /* ── Loading state (model downloading) ──────────────────────────── */
     .model-loading {
       position: absolute;
       inset: 0;
-      background: rgba(12,26,53,.92);
+      background: rgba(var(--navy-rgb),.92);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       z-index: 45;
     }
-    .model-loading.hidden { display: none; }
+
+    .model-loading.hidden {
+      display: none;
+    }
+
     .loading-spinner-cam {
-      width: 44px; height: 44px;
-      border: 3px solid rgba(255,255,255,.15);
+      width: 44px;
+      height: 44px;
+      border: 3px solid rgba(255, 255, 255, .15);
       border-top-color: var(--teal);
       border-radius: 50%;
       animation: spin .8s linear infinite;
       margin-bottom: 18px;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .model-loading-text { color: rgba(255,255,255,.6); font-size: 14px; }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .model-loading-text {
+      color: rgba(255, 255, 255, .6);
+      font-size: 14px;
+    }
 
     /* ── HUD (heads-up display) ──────────────────────────────────────── */
     .hud {
@@ -192,7 +264,10 @@
       justify-content: space-between;
       padding: 20px;
     }
-    .hud.hidden { display: none; }
+
+    .hud.hidden {
+      display: none;
+    }
 
     .hud-top {
       display: flex;
@@ -202,13 +277,14 @@
 
     /* Angle readout card */
     .angle-card {
-      background: rgba(0,0,0,.55);
+      background: rgba(0, 0, 0, .55);
       backdrop-filter: blur(8px);
       border-radius: 16px;
       padding: 16px 22px;
       text-align: center;
       min-width: 140px;
     }
+
     .angle-value {
       font-family: var(--mono);
       font-size: 40px;
@@ -217,24 +293,32 @@
       line-height: 1;
       transition: color .15s;
     }
-    .angle-value.warning { color: #fbbf24; }
-    .angle-value.danger  { color: #fca5a5; }
+
+    .angle-value.warning {
+      color: #fbbf24;
+    }
+
+    .angle-value.danger {
+      color: #fca5a5;
+    }
+
     .angle-sub {
       font-size: 11px;
-      color: rgba(255,255,255,.5);
+      color: rgba(255, 255, 255, .5);
       margin-top: 4px;
       font-family: var(--mono);
     }
 
     /* Limit card */
     .limit-card {
-      background: rgba(0,0,0,.55);
+      background: rgba(0, 0, 0, .55);
       backdrop-filter: blur(8px);
       border-radius: 16px;
       padding: 16px 22px;
       text-align: center;
       min-width: 140px;
     }
+
     .limit-value {
       font-family: var(--mono);
       font-size: 28px;
@@ -242,9 +326,10 @@
       color: var(--teal-light);
       line-height: 1;
     }
+
     .limit-sub {
       font-size: 11px;
-      color: rgba(255,255,255,.5);
+      color: rgba(255, 255, 255, .5);
       margin-top: 4px;
       font-family: var(--mono);
     }
@@ -252,46 +337,67 @@
     /* Rep counter (bottom center) */
     .rep-card {
       align-self: center;
-      background: rgba(0,0,0,.55);
+      background: rgba(0, 0, 0, .55);
       backdrop-filter: blur(8px);
       border-radius: 16px;
       padding: 14px 32px;
       text-align: center;
       pointer-events: auto;
     }
+
     .rep-value {
       font-family: var(--mono);
       font-size: 22px;
       font-weight: 600;
       color: var(--white);
     }
+
     .rep-sub {
       font-size: 11px;
-      color: rgba(255,255,255,.5);
+      color: rgba(255, 255, 255, .5);
       margin-top: 2px;
     }
+
     .set-progress {
       display: flex;
       gap: 5px;
       justify-content: center;
       margin-top: 8px;
     }
+
     .set-dot {
-      width: 8px; height: 8px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
-      background: rgba(255,255,255,.2);
+      background: rgba(255, 255, 255, .2);
     }
-    .set-dot.done { background: var(--teal-light); }
-    .set-dot.current { background: var(--white); }
+
+    .set-dot.done {
+      background: var(--teal-light);
+    }
+
+    .set-dot.current {
+      background: var(--white);
+    }
 
     /* Hold timer ring (for isometric exercises) */
     .hold-ring-wrap {
       position: relative;
-      width: 90px; height: 90px;
+      width: 90px;
+      height: 90px;
       margin: 0 auto 6px;
     }
-    .hold-ring-svg { transform: rotate(-90deg); }
-    .hold-ring-bg { fill: none; stroke: rgba(255,255,255,.15); stroke-width: 6; }
+
+    .hold-ring-svg {
+      transform: rotate(-90deg);
+    }
+
+    .hold-ring-bg {
+      fill: none;
+      stroke: rgba(255, 255, 255, .15);
+      stroke-width: 6;
+    }
+
     .hold-ring-fg {
       fill: none;
       stroke: var(--teal-light);
@@ -299,6 +405,7 @@
       stroke-linecap: round;
       transition: stroke-dashoffset .1s linear;
     }
+
     .hold-ring-text {
       position: absolute;
       inset: 0;
@@ -319,20 +426,28 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      background: rgba(0,0,0,.5);
+      background: rgba(0, 0, 0, .5);
       border-radius: 100px;
       padding: 6px 14px;
       font-size: 11px;
-      color: rgba(255,255,255,.6);
+      color: rgba(255, 255, 255, .6);
       pointer-events: none;
     }
+
     .tracking-dot {
-      width: 7px; height: 7px;
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
       background: #22c55e;
     }
-    .tracking-dot.poor { background: #fbbf24; }
-    .tracking-dot.lost { background: #ef4444; }
+
+    .tracking-dot.poor {
+      background: #fbbf24;
+    }
+
+    .tracking-dot.lost {
+      background: #ef4444;
+    }
 
     /* ── SAFETY ALERT — full red screen ──────────────────────────────── */
     .safety-overlay {
@@ -347,29 +462,43 @@
       text-align: center;
       padding: 24px;
     }
+
     .safety-overlay.active {
       display: flex;
       animation: safetyPulse 0.25s ease-in-out infinite alternate;
     }
+
     @keyframes safetyPulse {
-      from { background: rgba(220, 38, 38, 0.6); }
-      to   { background: rgba(220, 38, 38, 0.9); }
+      from {
+        background: rgba(220, 38, 38, 0.6);
+      }
+
+      to {
+        background: rgba(220, 38, 38, 0.9);
+      }
     }
-    .safety-icon-big { font-size: 64px; margin-bottom: 16px; }
+
+    .safety-icon-big {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+
     .safety-text-main {
       color: white;
       font-family: var(--display);
       font-size: clamp(24px, 5vw, 40px);
       font-weight: 800;
       text-align: center;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
       margin-bottom: 10px;
     }
+
     .safety-text-sub {
-      color: rgba(255,255,255,0.95);
+      color: rgba(255, 255, 255, 0.95);
       font-size: 16px;
       font-family: var(--mono);
     }
+
     .safety-angle-readout {
       margin-top: 20px;
       font-family: var(--mono);
@@ -386,15 +515,20 @@
       align-items: center;
       gap: 12px;
     }
-    .paused-panel.visible { display: flex; }
+
+    .paused-panel.visible {
+      display: flex;
+    }
+
     .paused-label {
       font-family: var(--mono);
       font-size: 13px;
-      color: rgba(255,255,255,.9);
-      background: rgba(0,0,0,.25);
+      color: rgba(255, 255, 255, .9);
+      background: rgba(0, 0, 0, .25);
       padding: 6px 16px;
       border-radius: 100px;
     }
+
     .btn-resume {
       padding: 12px 32px;
       background: white;
@@ -407,13 +541,16 @@
       cursor: pointer;
       transition: transform .15s;
     }
-    .btn-resume:hover { transform: translateY(-1px) scale(1.02); }
+
+    .btn-resume:hover {
+      transform: translateY(-1px) scale(1.02);
+    }
 
     /* ── Completion panel ────────────────────────────────────────────── */
     .complete-panel {
       position: absolute;
       inset: 0;
-      background: rgba(12,26,53,.95);
+      background: rgba(var(--navy-rgb),.95);
       display: none;
       flex-direction: column;
       align-items: center;
@@ -422,8 +559,16 @@
       text-align: center;
       padding: 24px;
     }
-    .complete-panel.visible { display: flex; }
-    .complete-icon { font-size: 56px; margin-bottom: 16px; }
+
+    .complete-panel.visible {
+      display: flex;
+    }
+
+    .complete-icon {
+      font-size: 56px;
+      margin-bottom: 16px;
+    }
+
     .complete-title {
       font-family: var(--display);
       font-size: 26px;
@@ -431,24 +576,36 @@
       color: var(--white);
       margin-bottom: 8px;
     }
+
     .complete-stats {
       display: flex;
       gap: 32px;
       margin: 24px 0;
     }
-    .complete-stat { text-align: center; }
+
+    .complete-stat {
+      text-align: center;
+    }
+
     .complete-stat-val {
       font-family: var(--mono);
       font-size: 28px;
       font-weight: 600;
       color: var(--teal-light);
     }
+
     .complete-stat-label {
       font-size: 12px;
-      color: rgba(255,255,255,.5);
+      color: rgba(255, 255, 255, .5);
       margin-top: 2px;
     }
-    .complete-actions { display: flex; gap: 12px; margin-top: 12px; }
+
+    .complete-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
     .btn-complete-primary {
       padding: 13px 28px;
       background: var(--teal);
@@ -463,15 +620,16 @@
       display: inline-flex;
       align-items: center;
     }
+
     .btn-complete-secondary {
       padding: 13px 28px;
       background: transparent;
-      border: 1.5px solid rgba(255,255,255,.25);
+      border: 1.5px solid rgba(255, 255, 255, .25);
       border-radius: 10px;
       font-family: var(--body);
       font-size: 14px;
       font-weight: 500;
-      color: rgba(255,255,255,.8);
+      color: rgba(255, 255, 255, .8);
       cursor: pointer;
       text-decoration: none;
       display: inline-flex;
@@ -479,549 +637,578 @@
     }
 
     @media (max-width: 640px) {
-      .topbar { padding: 0 16px; }
-      .exercise-title { font-size: 14px; }
-      .phase-chip { display: none; }
-      .hud { padding: 12px; }
-      .angle-card, .limit-card { padding: 10px 14px; min-width: 100px; }
-      .angle-value { font-size: 28px; }
-      .limit-value { font-size: 20px; }
-      .complete-stats { gap: 20px; }
+      .topbar {
+        padding: 0 16px;
+      }
+
+      .exercise-title {
+        font-size: 14px;
+      }
+
+      .phase-chip {
+        display: none;
+      }
+
+      .hud {
+        padding: 12px;
+      }
+
+      .angle-card,
+      .limit-card {
+        padding: 10px 14px;
+        min-width: 100px;
+      }
+
+      .angle-value {
+        font-size: 28px;
+      }
+
+      .limit-value {
+        font-size: 20px;
+      }
+
+      .complete-stats {
+        gap: 20px;
+      }
     }
   </style>
 </head>
+
 <body>
 
-<!-- Top bar -->
-<div class="topbar">
-  <div class="topbar-left">
-    <a href="upload.html" class="back-btn">← Exit</a>
-    <span class="exercise-title" id="exercise-title-text">Loading exercise…</span>
-  </div>
-  <div class="topbar-right">
-    <span class="phase-chip" id="phase-chip-text">—</span>
-  </div>
-</div>
-
-<!-- Main stage -->
-<div class="stage">
-
-  <video id="video" autoplay playsinline muted></video>
-  <canvas id="overlay-canvas"></canvas>
-
-  <!-- Pre-start screen -->
-  <div class="pre-start" id="pre-start">
-    <span class="pre-start-icon">🎥</span>
-    <div class="pre-start-title" id="pre-start-exercise-name">Exercise</div>
-    <p class="pre-start-desc" id="pre-start-desc">
-      We'll use your webcam to track your knee angle in real time.
-    </p>
-    <div class="pre-start-limit" id="pre-start-limit">
-      ⚠ Safe angle limit: —°
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <a href="upload.html" class="back-btn">← Exit</a>
+      <span class="exercise-title" id="exercise-title-text">Loading exercise…</span>
     </div>
-    <br>
-    <button class="btn-start-cam" id="start-cam-btn">Enable camera &amp; start →</button>
-    <div class="cam-permission-note">Your browser will ask for camera permission. Nothing is uploaded or recorded.</div>
+    <div class="topbar-right">
+      <span class="phase-chip" id="phase-chip-text">—</span>
+    </div>
   </div>
 
-  <!-- Model loading -->
-  <div class="model-loading hidden" id="model-loading">
-    <div class="loading-spinner-cam"></div>
-    <div class="model-loading-text" id="model-loading-text">Loading pose detection model…</div>
-  </div>
+  <!-- Main stage -->
+  <div class="stage">
 
-  <!-- HUD -->
-  <div class="hud hidden" id="hud">
-    <div class="hud-top">
-      <div class="angle-card">
-        <div class="angle-value" id="angle-readout">0°</div>
-        <div class="angle-sub">CURRENT ANGLE</div>
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="overlay-canvas"></canvas>
+
+    <!-- Pre-start screen -->
+    <div class="pre-start" id="pre-start">
+      <span class="pre-start-icon">🎥</span>
+      <div class="pre-start-title" id="pre-start-exercise-name">Exercise</div>
+      <p class="pre-start-desc" id="pre-start-desc">
+        We'll use your webcam to track your knee angle in real time.
+      </p>
+      <div class="pre-start-limit" id="pre-start-limit">
+        ⚠ Safe angle limit: —°
       </div>
-      <div class="limit-card">
-        <div class="limit-value" id="limit-readout">—°</div>
-        <div class="limit-sub">SAFE LIMIT</div>
+      <br>
+      <button class="btn-start-cam" id="start-cam-btn">Enable camera &amp; start →</button>
+      <div class="cam-permission-note">Your browser will ask for camera permission. Nothing is uploaded or recorded.
       </div>
     </div>
 
-    <!-- Rep counter / hold timer (bottom center) -->
-    <div class="rep-card" id="rep-card">
-      <!-- Dynamic exercise: rep counter -->
-      <div id="rep-mode">
-        <div class="rep-value"><span id="rep-current">0</span> / <span id="rep-target">10</span></div>
-        <div class="rep-sub">REPS — SET <span id="set-current">1</span> OF <span id="set-target">3</span></div>
-        <div class="set-progress" id="set-progress"></div>
-      </div>
-      <!-- Isometric exercise: hold timer (hidden unless hold_seconds present) -->
-      <div id="hold-mode" style="display:none;">
-        <div class="hold-ring-wrap">
-          <svg class="hold-ring-svg" width="90" height="90">
-            <circle class="hold-ring-bg" cx="45" cy="45" r="38"></circle>
-            <circle class="hold-ring-fg" id="hold-ring-fg" cx="45" cy="45" r="38"
-                    stroke-dasharray="238.76" stroke-dashoffset="238.76"></circle>
-          </svg>
-          <div class="hold-ring-text" id="hold-ring-text">0s</div>
+    <!-- Model loading -->
+    <div class="model-loading hidden" id="model-loading">
+      <div class="loading-spinner-cam"></div>
+      <div class="model-loading-text" id="model-loading-text">Loading pose detection model…</div>
+    </div>
+
+    <!-- HUD -->
+    <div class="hud hidden" id="hud">
+      <div class="hud-top">
+        <div class="angle-card">
+          <div class="angle-value" id="angle-readout">0°</div>
+          <div class="angle-sub">CURRENT ANGLE</div>
         </div>
-        <div class="rep-sub">HOLD — SET <span id="hold-set-current">1</span> OF <span id="hold-set-target">3</span></div>
+        <div class="limit-card">
+          <div class="limit-value" id="limit-readout">—°</div>
+          <div class="limit-sub">SAFE LIMIT</div>
+        </div>
+      </div>
+
+      <!-- Rep counter / hold timer (bottom center) -->
+      <div class="rep-card" id="rep-card">
+        <!-- Dynamic exercise: rep counter -->
+        <div id="rep-mode">
+          <div class="rep-value"><span id="rep-current">0</span> / <span id="rep-target">10</span></div>
+          <div class="rep-sub">REPS — SET <span id="set-current">1</span> OF <span id="set-target">3</span></div>
+          <div class="set-progress" id="set-progress"></div>
+        </div>
+        <!-- Isometric exercise: hold timer (hidden unless hold_seconds present) -->
+        <div id="hold-mode" style="display:none;">
+          <div class="hold-ring-wrap">
+            <svg class="hold-ring-svg" width="90" height="90">
+              <circle class="hold-ring-bg" cx="45" cy="45" r="38"></circle>
+              <circle class="hold-ring-fg" id="hold-ring-fg" cx="45" cy="45" r="38" stroke-dasharray="238.76"
+                stroke-dashoffset="238.76"></circle>
+            </svg>
+            <div class="hold-ring-text" id="hold-ring-text">0s</div>
+          </div>
+          <div class="rep-sub">HOLD — SET <span id="hold-set-current">1</span> OF <span id="hold-set-target">3</span>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Tracking quality indicator -->
-  <div class="tracking-status hidden" id="tracking-status">
-    <span class="tracking-dot" id="tracking-dot"></span>
-    <span id="tracking-label">Tracking</span>
-  </div>
-
-  <!-- SAFETY ALERT overlay -->
-  <div class="safety-overlay" id="safety-overlay">
-    <span class="safety-icon-big">⚠️</span>
-    <div class="safety-text-main">STOP — REDUCE YOUR KNEE BEND</div>
-    <div class="safety-text-sub" id="safety-sub-text">Your knee is past the safe limit of —°</div>
-    <div class="safety-angle-readout" id="safety-angle-readout">0°</div>
-
-    <div class="paused-panel" id="paused-panel">
-      <div class="paused-label">⏸ Session paused — angle exceeded limit for over 500ms</div>
-      <button class="btn-resume" id="resume-btn">I've corrected my position — Resume</button>
+    <!-- Tracking quality indicator -->
+    <div class="tracking-status hidden" id="tracking-status">
+      <span class="tracking-dot" id="tracking-dot"></span>
+      <span id="tracking-label">Tracking</span>
     </div>
-  </div>
 
-  <!-- Completion panel -->
-  <div class="complete-panel" id="complete-panel">
-    <span class="complete-icon">✅</span>
-    <div class="complete-title">Exercise complete</div>
-    <div class="complete-stats">
-      <div class="complete-stat">
-        <div class="complete-stat-val" id="complete-reps">0</div>
-        <div class="complete-stat-label">Reps completed</div>
-      </div>
-      <div class="complete-stat">
-        <div class="complete-stat-val" id="complete-max-angle">0°</div>
-        <div class="complete-stat-label">Max angle reached</div>
-      </div>
-      <div class="complete-stat">
-        <div class="complete-stat-val" id="complete-alerts">0</div>
-        <div class="complete-stat-label">Safety alerts</div>
+    <!-- SAFETY ALERT overlay -->
+    <div class="safety-overlay" id="safety-overlay">
+      <span class="safety-icon-big">⚠️</span>
+      <div class="safety-text-main">STOP — REDUCE YOUR KNEE BEND</div>
+      <div class="safety-text-sub" id="safety-sub-text">Your knee is past the safe limit of —°</div>
+      <div class="safety-angle-readout" id="safety-angle-readout">0°</div>
+
+      <div class="paused-panel" id="paused-panel">
+        <div class="paused-label">⏸ Session paused — angle exceeded limit for over 500ms</div>
+        <button class="btn-resume" id="resume-btn">I've corrected my position — Resume</button>
       </div>
     </div>
-    <div class="complete-actions">
-      <a href="upload.html" class="btn-complete-primary">← Back to exercise plan</a>
-      <button class="btn-complete-secondary" id="restart-btn">Do it again</button>
+
+    <!-- Completion panel -->
+    <div class="complete-panel" id="complete-panel">
+      <span class="complete-icon">✅</span>
+      <div class="complete-title">Exercise complete</div>
+      <div class="complete-stats">
+        <div class="complete-stat">
+          <div class="complete-stat-val" id="complete-reps">0</div>
+          <div class="complete-stat-label">Reps completed</div>
+        </div>
+        <div class="complete-stat">
+          <div class="complete-stat-val" id="complete-max-angle">0°</div>
+          <div class="complete-stat-label">Max angle reached</div>
+        </div>
+        <div class="complete-stat">
+          <div class="complete-stat-val" id="complete-alerts">0</div>
+          <div class="complete-stat-label">Safety alerts</div>
+        </div>
+      </div>
+      <div class="complete-actions">
+        <a href="upload.html" class="btn-complete-primary">← Back to exercise plan</a>
+        <button class="btn-complete-secondary" id="restart-btn">Do it again</button>
+      </div>
     </div>
+
   </div>
 
-</div>
+  <!-- MediaPipe Tasks Vision (Pose Landmarker) — loaded from CDN -->
+  <script type="module">
+    import {
+      PoseLandmarker,
+      FilesetResolver,
+    } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
 
-<!-- MediaPipe Tasks Vision (Pose Landmarker) — loaded from CDN -->
-<script type="module">
-  import {
-    PoseLandmarker,
-    FilesetResolver,
-  } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+    // ── Load exercise data passed from upload.html ─────────────────────────
+    const exerciseData = JSON.parse(sessionStorage.getItem('physioai_current_exercise') || 'null');
+    const kneeSide = sessionStorage.getItem('physioai_knee_side') || 'right';
+    const rehabPhase = sessionStorage.getItem('physioai_phase_label') || '';
 
-  // ── Load exercise data passed from upload.html ─────────────────────────
-  const exerciseData = JSON.parse(sessionStorage.getItem('physioai_current_exercise') || 'null');
-  const kneeSide      = sessionStorage.getItem('physioai_knee_side') || 'right';
-  const rehabPhase    = sessionStorage.getItem('physioai_phase_label') || '';
+    // Fallback demo data if page opened directly without navigating from upload.html
+    const exercise = exerciseData || {
+      name: "Mini Squat",
+      description: "Partial squat to 45–60° for safe quad loading.",
+      target_reps: 10,
+      target_sets: 3,
+      angle_limit: 60,
+      hold_seconds: null,
+      angle_capped: false,
+    };
 
-  // Fallback demo data if page opened directly without navigating from upload.html
-  const exercise = exerciseData || {
-    name: "Mini Squat",
-    description: "Partial squat to 45–60° for safe quad loading.",
-    target_reps: 10,
-    target_sets: 3,
-    angle_limit: 60,
-    hold_seconds: null,
-    angle_capped: false,
-  };
+    document.getElementById('exercise-title-text').textContent = exercise.name;
+    document.getElementById('phase-chip-text').textContent = rehabPhase || 'Demo mode';
+    document.getElementById('pre-start-exercise-name').textContent = exercise.name;
+    document.getElementById('pre-start-desc').textContent = exercise.description;
+    document.getElementById('pre-start-limit').textContent = `⚠ Safe angle limit: ${exercise.angle_limit}°` +
+      (exercise.angle_capped ? ' (reduced by your X-ray)' : '');
+    document.getElementById('limit-readout').textContent = `${exercise.angle_limit}°`;
+    document.getElementById('rep-target').textContent = exercise.target_reps;
+    document.getElementById('set-target').textContent = exercise.target_sets;
+    document.getElementById('hold-set-target').textContent = exercise.target_sets;
 
-  document.getElementById('exercise-title-text').textContent = exercise.name;
-  document.getElementById('phase-chip-text').textContent = rehabPhase || 'Demo mode';
-  document.getElementById('pre-start-exercise-name').textContent = exercise.name;
-  document.getElementById('pre-start-desc').textContent = exercise.description;
-  document.getElementById('pre-start-limit').textContent = `⚠ Safe angle limit: ${exercise.angle_limit}°` +
-    (exercise.angle_capped ? ' (reduced by your X-ray)' : '');
-  document.getElementById('limit-readout').textContent = `${exercise.angle_limit}°`;
-  document.getElementById('rep-target').textContent = exercise.target_reps;
-  document.getElementById('set-target').textContent = exercise.target_sets;
-  document.getElementById('hold-set-target').textContent = exercise.target_sets;
-
-  const isHoldMode = !!exercise.hold_seconds;
-  if (isHoldMode) {
-    document.getElementById('rep-mode').style.display = 'none';
-    document.getElementById('hold-mode').style.display = 'block';
-  }
-
-  // Build set-progress dots
-  const setProgressEl = document.getElementById('set-progress');
-  for (let i = 0; i < exercise.target_sets; i++) {
-    const dot = document.createElement('div');
-    dot.className = 'set-dot' + (i === 0 ? ' current' : '');
-    setProgressEl.appendChild(dot);
-  }
-
-  // ── DOM refs ────────────────────────────────────────────────────────────
-  const video           = document.getElementById('video');
-  const canvas          = document.getElementById('overlay-canvas');
-  const ctx              = canvas.getContext('2d');
-  const preStart         = document.getElementById('pre-start');
-  const modelLoading     = document.getElementById('model-loading');
-  const modelLoadingText = document.getElementById('model-loading-text');
-  const hud              = document.getElementById('hud');
-  const startCamBtn      = document.getElementById('start-cam-btn');
-  const angleReadout     = document.getElementById('angle-readout');
-  const safetyOverlay    = document.getElementById('safety-overlay');
-  const safetySubText    = document.getElementById('safety-sub-text');
-  const safetyAngleReadout = document.getElementById('safety-angle-readout');
-  const pausedPanel      = document.getElementById('paused-panel');
-  const resumeBtn        = document.getElementById('resume-btn');
-  const trackingStatus   = document.getElementById('tracking-status');
-  const trackingDot      = document.getElementById('tracking-dot');
-  const trackingLabel    = document.getElementById('tracking-label');
-  const completePanel    = document.getElementById('complete-panel');
-  const restartBtn       = document.getElementById('restart-btn');
-
-  safetySubText.textContent = `Your knee is past the safe limit of ${exercise.angle_limit}°`;
-
-  // ── State ───────────────────────────────────────────────────────────────
-  let poseLandmarker   = null;
-  let lastVideoTime    = -1;
-  let angleHistory     = [];         // rolling average buffer
-  const SMOOTHING_FRAMES = 5;
-
-  let currentRep       = 0;
-  let currentSet       = 1;
-  let repStage         = 'EXTENDED'; // EXTENDED -> FLEXING -> FLEXED -> EXTENDING -> EXTENDED
-  let holdStartTime    = null;
-  let holdSetComplete  = 0;
-
-  let breachStartTime  = null;       // when the angle first exceeded the limit
-  let isPaused         = false;
-  let sessionActive    = false;
-  let alertCount       = 0;
-  let maxAngleReached  = 0;
-
-  let alarmInterval    = null;
-  let audioCtx         = null;
-
-  const AUTO_PAUSE_MS  = 500;
-
-  // ── Web Audio API — programmatic beep, no audio files needed ───────────
-  function startAlarm() {
-    if (alarmInterval) return;
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-    function beep() {
-      if (!audioCtx) return;
-      const oscillator = audioCtx.createOscillator();
-      const gainNode    = audioCtx.createGain();
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-      oscillator.type = 'square';
-      oscillator.frequency.value = 880;
-      gainNode.gain.value = 0.4;
-      oscillator.start();
-      oscillator.stop(audioCtx.currentTime + 0.18);
+    const isHoldMode = !!exercise.hold_seconds;
+    if (isHoldMode) {
+      document.getElementById('rep-mode').style.display = 'none';
+      document.getElementById('hold-mode').style.display = 'block';
     }
-    beep();
-    alarmInterval = setInterval(beep, 350);
-  }
 
-  function stopAlarm() {
-    if (alarmInterval) {
-      clearInterval(alarmInterval);
-      alarmInterval = null;
+    // Build set-progress dots
+    const setProgressEl = document.getElementById('set-progress');
+    for (let i = 0; i < exercise.target_sets; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'set-dot' + (i === 0 ? ' current' : '');
+      setProgressEl.appendChild(dot);
     }
-    if (audioCtx) {
-      audioCtx.close();
-      audioCtx = null;
+
+    // ── DOM refs ────────────────────────────────────────────────────────────
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('overlay-canvas');
+    const ctx = canvas.getContext('2d');
+    const preStart = document.getElementById('pre-start');
+    const modelLoading = document.getElementById('model-loading');
+    const modelLoadingText = document.getElementById('model-loading-text');
+    const hud = document.getElementById('hud');
+    const startCamBtn = document.getElementById('start-cam-btn');
+    const angleReadout = document.getElementById('angle-readout');
+    const safetyOverlay = document.getElementById('safety-overlay');
+    const safetySubText = document.getElementById('safety-sub-text');
+    const safetyAngleReadout = document.getElementById('safety-angle-readout');
+    const pausedPanel = document.getElementById('paused-panel');
+    const resumeBtn = document.getElementById('resume-btn');
+    const trackingStatus = document.getElementById('tracking-status');
+    const trackingDot = document.getElementById('tracking-dot');
+    const trackingLabel = document.getElementById('tracking-label');
+    const completePanel = document.getElementById('complete-panel');
+    const restartBtn = document.getElementById('restart-btn');
+
+    safetySubText.textContent = `Your knee is past the safe limit of ${exercise.angle_limit}°`;
+
+    // ── State ───────────────────────────────────────────────────────────────
+    let poseLandmarker = null;
+    let lastVideoTime = -1;
+    let angleHistory = [];         // rolling average buffer
+    const SMOOTHING_FRAMES = 5;
+
+    let currentRep = 0;
+    let currentSet = 1;
+    let repStage = 'EXTENDED'; // EXTENDED -> FLEXING -> FLEXED -> EXTENDING -> EXTENDED
+    let holdStartTime = null;
+    let holdSetComplete = 0;
+
+    let breachStartTime = null;       // when the angle first exceeded the limit
+    let isPaused = false;
+    let sessionActive = false;
+    let alertCount = 0;
+    let maxAngleReached = 0;
+
+    let alarmInterval = null;
+    let audioCtx = null;
+
+    const AUTO_PAUSE_MS = 500;
+
+    // ── Web Audio API — programmatic beep, no audio files needed ───────────
+    function startAlarm() {
+      if (alarmInterval) return;
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+      function beep() {
+        if (!audioCtx) return;
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.type = 'square';
+        oscillator.frequency.value = 880;
+        gainNode.gain.value = 0.4;
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.18);
+      }
+      beep();
+      alarmInterval = setInterval(beep, 350);
     }
-  }
 
-  // ── Load MediaPipe Pose Landmarker ──────────────────────────────────────
-  async function loadPoseModel() {
-    modelLoadingText.textContent = 'Loading pose detection model…';
-    const vision = await FilesetResolver.forVisionTasks(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
-    );
-    poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
-      baseOptions: {
-        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
-        delegate: "GPU",
-      },
-      runningMode: "VIDEO",
-      numPoses: 1,
-    });
-  }
+    function stopAlarm() {
+      if (alarmInterval) {
+        clearInterval(alarmInterval);
+        alarmInterval = null;
+      }
+      if (audioCtx) {
+        audioCtx.close();
+        audioCtx = null;
+      }
+    }
 
-  // ── Camera setup ─────────────────────────────────────────────────────────
-  async function startCamera() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 960, height: 720, facingMode: 'user' },
-        audio: false,
+    // ── Load MediaPipe Pose Landmarker ──────────────────────────────────────
+    async function loadPoseModel() {
+      modelLoadingText.textContent = 'Loading pose detection model…';
+      const vision = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+      );
+      poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+          delegate: "GPU",
+        },
+        runningMode: "VIDEO",
+        numPoses: 1,
       });
-      video.srcObject = stream;
-      await new Promise(resolve => { video.onloadedmetadata = resolve; });
-      video.play();
-      canvas.width  = video.videoWidth;
-      canvas.height = video.videoHeight;
-    } catch (err) {
-      alert('Camera access is required for exercise tracking. Please allow camera access and reload the page.');
-      throw err;
     }
-  }
 
-  // ── Angle calculation ────────────────────────────────────────────────────
-  // MediaPipe Pose landmark indices: 23/24 hip, 25/26 knee, 27/28 ankle
-  function calcAngle(hip, knee, ankle) {
-    const v1 = { x: hip.x - knee.x, y: hip.y - knee.y };
-    const v2 = { x: ankle.x - knee.x, y: ankle.y - knee.y };
-    const dot  = v1.x * v2.x + v1.y * v2.y;
-    const mag1 = Math.sqrt(v1.x ** 2 + v1.y ** 2);
-    const mag2 = Math.sqrt(v2.x ** 2 + v2.y ** 2);
-    const cos  = Math.max(-1, Math.min(1, dot / (mag1 * mag2)));
-    const angleRad = Math.acos(cos);
-    // Flexion angle = 180 - angle between vectors (straight leg = 0° flexion)
-    return 180 - (angleRad * 180 / Math.PI);
-  }
-
-  function smoothAngle(newAngle) {
-    angleHistory.push(newAngle);
-    if (angleHistory.length > SMOOTHING_FRAMES) angleHistory.shift();
-    return angleHistory.reduce((a, b) => a + b, 0) / angleHistory.length;
-  }
-
-  // ── Safety state machine ─────────────────────────────────────────────────
-  function handleSafetyCheck(angle) {
-    const overLimit = angle > exercise.angle_limit;
-
-    if (overLimit) {
-      if (!safetyOverlay.classList.contains('active')) {
-        safetyOverlay.classList.add('active');
-        startAlarm();
-        alertCount++;
-      }
-      safetyAngleReadout.textContent = Math.round(angle) + '°';
-
-      if (breachStartTime === null) {
-        breachStartTime = performance.now();
-      } else if (!isPaused && performance.now() - breachStartTime >= AUTO_PAUSE_MS) {
-        isPaused = true;
-        sessionActive = false;
-        pausedPanel.classList.add('visible');
-      }
-    } else {
-      // Cleared — reset immediately, no lag
-      breachStartTime = null;
-      if (!isPaused) {
-        safetyOverlay.classList.remove('active');
-        stopAlarm();
+    // ── Camera setup ─────────────────────────────────────────────────────────
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 960, height: 720, facingMode: 'user' },
+          audio: false,
+        });
+        video.srcObject = stream;
+        await new Promise(resolve => { video.onloadedmetadata = resolve; });
+        video.play();
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+      } catch (err) {
+        alert('Camera access is required for exercise tracking. Please allow camera access and reload the page.');
+        throw err;
       }
     }
-  }
 
-  resumeBtn.addEventListener('click', () => {
-    isPaused = false;
-    sessionActive = true;
-    breachStartTime = null;
-    pausedPanel.classList.remove('visible');
-    safetyOverlay.classList.remove('active');
-    stopAlarm();
-  });
-
-  // ── Rep counting (dynamic exercises) ────────────────────────────────────
-  function updateRepCounter(angle) {
-    if (isPaused || !sessionActive) return;
-
-    const flexedThreshold = exercise.angle_limit * 0.7;
-
-    if (repStage === 'EXTENDED' && angle > flexedThreshold * 0.4) {
-      repStage = 'FLEXING';
-    } else if (repStage === 'FLEXING' && angle > flexedThreshold) {
-      repStage = 'FLEXED';
-    } else if (repStage === 'FLEXED' && angle < flexedThreshold * 0.6) {
-      repStage = 'EXTENDING';
-    } else if (repStage === 'EXTENDING' && angle < 15) {
-      repStage = 'EXTENDED';
-      currentRep++;
-      document.getElementById('rep-current').textContent = currentRep;
-
-      if (currentRep >= exercise.target_reps) {
-        completeSet();
-      }
+    // ── Angle calculation ────────────────────────────────────────────────────
+    // MediaPipe Pose landmark indices: 23/24 hip, 25/26 knee, 27/28 ankle
+    function calcAngle(hip, knee, ankle) {
+      const v1 = { x: hip.x - knee.x, y: hip.y - knee.y };
+      const v2 = { x: ankle.x - knee.x, y: ankle.y - knee.y };
+      const dot = v1.x * v2.x + v1.y * v2.y;
+      const mag1 = Math.sqrt(v1.x ** 2 + v1.y ** 2);
+      const mag2 = Math.sqrt(v2.x ** 2 + v2.y ** 2);
+      const cos = Math.max(-1, Math.min(1, dot / (mag1 * mag2)));
+      const angleRad = Math.acos(cos);
+      // Flexion angle = 180 - angle between vectors (straight leg = 0° flexion)
+      return 180 - (angleRad * 180 / Math.PI);
     }
-  }
 
-  function completeSet() {
-    const dots = document.querySelectorAll('#set-progress .set-dot');
-    if (dots[currentSet - 1]) dots[currentSet - 1].classList.add('done');
-    if (dots[currentSet - 1]) dots[currentSet - 1].classList.remove('current');
-
-    if (currentSet >= exercise.target_sets) {
-      finishExercise();
-      return;
+    function smoothAngle(newAngle) {
+      angleHistory.push(newAngle);
+      if (angleHistory.length > SMOOTHING_FRAMES) angleHistory.shift();
+      return angleHistory.reduce((a, b) => a + b, 0) / angleHistory.length;
     }
-    currentSet++;
-    currentRep = 0;
-    document.getElementById('rep-current').textContent = 0;
-    document.getElementById('set-current').textContent = currentSet;
-    if (dots[currentSet - 1]) dots[currentSet - 1].classList.add('current');
-  }
 
-  // ── Hold timer (isometric exercises) ────────────────────────────────────
-  const holdRingFg   = document.getElementById('hold-ring-fg');
-  const holdRingText = document.getElementById('hold-ring-text');
-  const RING_CIRC     = 238.76;
+    // ── Safety state machine ─────────────────────────────────────────────────
+    function handleSafetyCheck(angle) {
+      const overLimit = angle > exercise.angle_limit;
 
-  function updateHoldTimer(angle) {
-    if (isPaused || !sessionActive) return;
-
-    const inPosition = angle > 15; // threshold to count as "holding"
-
-    if (inPosition) {
-      if (holdStartTime === null) holdStartTime = performance.now();
-      const elapsed = (performance.now() - holdStartTime) / 1000;
-      const remaining = Math.max(0, exercise.hold_seconds - elapsed);
-      holdRingText.textContent = Math.ceil(remaining) + 's';
-      const progress = Math.min(1, elapsed / exercise.hold_seconds);
-      holdRingFg.style.strokeDashoffset = RING_CIRC * (1 - progress);
-
-      if (remaining <= 0) {
-        holdSetComplete++;
-        holdStartTime = null;
-        holdRingFg.style.strokeDashoffset = RING_CIRC;
-        document.getElementById('hold-set-current').textContent = Math.min(holdSetComplete + 1, exercise.target_sets);
-
-        if (holdSetComplete >= exercise.target_sets) {
-          finishExercise();
+      if (overLimit) {
+        if (!safetyOverlay.classList.contains('active')) {
+          safetyOverlay.classList.add('active');
+          startAlarm();
+          alertCount++;
         }
-      }
-    } else {
-      // Lost position — reset hold progress
-      holdStartTime = null;
-      holdRingFg.style.strokeDashoffset = RING_CIRC;
-      holdRingText.textContent = '0s';
-    }
-  }
+        safetyAngleReadout.textContent = Math.round(angle) + '°';
 
-  // ── Finish ────────────────────────────────────────────────────────────────
-  function finishExercise() {
-    sessionActive = false;
-    stopAlarm();
-    document.getElementById('complete-reps').textContent =
-      isHoldMode ? `${holdSetComplete} sets` : `${(currentSet - 1) * exercise.target_reps + currentRep}`;
-    document.getElementById('complete-max-angle').textContent = Math.round(maxAngleReached) + '°';
-    document.getElementById('complete-alerts').textContent = alertCount;
-    completePanel.classList.add('visible');
-  }
-
-  restartBtn.addEventListener('click', () => window.location.reload());
-
-  // ── Draw skeleton overlay ────────────────────────────────────────────────
-  const CONNECTIONS = [
-    [11,12],[11,23],[12,24],[23,24],       // torso
-    [23,25],[25,27],[27,29],[27,31],       // left leg
-    [24,26],[26,28],[28,30],[28,32],       // right leg
-  ];
-
-  function drawSkeleton(landmarks) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = 'rgba(20, 184, 166, 0.8)';
-    ctx.lineWidth = 3;
-    ctx.fillStyle = '#14b8a6';
-
-    CONNECTIONS.forEach(([a, b]) => {
-      const p1 = landmarks[a], p2 = landmarks[b];
-      if (!p1 || !p2) return;
-      ctx.beginPath();
-      ctx.moveTo(p1.x * canvas.width, p1.y * canvas.height);
-      ctx.lineTo(p2.x * canvas.width, p2.y * canvas.height);
-      ctx.stroke();
-    });
-
-    [11,12,23,24,25,26,27,28].forEach(i => {
-      const p = landmarks[i];
-      if (!p) return;
-      ctx.beginPath();
-      ctx.arc(p.x * canvas.width, p.y * canvas.height, 5, 0, 2 * Math.PI);
-      ctx.fill();
-    });
-  }
-
-  // ── Main render loop ─────────────────────────────────────────────────────
-  function renderLoop() {
-    if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
-      lastVideoTime = video.currentTime;
-      const result = poseLandmarker.detectForVideo(video, performance.now());
-
-      if (result.landmarks && result.landmarks.length > 0) {
-        const lm = result.landmarks[0];
-        drawSkeleton(lm);
-
-        // Select landmarks based on knee side
-        const useLeft = kneeSide === 'left';
-        const hipIdx   = useLeft ? 23 : 24;
-        const kneeIdx  = useLeft ? 25 : 26;
-        const ankleIdx = useLeft ? 27 : 28;
-
-        const hip = lm[hipIdx], knee = lm[kneeIdx], ankle = lm[ankleIdx];
-        const visibility = Math.min(hip.visibility ?? 1, knee.visibility ?? 1, ankle.visibility ?? 1);
-
-        if (visibility > 0.5) {
-          const rawAngle = calcAngle(hip, knee, ankle);
-          const angle = smoothAngle(rawAngle);
-          maxAngleReached = Math.max(maxAngleReached, angle);
-
-          angleReadout.textContent = Math.round(angle) + '°';
-          angleReadout.className = 'angle-value' +
-            (angle > exercise.angle_limit ? ' danger' :
-             angle > exercise.angle_limit * 0.85 ? ' warning' : '');
-
-          handleSafetyCheck(angle);
-
-          if (isHoldMode) {
-            updateHoldTimer(angle);
-          } else {
-            updateRepCounter(angle);
-          }
-
-          trackingDot.className = 'tracking-dot';
-          trackingLabel.textContent = 'Tracking';
-        } else {
-          trackingDot.className = 'tracking-dot poor';
-          trackingLabel.textContent = 'Adjust position';
+        if (breachStartTime === null) {
+          breachStartTime = performance.now();
+        } else if (!isPaused && performance.now() - breachStartTime >= AUTO_PAUSE_MS) {
+          isPaused = true;
+          sessionActive = false;
+          pausedPanel.classList.add('visible');
         }
       } else {
-        trackingDot.className = 'tracking-dot lost';
-        trackingLabel.textContent = 'No pose detected';
+        // Cleared — reset immediately, no lag
+        breachStartTime = null;
+        if (!isPaused) {
+          safetyOverlay.classList.remove('active');
+          stopAlarm();
+        }
       }
     }
-    requestAnimationFrame(renderLoop);
-  }
 
-  // ── Start button handler ──────────────────────────────────────────────────
-  startCamBtn.addEventListener('click', async () => {
-    preStart.classList.add('hidden');
-    modelLoading.classList.remove('hidden');
-
-    try {
-      modelLoadingText.textContent = 'Requesting camera access…';
-      await startCamera();
-
-      modelLoadingText.textContent = 'Loading pose detection model…';
-      await loadPoseModel();
-
-      modelLoading.classList.add('hidden');
-      hud.classList.remove('hidden');
-      trackingStatus.classList.remove('hidden');
+    resumeBtn.addEventListener('click', () => {
+      isPaused = false;
       sessionActive = true;
+      breachStartTime = null;
+      pausedPanel.classList.remove('visible');
+      safetyOverlay.classList.remove('active');
+      stopAlarm();
+    });
 
-      renderLoop();
-    } catch (err) {
-      console.error(err);
-      modelLoadingText.textContent = 'Failed to start. Please reload and try again.';
+    // ── Rep counting (dynamic exercises) ────────────────────────────────────
+    function updateRepCounter(angle) {
+      if (isPaused || !sessionActive) return;
+
+      const flexedThreshold = exercise.angle_limit * 0.7;
+
+      if (repStage === 'EXTENDED' && angle > flexedThreshold * 0.4) {
+        repStage = 'FLEXING';
+      } else if (repStage === 'FLEXING' && angle > flexedThreshold) {
+        repStage = 'FLEXED';
+      } else if (repStage === 'FLEXED' && angle < flexedThreshold * 0.6) {
+        repStage = 'EXTENDING';
+      } else if (repStage === 'EXTENDING' && angle < 15) {
+        repStage = 'EXTENDED';
+        currentRep++;
+        document.getElementById('rep-current').textContent = currentRep;
+
+        if (currentRep >= exercise.target_reps) {
+          completeSet();
+        }
+      }
     }
-  });
-</script>
+
+    function completeSet() {
+      const dots = document.querySelectorAll('#set-progress .set-dot');
+      if (dots[currentSet - 1]) dots[currentSet - 1].classList.add('done');
+      if (dots[currentSet - 1]) dots[currentSet - 1].classList.remove('current');
+
+      if (currentSet >= exercise.target_sets) {
+        finishExercise();
+        return;
+      }
+      currentSet++;
+      currentRep = 0;
+      document.getElementById('rep-current').textContent = 0;
+      document.getElementById('set-current').textContent = currentSet;
+      if (dots[currentSet - 1]) dots[currentSet - 1].classList.add('current');
+    }
+
+    // ── Hold timer (isometric exercises) ────────────────────────────────────
+    const holdRingFg = document.getElementById('hold-ring-fg');
+    const holdRingText = document.getElementById('hold-ring-text');
+    const RING_CIRC = 238.76;
+
+    function updateHoldTimer(angle) {
+      if (isPaused || !sessionActive) return;
+
+      const inPosition = angle > 15; // threshold to count as "holding"
+
+      if (inPosition) {
+        if (holdStartTime === null) holdStartTime = performance.now();
+        const elapsed = (performance.now() - holdStartTime) / 1000;
+        const remaining = Math.max(0, exercise.hold_seconds - elapsed);
+        holdRingText.textContent = Math.ceil(remaining) + 's';
+        const progress = Math.min(1, elapsed / exercise.hold_seconds);
+        holdRingFg.style.strokeDashoffset = RING_CIRC * (1 - progress);
+
+        if (remaining <= 0) {
+          holdSetComplete++;
+          holdStartTime = null;
+          holdRingFg.style.strokeDashoffset = RING_CIRC;
+          document.getElementById('hold-set-current').textContent = Math.min(holdSetComplete + 1, exercise.target_sets);
+
+          if (holdSetComplete >= exercise.target_sets) {
+            finishExercise();
+          }
+        }
+      } else {
+        // Lost position — reset hold progress
+        holdStartTime = null;
+        holdRingFg.style.strokeDashoffset = RING_CIRC;
+        holdRingText.textContent = '0s';
+      }
+    }
+
+    // ── Finish ────────────────────────────────────────────────────────────────
+    function finishExercise() {
+      sessionActive = false;
+      stopAlarm();
+      document.getElementById('complete-reps').textContent =
+        isHoldMode ? `${holdSetComplete} sets` : `${(currentSet - 1) * exercise.target_reps + currentRep}`;
+      document.getElementById('complete-max-angle').textContent = Math.round(maxAngleReached) + '°';
+      document.getElementById('complete-alerts').textContent = alertCount;
+      completePanel.classList.add('visible');
+    }
+
+    restartBtn.addEventListener('click', () => window.location.reload());
+
+    // ── Draw skeleton overlay ────────────────────────────────────────────────
+    const CONNECTIONS = [
+      [11, 12], [11, 23], [12, 24], [23, 24],       // torso
+      [23, 25], [25, 27], [27, 29], [27, 31],       // left leg
+      [24, 26], [26, 28], [28, 30], [28, 32],       // right leg
+    ];
+
+    function drawSkeleton(landmarks) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = 'rgba(98, 155, 182, 0.8)';
+      ctx.lineWidth = 3;
+      ctx.fillStyle = '#629bb5';
+
+      CONNECTIONS.forEach(([a, b]) => {
+        const p1 = landmarks[a], p2 = landmarks[b];
+        if (!p1 || !p2) return;
+        ctx.beginPath();
+        ctx.moveTo(p1.x * canvas.width, p1.y * canvas.height);
+        ctx.lineTo(p2.x * canvas.width, p2.y * canvas.height);
+        ctx.stroke();
+      });
+
+      [11, 12, 23, 24, 25, 26, 27, 28].forEach(i => {
+        const p = landmarks[i];
+        if (!p) return;
+        ctx.beginPath();
+        ctx.arc(p.x * canvas.width, p.y * canvas.height, 5, 0, 2 * Math.PI);
+        ctx.fill();
+      });
+    }
+
+    // ── Main render loop ─────────────────────────────────────────────────────
+    function renderLoop() {
+      if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
+        lastVideoTime = video.currentTime;
+        const result = poseLandmarker.detectForVideo(video, performance.now());
+
+        if (result.landmarks && result.landmarks.length > 0) {
+          const lm = result.landmarks[0];
+          drawSkeleton(lm);
+
+          // Select landmarks based on knee side
+          const useLeft = kneeSide === 'left';
+          const hipIdx = useLeft ? 23 : 24;
+          const kneeIdx = useLeft ? 25 : 26;
+          const ankleIdx = useLeft ? 27 : 28;
+
+          const hip = lm[hipIdx], knee = lm[kneeIdx], ankle = lm[ankleIdx];
+          const visibility = Math.min(hip.visibility ?? 1, knee.visibility ?? 1, ankle.visibility ?? 1);
+
+          if (visibility > 0.5) {
+            const rawAngle = calcAngle(hip, knee, ankle);
+            const angle = smoothAngle(rawAngle);
+            maxAngleReached = Math.max(maxAngleReached, angle);
+
+            angleReadout.textContent = Math.round(angle) + '°';
+            angleReadout.className = 'angle-value' +
+              (angle > exercise.angle_limit ? ' danger' :
+                angle > exercise.angle_limit * 0.85 ? ' warning' : '');
+
+            handleSafetyCheck(angle);
+
+            if (isHoldMode) {
+              updateHoldTimer(angle);
+            } else {
+              updateRepCounter(angle);
+            }
+
+            trackingDot.className = 'tracking-dot';
+            trackingLabel.textContent = 'Tracking';
+          } else {
+            trackingDot.className = 'tracking-dot poor';
+            trackingLabel.textContent = 'Adjust position';
+          }
+        } else {
+          trackingDot.className = 'tracking-dot lost';
+          trackingLabel.textContent = 'No pose detected';
+        }
+      }
+      requestAnimationFrame(renderLoop);
+    }
+
+    // ── Start button handler ──────────────────────────────────────────────────
+    startCamBtn.addEventListener('click', async () => {
+      preStart.classList.add('hidden');
+      modelLoading.classList.remove('hidden');
+
+      try {
+        modelLoadingText.textContent = 'Requesting camera access…';
+        await startCamera();
+
+        modelLoadingText.textContent = 'Loading pose detection model…';
+        await loadPoseModel();
+
+        modelLoading.classList.add('hidden');
+        hud.classList.remove('hidden');
+        trackingStatus.classList.remove('hidden');
+        sessionActive = true;
+
+        renderLoop();
+      } catch (err) {
+        console.error(err);
+        modelLoadingText.textContent = 'Failed to start. Please reload and try again.';
+      }
+    });
+  </script>
 </body>
+
 </html>

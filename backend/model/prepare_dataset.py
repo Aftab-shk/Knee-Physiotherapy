@@ -1,359 +1,391 @@
 """
 prepare_dataset.py
-==================
-Splits a flat KL-grade dataset into train / val / test folders
-ready for train.py.
+===================
+Data-loading utilities for the Kaggle "Knee Osteoarthritis Dataset with
+Severity Grading" dataset (Kellgren-Lawrence grades 0-4).
 
-Handles all common folder naming conventions automatically:
-  0, 1, 2, 3, 4
-  Normal, Doubtful, Minimal, Moderate, Severe
-  grade_0, grade_1, ...
-  KL0, KL1, ...
+This module does not train anything by itself. It is imported by both
+training.py and inference.py so that every script agrees on image size,
+normalization, augmentation, and how KL-grade folders map to class indices.
 
-Output:
-  data/
-    train/  0/  1/  2/  3/  4/   ← 80% of each grade
-    val/    0/  1/  2/  3/  4/   ← 10%
-    test/   0/  1/  2/  3/  4/   ← 10%
+Expected folder layout (this is how the dataset ships on Kaggle):
 
-Usage:
-  # Basic
-  python model/prepare_dataset.py --src combined --dst data
+    <DATA_DIR>/
+        train/
+            0/   *.png          <- Grade 0, Normal
+            1/   *.png          <- Grade 1, Doubtful
+            2/   *.png          <- Grade 2, Mild
+            3/   *.png          <- Grade 3, Moderate
+            4/   *.png          <- Grade 4, Severe
+        val/
+            0/ 1/ 2/ 3/ 4/
+        test/
+            0/ 1/ 2/ 3/ 4/
 
-  # Overwrite an existing data/ folder from a previous run
-  python model/prepare_dataset.py --src combined --dst data --overwrite
+Run this file directly to sanity-check a downloaded copy of the dataset:
 
-  # Custom split ratios (train/val/test must sum to 1.0)
-  python model/prepare_dataset.py --src combined --dst data --val 0.15 --test 0.15
+    python prepare_dataset.py --data_dir "/path/to/Knee Osteoarthritis Dataset with Severity Grading"
 
-  # Verify an existing data/ folder without copying anything
-  python model/prepare_dataset.py --src combined --dst data --verify
+If val/ is missing (a few dataset re-uploads only ship train/test), a
+stratified validation split is carved out of train/ automatically the first
+time this runs, then reused (not re-created) on every run after that.
 """
 
 import argparse
+import json
 import random
 import shutil
-import sys
 from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+import torch
+from torch.utils.data import DataLoader, WeightedRandomSampler
+from torchvision import datasets, transforms
 
 # ---------------------------------------------------------------------------
-# Grade name mapping — covers all common dataset naming conventions
+# Constants shared by prepare_dataset.py / training.py / inference.py
 # ---------------------------------------------------------------------------
+IMG_SIZE = 224
+IMAGENET_MEAN = [0.485, 0.456, 0.406]
+IMAGENET_STD = [0.229, 0.224, 0.225]
+RANDOM_SEED = 42
+DEFAULT_OUTPUT_DIR = "outputs"
+VAL_FRACTION_OF_TRAIN = 0.15  # only used as a fallback if val/ doesn't exist
 
-NAME_TO_GRADE = {
-    # Numeric
-    "0": 0, "1": 1, "2": 2, "3": 3, "4": 4,
-    # grade_N
-    "grade_0": 0, "grade_1": 1, "grade_2": 2, "grade_3": 3, "grade_4": 4,
-    "grade0":  0, "grade1":  1, "grade2":  2, "grade3":  3, "grade4":  4,
-    # KLN
-    "kl0": 0, "kl1": 1, "kl2": 2, "kl3": 3, "kl4": 4,
-    "kl_0": 0, "kl_1": 1, "kl_2": 2, "kl_3": 3, "kl_4": 4,
-    # Named (OSAIL, Mendeley)
-    "normal": 0, "doubtful": 1, "minimal": 2, "moderate": 3, "severe": 4,
-    "healthy": 0,
-    "osteoarthritis_doubtful": 1,
-    "osteoarthritis_minimal": 2,
-    "osteoarthritis_moderate": 3,
-    "osteoarthritis_severe": 4,
+# Kellgren-Lawrence (KL) grading system used by this dataset
+KL_GRADE_NAMES = {
+    0: "Grade 0 - Normal",
+    1: "Grade 1 - Doubtful",
+    2: "Grade 2 - Mild",
+    3: "Grade 3 - Moderate",
+    4: "Grade 4 - Severe",
 }
 
-IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff"}
-NUM_CLASSES = 5
-SEED        = 42
-
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Locating the dataset
 # ---------------------------------------------------------------------------
+def _find_train_dirs_under(base: Path, max_depth: int = 5) -> List[Path]:
+    """
+    Search under `base`, up to `max_depth` levels deep, for any directory
+    that directly contains a 'train' subfolder.
 
-def find_grade_folders(root: Path) -> dict:
+    This is intentionally depth-searching rather than assuming a fixed
+    nesting level: Kaggle's own mount path for attached datasets has changed
+    over time (older notebooks saw /kaggle/input/<dataset>/, newer ones see
+    the deeper /kaggle/input/datasets/<owner>/<dataset>/), and re-uploads /
+    zip layouts add their own variation on top of that. Searching a few
+    levels down is more robust than hard-coding a depth that can go stale.
     """
-    Returns {grade_int: Path} for grade folders found directly under root.
-    Searches two levels deep to handle wrapper directories.
-    """
-    found = {}
-    for d in sorted(root.iterdir()):
-        if d.is_dir() and d.name.lower() in NAME_TO_GRADE:
-            found[NAME_TO_GRADE[d.name.lower()]] = d
+    found: List[Path] = []
+
+    def _walk(d: Path, depth: int) -> None:
+        if not d.is_dir():
+            return
+        if (d / "train").is_dir():
+            found.append(d)
+            return  # a match - no need to look further inside it
+        if depth >= max_depth:
+            return
+        try:
+            children = [c for c in d.iterdir() if c.is_dir()]
+        except (PermissionError, OSError):
+            return
+        for c in sorted(children):
+            _walk(c, depth + 1)
+
+    _walk(base, 0)
     return found
 
 
-def search_nested(root: Path) -> tuple[dict, Path]:
+def find_dataset_root(data_dir: Optional[str] = None) -> Path:
     """
-    Searches up to 2 levels deep for grade folders.
-    Returns (grade_folders, folder_they_were_found_in).
+    Resolve the dataset root, i.e. the folder that directly contains train/.
+
+    Search order:
+      1. `data_dir`, if given (also searched a few levels down, in case it
+         points at a parent folder rather than the exact dataset folder)
+      2. Kaggle notebook input mounts, searched recursively under /kaggle/input
+      3. the current working directory
     """
-    # Level 0 — root itself
-    folders = find_grade_folders(root)
-    if folders:
-        return folders, root
+    candidates: List[Path] = []
+    if data_dir:
+        given = Path(data_dir).expanduser()
+        candidates.append(given)
+        candidates.extend(_find_train_dirs_under(given))
 
-    # Level 1 — immediate children
-    for sub in sorted(root.iterdir()):
-        if sub.is_dir():
-            folders = find_grade_folders(sub)
-            if folders:
-                return folders, sub
+    kaggle_input = Path("/kaggle/input")
+    if kaggle_input.is_dir():
+        candidates.extend(_find_train_dirs_under(kaggle_input))
 
-    # Level 2 — grandchildren
-    for sub in sorted(root.iterdir()):
-        if sub.is_dir():
-            for subsub in sorted(sub.iterdir()):
-                if subsub.is_dir():
-                    folders = find_grade_folders(subsub)
-                    if folders:
-                        return folders, subsub
+    candidates.append(Path.cwd())
 
-    return {}, root
+    seen = set()
+    for candidate in candidates:
+        key = str(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        if candidate.is_dir() and (candidate / "train").is_dir():
+            return candidate.resolve()
 
-
-def collect_images(folder: Path) -> list:
-    """Collect all image paths under a folder (non-recursive)."""
-    imgs = []
-    for ext in IMAGE_EXTS:
-        imgs.extend(folder.glob(f"*{ext}"))
-        imgs.extend(folder.glob(f"*{ext.upper()}"))
-    return sorted(set(imgs))
+    searched = "\n  - ".join(str(c) for c in candidates) or "(nothing to search)"
+    raise FileNotFoundError(
+        "Could not find the dataset. Looked for a folder containing a "
+        f"'train' subfolder in:\n  - {searched}\n\n"
+        "Fix this by passing the correct path explicitly, e.g.\n"
+        '  python training.py --data_dir "/path/to/Knee Osteoarthritis Dataset with Severity Grading"'
+    )
 
 
-def is_valid_image(path: Path) -> bool:
-    """Quick sanity check — file must be readable and > 1 KB."""
-    try:
-        return path.stat().st_size > 1024
-    except OSError:
-        return False
+# ---------------------------------------------------------------------------
+# Verifying / repairing the train-val-test split
+# ---------------------------------------------------------------------------
+def _list_class_dirs(split_dir: Path) -> List[Path]:
+    if not split_dir.is_dir():
+        return []
+    return sorted(d for d in split_dir.iterdir() if d.is_dir())
 
 
-def make_unique_name(dest_dir: Path, original_name: str) -> str:
+def _create_val_split_from_train(root: Path, val_fraction: float, seed: int) -> None:
+    """Move a stratified slice of train/ into val/, one time only, in place."""
+    train_dir = root / "train"
+    val_dir = root / "val"
+    rng = random.Random(seed)
+
+    print(
+        f"No usable val/ folder found under {root} - creating one by moving "
+        f"{val_fraction:.0%} of each class out of train/ (done once; safe to re-run)."
+    )
+
+    for class_dir in _list_class_dirs(train_dir):
+        target_dir = val_dir / class_dir.name
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        files = sorted(f for f in class_dir.iterdir() if f.is_file())
+        rng.shuffle(files)
+        n_val = max(1, round(len(files) * val_fraction)) if files else 0
+
+        for f in files[:n_val]:
+            shutil.move(str(f), str(target_dir / f.name))
+
+        print(f"  class '{class_dir.name}': moved {n_val}/{len(files)} images to val/")
+
+
+def verify_dataset(root: Path) -> Dict[str, bool]:
     """
-    If a file with original_name already exists in dest_dir, append a counter
-    to the stem so we never silently overwrite a file from another dataset.
-    e.g. image.jpg → image_1.jpg → image_2.jpg
+    Make sure train/ exists (required) and val/ exists (auto-created from
+    train/ if missing). Returns which splits are present, e.g.
+    {'train': True, 'val': True, 'test': False}.
     """
-    candidate = Path(original_name)
-    dest      = dest_dir / original_name
-    if not dest.exists():
-        return original_name
-    counter = 1
-    while True:
-        new_name = f"{candidate.stem}_{counter}{candidate.suffix}"
-        if not (dest_dir / new_name).exists():
-            return new_name
-        counter += 1
+    train_dir = root / "train"
+    val_dir = root / "val"
+    test_dir = root / "test"
 
+    if not train_dir.is_dir():
+        raise FileNotFoundError(f"Expected a 'train' folder inside {root}, found none.")
 
-def split_files(files: list, val_ratio: float, test_ratio: float, seed: int) -> dict:
-    """Shuffle and split files into train / val / test."""
-    random.seed(seed)
-    shuffled  = files[:]
-    random.shuffle(shuffled)
-    n         = len(shuffled)
-    n_val     = max(1, int(n * val_ratio))
-    n_test    = max(1, int(n * test_ratio))
-    n_train   = n - n_val - n_test
-    return {
-        "train": shuffled[:n_train],
-        "val":   shuffled[n_train : n_train + n_val],
-        "test":  shuffled[n_train + n_val :],
+    train_classes = _list_class_dirs(train_dir)
+    if not train_classes:
+        raise FileNotFoundError(f"No class subfolders (e.g. 0,1,2,3,4) found inside {train_dir}.")
+
+    if not _list_class_dirs(val_dir):
+        _create_val_split_from_train(root, VAL_FRACTION_OF_TRAIN, RANDOM_SEED)
+
+    present = {
+        "train": bool(_list_class_dirs(train_dir)),
+        "val": bool(_list_class_dirs(val_dir)),
+        "test": bool(_list_class_dirs(test_dir)),
     }
 
+    if not present["test"]:
+        print(
+            f"Note: no 'test' folder found under {root}. Training will still work, "
+            "but there won't be a held-out final evaluation after training."
+        )
 
-def print_bar(label: str, count: int, total: int, width: int = 30) -> None:
-    """Print a compact ASCII progress bar."""
-    filled = int(width * count / max(total, 1))
-    bar    = "█" * filled + "░" * (width - filled)
-    pct    = 100 * count / max(total, 1)
-    print(f"  {label}  [{bar}]  {count:>5} / {total}  ({pct:.1f}%)")
-
-
-# ---------------------------------------------------------------------------
-# Core
-# ---------------------------------------------------------------------------
-
-def verify_only(dst: Path) -> None:
-    """Print counts of an existing data/ folder without copying anything."""
-    print(f"\nVerifying: {dst.resolve()}\n")
-    splits = ["train", "val", "test"]
-    header = f"  {'Grade':<8}" + "".join(f"{s:>8}" for s in splits) + f"{'Total':>8}"
-    print(header)
-    print(f"  {'-' * (8 + 8 * len(splits) + 8)}")
-    totals = {s: 0 for s in splits}
-    for grade in range(NUM_CLASSES):
-        counts = {}
-        for split in splits:
-            d = dst / split / str(grade)
-            counts[split] = len(list(d.glob("*"))) if d.exists() else 0
-            totals[split] += counts[split]
-        row_total = sum(counts.values())
-        print(f"  KL {grade:<5}" + "".join(f"{counts[s]:>8}" for s in splits) + f"{row_total:>8}")
-    print(f"  {'-' * (8 + 8 * len(splits) + 8)}")
-    grand = sum(totals.values())
-    print(f"  {'Total':<8}" + "".join(f"{totals[s]:>8}" for s in splits) + f"{grand:>8}")
-    print()
-
-
-def prepare(src: Path, dst: Path, val_ratio: float, test_ratio: float,
-            seed: int, overwrite: bool) -> None:
-
-    # ── Handle existing destination ─────────────────────────────────────────
-    if dst.exists():
-        if overwrite:
-            print(f"⚠️  Removing existing output folder: {dst.resolve()}")
-            shutil.rmtree(dst)
-        else:
-            existing_count = sum(1 for _ in dst.rglob("*") if _.is_file())
-            if existing_count > 0:
-                print(
-                    f"\n⚠️  Destination '{dst}' already contains {existing_count} files.\n"
-                    f"   To start fresh, re-run with --overwrite.\n"
-                    f"   Continuing will add new files on top of existing ones.\n"
-                )
-
-    # ── Find grade folders ──────────────────────────────────────────────────
-    grade_folders, found_in = search_nested(src)
-
-    if not grade_folders:
-        print("\n❌ Could not detect grade folders. Folders found:")
-        for d in sorted(src.rglob("*")):
-            if d.is_dir():
-                print(f"   {d}")
-        print("\nExpected names: 0-4, Normal/Doubtful/Minimal/Moderate/Severe, grade_0-4, KL0-4")
-        sys.exit(1)
-
-    if found_in != src:
-        print(f"Found grade folders inside sub-folder: {found_in.relative_to(src)}/\n")
-
-    # ── Show what was detected ──────────────────────────────────────────────
-    print("Detected grade folders:")
-    all_images = {}
-    skipped    = 0
-    for grade in range(NUM_CLASSES):
-        if grade not in grade_folders:
-            print(f"  KL {grade}  →  ⚠️  NOT FOUND (will be empty in output)")
-            all_images[grade] = []
-            continue
-        folder = grade_folders[grade]
-        imgs   = collect_images(folder)
-        valid  = [f for f in imgs if is_valid_image(f)]
-        bad    = len(imgs) - len(valid)
-        if bad:
-            print(f"  KL {grade}  →  {folder.name}/  ({len(valid)} valid, {bad} skipped — too small/corrupt)")
-            skipped += bad
-        else:
-            print(f"  KL {grade}  →  {folder.name}/  ({len(valid)} images)")
-        all_images[grade] = valid
-
-    total_images = sum(len(v) for v in all_images.values())
-    print(f"\nTotal valid images: {total_images}")
-    if skipped:
-        print(f"Skipped (corrupt):  {skipped}")
-    if total_images == 0:
-        print("\n❌ No valid images found. Check your --src path.")
-        sys.exit(1)
-
-    print(f"\nSplit: train {(1-val_ratio-test_ratio)*100:.0f}% / "
-          f"val {val_ratio*100:.0f}% / test {test_ratio*100:.0f}%\n")
-
-    # ── Copy files ──────────────────────────────────────────────────────────
-    summary      = {}
-    total_copied = 0
-
-    for grade in range(NUM_CLASSES):
-        images = all_images[grade]
-        if not images:
-            summary[grade] = {"train": 0, "val": 0, "test": 0}
-            continue
-
-        splits  = split_files(images, val_ratio, test_ratio, seed)
-        summary[grade] = {s: len(v) for s, v in splits.items()}
-
-        for split_name, file_list in splits.items():
-            out_dir = dst / split_name / str(grade)
-            out_dir.mkdir(parents=True, exist_ok=True)
-            for fp in file_list:
-                unique_name = make_unique_name(out_dir, fp.name)
-                shutil.copy2(fp, out_dir / unique_name)
-                total_copied += 1
-
-        # Progress bar per grade
-        grade_total = len(images)
-        print_bar(f"KL {grade}", grade_total, total_images)
-
-    # ── Summary table ────────────────────────────────────────────────────────
-    print(f"\n  {'Grade':<8} {'Train':>8} {'Val':>6} {'Test':>6} {'Total':>8}")
-    print(f"  {'-'*40}")
-    totals = {"train": 0, "val": 0, "test": 0}
-    for g in range(NUM_CLASSES):
-        s     = summary[g]
-        total = s["train"] + s["val"] + s["test"]
-        print(f"  KL {g:<5} {s['train']:>8} {s['val']:>6} {s['test']:>6} {total:>8}")
-        for k in totals:
-            totals[k] += s[k]
-    print(f"  {'-'*40}")
-    grand = sum(totals.values())
-    print(f"  {'Total':<8} {totals['train']:>8} {totals['val']:>6} {totals['test']:>6} {grand:>8}")
-
-    print(f"\n✅ Dataset ready at: {dst.resolve()}")
-    print(f"\nNext step:")
-    print(f"  python train.py --data {args_dst_str} --epochs 40 --batch-size 16")
+    return present
 
 
 # ---------------------------------------------------------------------------
-# Entry point
+# Transforms
 # ---------------------------------------------------------------------------
-
-args_dst_str = "data"   # updated after args parse — used in print
-
-
-def main():
-    global args_dst_str
-
-    parser = argparse.ArgumentParser(
-        description="Prepare knee X-ray dataset for KL-grade classifier training",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=__doc__,
+def get_train_transform(img_size: int = IMG_SIZE) -> transforms.Compose:
+    """
+    Augmentation is deliberately mild and geometry-preserving. The images in
+    this dataset are already tightly cropped around the knee joint, so an
+    aggressive random-crop risks cutting out the joint space itself - which
+    is exactly the feature the KL grade depends on. Horizontal flip is safe
+    (it just mirrors left/right knees) and matches the augmentation used in
+    the published work on this dataset.
+    """
+    return transforms.Compose(
+        [
+            transforms.Resize((img_size, img_size)),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomAffine(degrees=10, translate=(0.05, 0.05), scale=(0.9, 1.1)),
+            transforms.ColorJitter(brightness=0.15, contrast=0.15),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
+        ]
     )
-    parser.add_argument("--src",       required=True,
-                        help="Root folder containing grade sub-folders")
-    parser.add_argument("--dst",       default="data",
-                        help="Output directory (default: data/)")
-    parser.add_argument("--val",       type=float, default=0.10,
-                        help="Validation split ratio (default: 0.10)")
-    parser.add_argument("--test",      type=float, default=0.10,
-                        help="Test split ratio (default: 0.10)")
-    parser.add_argument("--seed",      type=int,   default=SEED,
-                        help="Random seed for reproducible splits (default: 42)")
-    parser.add_argument("--overwrite", action="store_true",
-                        help="Delete and recreate destination folder before splitting")
-    parser.add_argument("--verify",    action="store_true",
-                        help="Print counts of an existing output folder without copying")
+
+
+def get_eval_transform(img_size: int = IMG_SIZE) -> transforms.Compose:
+    """Deterministic preprocessing used for validation, test, and inference."""
+    return transforms.Compose(
+        [
+            transforms.Resize((img_size, img_size)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
+        ]
+    )
+
+
+# ---------------------------------------------------------------------------
+# Labels and class imbalance
+# ---------------------------------------------------------------------------
+def build_label_maps(classes: List[str]) -> Tuple[Dict[int, int], Dict[int, str]]:
+    """
+    `classes` is what torchvision.datasets.ImageFolder returns: folder names
+    ('0'..'4') sorted alphabetically, in the same order as the model's
+    output indices. Returns:
+      idx_to_grade: {0: 0, 1: 1, ...}              model index -> KL grade
+      idx_to_name : {0: 'Grade 0 - Normal', ...}    model index -> readable label
+    """
+    idx_to_grade = {i: int(name) for i, name in enumerate(classes)}
+    idx_to_name = {
+        i: KL_GRADE_NAMES.get(grade, f"Grade {grade}") for i, grade in idx_to_grade.items()
+    }
+    return idx_to_grade, idx_to_name
+
+
+def compute_class_weights(dataset: datasets.ImageFolder) -> torch.Tensor:
+    """Inverse-frequency class weights (mean-normalized to 1.0) for CrossEntropyLoss."""
+    counts = [0] * len(dataset.classes)
+    for _, label in dataset.samples:
+        counts[label] += 1
+    counts_t = torch.tensor(counts, dtype=torch.float)
+    weights = 1.0 / torch.clamp(counts_t, min=1)
+    weights = weights * (len(weights) / weights.sum())
+    return weights
+
+
+# ---------------------------------------------------------------------------
+# DataLoaders
+# ---------------------------------------------------------------------------
+def get_dataloaders(
+    data_dir: Optional[str] = None,
+    batch_size: int = 32,
+    img_size: int = IMG_SIZE,
+    num_workers: int = 2,
+    use_weighted_sampler: bool = False,
+) -> Tuple[DataLoader, DataLoader, Optional[DataLoader], List[str], torch.Tensor]:
+    """Returns (train_loader, val_loader, test_loader_or_None, classes, class_weights)."""
+    root = find_dataset_root(data_dir)
+    present = verify_dataset(root)
+
+    train_ds = datasets.ImageFolder(root / "train", transform=get_train_transform(img_size))
+    val_ds = datasets.ImageFolder(root / "val", transform=get_eval_transform(img_size))
+    test_ds = (
+        datasets.ImageFolder(root / "test", transform=get_eval_transform(img_size))
+        if present["test"]
+        else None
+    )
+
+    if val_ds.class_to_idx != train_ds.class_to_idx:
+        raise RuntimeError(
+            "train/ and val/ don't have matching class subfolders "
+            f"({train_ds.class_to_idx} vs {val_ds.class_to_idx}). Check the dataset "
+            "folder for missing or extra class subfolders."
+        )
+    if test_ds is not None and test_ds.class_to_idx != train_ds.class_to_idx:
+        raise RuntimeError(
+            "train/ and test/ don't have matching class subfolders "
+            f"({train_ds.class_to_idx} vs {test_ds.class_to_idx})."
+        )
+
+    class_weights = compute_class_weights(train_ds)
+
+    sampler = None
+    shuffle = True
+    if use_weighted_sampler:
+        sample_weights = [class_weights[label].item() for _, label in train_ds.samples]
+        sampler = WeightedRandomSampler(sample_weights, num_samples=len(sample_weights), replacement=True)
+        shuffle = False
+
+    pin_memory = torch.cuda.is_available()
+
+    train_loader = DataLoader(
+        train_ds,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        sampler=sampler,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+        drop_last=True,
+    )
+    val_loader = DataLoader(
+        val_ds,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+    )
+    test_loader = (
+        DataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=pin_memory)
+        if test_ds is not None
+        else None
+    )
+
+    return train_loader, val_loader, test_loader, train_ds.classes, class_weights
+
+
+# ---------------------------------------------------------------------------
+# Standalone sanity check: `python prepare_dataset.py --data_dir ...`
+# ---------------------------------------------------------------------------
+def _print_split_summary(name: str, ds: datasets.ImageFolder) -> Dict[str, int]:
+    counts = [0] * len(ds.classes)
+    for _, label in ds.samples:
+        counts[label] += 1
+    total = sum(counts)
+    print(f"\n{name} - {total} images")
+    for cls_name, count in zip(ds.classes, counts):
+        grade = int(cls_name)
+        pct = 100 * count / total if total else 0
+        print(f"  {KL_GRADE_NAMES.get(grade, cls_name):22s}: {count:5d} images ({pct:5.1f}%)")
+    return dict(zip(ds.classes, counts))
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Verify / prepare the Knee OA severity dataset.")
+    parser.add_argument(
+        "--data_dir",
+        type=str,
+        default=None,
+        help="Path to the dataset root (the folder containing train/val/test). "
+        "If omitted, common Kaggle input paths are searched automatically.",
+    )
     args = parser.parse_args()
 
-    # Validate split ratios
-    if not (0.0 < args.val < 1.0 and 0.0 < args.test < 1.0):
-        print("❌ --val and --test must each be between 0.0 and 1.0")
-        sys.exit(1)
-    if args.val + args.test >= 1.0:
-        print("❌ --val + --test must be less than 1.0 (leaves something for training)")
-        sys.exit(1)
+    root = find_dataset_root(args.data_dir)
+    print(f"Dataset root: {root}")
+    present = verify_dataset(root)
 
-    src          = Path(args.src)
-    dst          = Path(args.dst)
-    args_dst_str = args.dst
+    summary = {}
+    for split in ("train", "val", "test"):
+        if not present[split]:
+            continue
+        ds = datasets.ImageFolder(root / split, transform=get_eval_transform())
+        summary[split] = _print_split_summary(split, ds)
 
-    if not src.exists():
-        print(f"❌ Source folder not found: {src.resolve()}")
-        sys.exit(1)
+    out_dir = Path(DEFAULT_OUTPUT_DIR)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    with open(out_dir / "dataset_summary.json", "w") as f:
+        json.dump(summary, f, indent=2)
 
-    print(f"\nSource : {src.resolve()}")
-    print(f"Output : {dst.resolve()}")
-
-    if args.verify:
-        verify_only(dst)
-        return
-
-    prepare(src, dst, args.val, args.test, args.seed, args.overwrite)
+    print(f"\nSaved a class-distribution summary to {out_dir / 'dataset_summary.json'}")
+    print(f'Dataset looks good. Next: python training.py --data_dir "{root}"')
 
 
 if __name__ == "__main__":
