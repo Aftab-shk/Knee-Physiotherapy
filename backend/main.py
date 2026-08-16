@@ -66,7 +66,7 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("✅  Model loaded — real inference active. Version: %s", MODEL_VERSION)
     yield
-    logger.info("Shutting down PhysioAI backend.")
+    logger.info("Shutting down AI Knee Physiotherapy backend.")
 
 
 # ---------------------------------------------------------------------------
@@ -82,7 +82,7 @@ CORS_ORIGINS = os.getenv(
 ).split(",")
 
 app = FastAPI(
-    title       = "PhysioAI API",
+    title       = "AI Knee Physiotherapy API",
     description = (
         "Knee X-ray KL grading + personalised rehab exercise prescription. "
         "⚠️ For informational purposes only — not a substitute for professional medical advice."

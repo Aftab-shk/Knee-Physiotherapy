@@ -38,7 +38,9 @@ import shutil
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+import numpy as np
 import torch
+from PIL import Image
 from torch.utils.data import DataLoader, WeightedRandomSampler
 from torchvision import datasets, transforms
 
@@ -51,6 +53,16 @@ IMAGENET_STD = [0.229, 0.224, 0.225]
 RANDOM_SEED = 42
 DEFAULT_OUTPUT_DIR = "outputs"
 VAL_FRACTION_OF_TRAIN = 0.15  # only used as a fallback if val/ doesn't exist
+
+# Each EfficientNet variant was trained by its authors at a specific input
+# resolution, and its compound-scaled depth/width only pays off when it is fed
+# roughly that resolution. Running B3/B4 at B0's 224px is the single most
+# common reason a "bigger" EfficientNet fails to beat B0 on this dataset.
+ARCH_IMG_SIZE = {"b0": 224, "b1": 240, "b2": 260, "b3": 300, "b4": 380, "b5": 456}
+
+
+def default_img_size(arch: str) -> int:
+    return ARCH_IMG_SIZE.get(arch.lower(), IMG_SIZE)
 
 # Kellgren-Lawrence (KL) grading system used by this dataset
 KL_GRADE_NAMES = {
@@ -210,31 +222,103 @@ def verify_dataset(root: Path) -> Dict[str, bool]:
 # ---------------------------------------------------------------------------
 # Transforms
 # ---------------------------------------------------------------------------
-def get_train_transform(img_size: int = IMG_SIZE) -> transforms.Compose:
+class CLAHE:
     """
-    Augmentation is deliberately mild and geometry-preserving. The images in
-    this dataset are already tightly cropped around the knee joint, so an
-    aggressive random-crop risks cutting out the joint space itself - which
-    is exactly the feature the KL grade depends on. Horizontal flip is safe
-    (it just mirrors left/right knees) and matches the augmentation used in
-    the published work on this dataset.
+    Contrast Limited Adaptive Histogram Equalization.
+
+    Knee radiographs in this dataset vary a lot in exposure between source
+    machines, and the feature the KL grade actually depends on - joint-space
+    narrowing and osteophytes at the joint margin - is a *local* contrast
+    difference. Global normalization leaves that contrast wherever the
+    original exposure put it; CLAHE equalizes it tile-by-tile so the joint
+    margin looks similar across images.
+
+    Applied identically at train and eval time, so it is recorded in the
+    checkpoint and re-applied by inference.py. The cv2 object is built lazily
+    because it does not survive pickling to DataLoader workers.
     """
-    return transforms.Compose(
-        [
+
+    def __init__(self, clip_limit: float = 2.0, tile_grid: int = 8):
+        self.clip_limit = clip_limit
+        self.tile_grid = tile_grid
+        self._op = None
+
+    def __getstate__(self):
+        # A live cv2.CLAHE handle cannot be pickled, so drop it when this
+        # transform is shipped to a DataLoader worker (Windows spawns rather
+        # than forks). Each worker rebuilds its own on first use.
+        state = self.__dict__.copy()
+        state["_op"] = None
+        return state
+
+    def __call__(self, img: Image.Image) -> Image.Image:
+        if self._op is None:
+            import cv2  # imported here so the module stays importable without cv2
+
+            self._op = cv2.createCLAHE(
+                clipLimit=self.clip_limit, tileGridSize=(self.tile_grid, self.tile_grid)
+            )
+        gray = np.array(img.convert("L"))
+        return Image.fromarray(self._op.apply(gray)).convert("RGB")
+
+
+def get_train_transform(
+    img_size: int = IMG_SIZE, strong: bool = True, clahe: bool = False
+) -> transforms.Compose:
+    """
+    Training augmentation.
+
+    `strong=False` reproduces the original mild, geometry-preserving recipe.
+
+    `strong=True` (the default) adds the regularization a ~5.8k-image training
+    set needs to fine-tune a 19M-parameter B4 without memorizing it. The crop
+    is deliberately bounded at scale=(0.75, 1.0) rather than torchvision's
+    default 0.08 floor: these images are already tightly cropped around the
+    joint, so an aggressive crop can remove the joint space itself - the exact
+    feature being graded. Rotation and shear stay small for the same reason.
+    Photometric jitter is wider than before because exposure genuinely varies
+    between source machines, and RandomErasing forces the model to spread its
+    evidence across the joint instead of keying on one spot.
+    """
+    pre = [CLAHE()] if clahe else []
+
+    if not strong:
+        body = [
             transforms.Resize((img_size, img_size)),
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.RandomAffine(degrees=10, translate=(0.05, 0.05), scale=(0.9, 1.1)),
             transforms.ColorJitter(brightness=0.15, contrast=0.15),
+        ]
+        tail = [
             transforms.ToTensor(),
             transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
         ]
-    )
+        return transforms.Compose(pre + body + tail)
+
+    body = [
+        transforms.RandomResizedCrop(
+            img_size, scale=(0.75, 1.0), ratio=(0.9, 1.111), antialias=True
+        ),
+        transforms.RandomHorizontalFlip(p=0.5),
+        transforms.RandomApply(
+            [transforms.RandomAffine(degrees=12, translate=(0.06, 0.06), shear=5)], p=0.6
+        ),
+        transforms.ColorJitter(brightness=0.25, contrast=0.25),
+    ]
+    tail = [
+        transforms.ToTensor(),
+        transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
+        transforms.RandomErasing(p=0.25, scale=(0.02, 0.12), ratio=(0.3, 3.3), value=0.0),
+    ]
+    return transforms.Compose(pre + body + tail)
 
 
-def get_eval_transform(img_size: int = IMG_SIZE) -> transforms.Compose:
+def get_eval_transform(img_size: int = IMG_SIZE, clahe: bool = False) -> transforms.Compose:
     """Deterministic preprocessing used for validation, test, and inference."""
+    pre = [CLAHE()] if clahe else []
     return transforms.Compose(
-        [
+        pre
+        + [
             transforms.Resize((img_size, img_size)),
             transforms.ToTensor(),
             transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
@@ -260,15 +344,37 @@ def build_label_maps(classes: List[str]) -> Tuple[Dict[int, int], Dict[int, str]
     return idx_to_grade, idx_to_name
 
 
-def compute_class_weights(dataset: datasets.ImageFolder) -> torch.Tensor:
-    """Inverse-frequency class weights (mean-normalized to 1.0) for CrossEntropyLoss."""
+def compute_class_weights(dataset: datasets.ImageFolder, mode: str = "sqrt_inverse") -> torch.Tensor:
+    """
+    Per-class loss weights (mean-normalized to 1.0) for CrossEntropyLoss.
+
+    modes:
+      "inverse"      - w_c = 1/n_c. Maximizes *balanced* recall, but on this
+                       dataset Grade 4 (~173 images) ends up weighted ~13x
+                       Grade 0 (~2286). That trades away a lot of overall
+                       accuracy to chase the rarest class, which is why it is
+                       no longer the default.
+      "sqrt_inverse" - w_c = 1/sqrt(n_c). Still corrects the imbalance, but
+                       gently enough that overall accuracy keeps improving.
+                       This is the default.
+      "none"         - uniform weights.
+    """
     counts = [0] * len(dataset.classes)
     for _, label in dataset.samples:
         counts[label] += 1
-    counts_t = torch.tensor(counts, dtype=torch.float)
-    weights = 1.0 / torch.clamp(counts_t, min=1)
-    weights = weights * (len(weights) / weights.sum())
-    return weights
+    counts_t = torch.tensor(counts, dtype=torch.float).clamp(min=1)
+
+    mode = (mode or "sqrt_inverse").lower()
+    if mode == "none":
+        weights = torch.ones_like(counts_t)
+    elif mode == "inverse":
+        weights = 1.0 / counts_t
+    elif mode == "sqrt_inverse":
+        weights = 1.0 / counts_t.sqrt()
+    else:
+        raise ValueError(f"Unknown class-weight mode '{mode}'.")
+
+    return weights * (len(weights) / weights.sum())
 
 
 # ---------------------------------------------------------------------------
@@ -280,17 +386,21 @@ def get_dataloaders(
     img_size: int = IMG_SIZE,
     num_workers: int = 2,
     use_weighted_sampler: bool = False,
+    strong_aug: bool = True,
+    clahe: bool = False,
+    class_weight_mode: str = "sqrt_inverse",
 ) -> Tuple[DataLoader, DataLoader, Optional[DataLoader], List[str], torch.Tensor]:
     """Returns (train_loader, val_loader, test_loader_or_None, classes, class_weights)."""
     root = find_dataset_root(data_dir)
     present = verify_dataset(root)
 
-    train_ds = datasets.ImageFolder(root / "train", transform=get_train_transform(img_size))
-    val_ds = datasets.ImageFolder(root / "val", transform=get_eval_transform(img_size))
+    train_tf = get_train_transform(img_size, strong=strong_aug, clahe=clahe)
+    eval_tf = get_eval_transform(img_size, clahe=clahe)
+
+    train_ds = datasets.ImageFolder(root / "train", transform=train_tf)
+    val_ds = datasets.ImageFolder(root / "val", transform=eval_tf)
     test_ds = (
-        datasets.ImageFolder(root / "test", transform=get_eval_transform(img_size))
-        if present["test"]
-        else None
+        datasets.ImageFolder(root / "test", transform=eval_tf) if present["test"] else None
     )
 
     if val_ds.class_to_idx != train_ds.class_to_idx:
@@ -305,16 +415,25 @@ def get_dataloaders(
             f"({train_ds.class_to_idx} vs {test_ds.class_to_idx})."
         )
 
-    class_weights = compute_class_weights(train_ds)
+    class_weights = compute_class_weights(train_ds, mode=class_weight_mode)
 
     sampler = None
     shuffle = True
     if use_weighted_sampler:
-        sample_weights = [class_weights[label].item() for _, label in train_ds.samples]
-        sampler = WeightedRandomSampler(sample_weights, num_samples=len(sample_weights), replacement=True)
+        # Oversampling and loss weighting correct the *same* imbalance. Doing
+        # both at full strength corrects it twice over and pushes the model
+        # past balanced into over-predicting rare grades, so the sampler is
+        # driven by its own sqrt-inverse weights and train.py drops the loss
+        # weights to uniform when this is on.
+        sampler_weights = compute_class_weights(train_ds, mode="sqrt_inverse")
+        sample_weights = [sampler_weights[label].item() for _, label in train_ds.samples]
+        sampler = WeightedRandomSampler(
+            sample_weights, num_samples=len(sample_weights), replacement=True
+        )
         shuffle = False
 
     pin_memory = torch.cuda.is_available()
+    persistent = num_workers > 0
 
     train_loader = DataLoader(
         train_ds,
@@ -324,6 +443,7 @@ def get_dataloaders(
         num_workers=num_workers,
         pin_memory=pin_memory,
         drop_last=True,
+        persistent_workers=persistent,
     )
     val_loader = DataLoader(
         val_ds,
@@ -331,9 +451,16 @@ def get_dataloaders(
         shuffle=False,
         num_workers=num_workers,
         pin_memory=pin_memory,
+        persistent_workers=persistent,
     )
     test_loader = (
-        DataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=pin_memory)
+        DataLoader(
+            test_ds,
+            batch_size=batch_size,
+            shuffle=False,
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+        )
         if test_ds is not None
         else None
     )

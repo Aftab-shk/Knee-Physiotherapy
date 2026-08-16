@@ -25,7 +25,7 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 import numpy as np
 import torch
@@ -42,32 +42,51 @@ from prepare_dataset import DEFAULT_OUTPUT_DIR, get_eval_transform
 import torch.nn as nn
 from torchvision.models import (
     EfficientNet_B0_Weights,
+    EfficientNet_B1_Weights,
+    EfficientNet_B2_Weights,
     EfficientNet_B3_Weights,
+    EfficientNet_B4_Weights,
+    EfficientNet_B5_Weights,
     efficientnet_b0,
+    efficientnet_b1,
+    efficientnet_b2,
     efficientnet_b3,
+    efficientnet_b4,
+    efficientnet_b5,
 )
 
-def build_model(arch: str, num_classes: int, pretrained: bool = True) -> nn.Module:
+# Must stay in sync with train.py's _ARCHS - a checkpoint records the arch it
+# was trained with, and loading fails loudly here if that arch is unknown.
+_ARCHS = {
+    "b0": (efficientnet_b0, EfficientNet_B0_Weights),
+    "b1": (efficientnet_b1, EfficientNet_B1_Weights),
+    "b2": (efficientnet_b2, EfficientNet_B2_Weights),
+    "b3": (efficientnet_b3, EfficientNet_B3_Weights),
+    "b4": (efficientnet_b4, EfficientNet_B4_Weights),
+    "b5": (efficientnet_b5, EfficientNet_B5_Weights),
+}
+
+
+def build_model(
+    arch: str, num_classes: int, pretrained: bool = True, dropout: float = 0.4
+) -> nn.Module:
     arch = arch.lower()
-    if arch == "b0":
-        weights = EfficientNet_B0_Weights.IMAGENET1K_V1 if pretrained else None
-        model = efficientnet_b0(weights=weights)
-    elif arch == "b3":
-        weights = EfficientNet_B3_Weights.IMAGENET1K_V1 if pretrained else None
-        model = efficientnet_b3(weights=weights)
-    else:
-        raise ValueError(f"Unsupported --arch '{arch}'. Choose 'b0' or 'b3'.")
+    if arch not in _ARCHS:
+        raise ValueError(f"Unsupported arch '{arch}'. Choose one of {sorted(_ARCHS)}.")
+
+    ctor, weights_enum = _ARCHS[arch]
+    model = ctor(weights=weights_enum.IMAGENET1K_V1 if pretrained else None)
 
     in_features = model.classifier[1].in_features
     model.classifier = nn.Sequential(
-        nn.Dropout(p=0.4, inplace=True),
+        nn.Dropout(p=dropout, inplace=True),
         nn.Linear(in_features, num_classes),
     )
     return model
 
 logger = logging.getLogger(__name__)
 
-MODEL_VERSION = "efficientnet_v3"
+MODEL_VERSION = "efficientnet_b4_v2"
 
 # KL Grade → clinical health score (0–100)
 KL_HEALTH_SCORE: Dict[int, int] = {0: 95, 1: 80, 2: 60, 3: 35, 4: 15}
@@ -114,16 +133,26 @@ class KneeClassifier:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = None
         self.demo_mode = True
+        self.logit_adjust = None
 
         checkpoint_path = Path(__file__).parent / "best_model.pth"
         if checkpoint_path.is_file():
             try:
-                self.model, self.idx_to_grade, self.idx_to_name, self.img_size = load_checkpoint(
-                    str(checkpoint_path), self.device
-                )
-                self.transform = get_eval_transform(self.img_size)
+                (
+                    self.model,
+                    self.idx_to_grade,
+                    self.idx_to_name,
+                    self.img_size,
+                    self.clahe,
+                ) = load_checkpoint(str(checkpoint_path), self.device)
+                self.transform = get_eval_transform(self.img_size, clahe=self.clahe)
+                adjust = load_logit_adjust(str(checkpoint_path))
+                self.logit_adjust = adjust.to(self.device) if adjust is not None else None
                 self.demo_mode = False
-                logger.info(f"Model loaded from {checkpoint_path}")
+                logger.info(
+                    f"Model loaded from {checkpoint_path} "
+                    f"(img_size={self.img_size}, clahe={self.clahe})"
+                )
             except Exception as exc:
                 logger.error(f"Failed to load model weights: {exc} — falling back to demo mode.")
         else:
@@ -157,6 +186,12 @@ class KneeClassifier:
             with torch.no_grad():
                 logits_a = self.model(x)
                 logits_b = self.model(flipped)
+                # Same class-prior correction the checkpoint was tuned with,
+                # applied to logits before softmax so serving matches the
+                # reported test accuracy.
+                if self.logit_adjust is not None:
+                    logits_a = logits_a - self.logit_adjust
+                    logits_b = logits_b - self.logit_adjust
                 probs_a = F.softmax(logits_a, dim=1)
                 probs_b = F.softmax(logits_b, dim=1)
                 probs = ((probs_a + probs_b) / 2.0).squeeze(0).cpu()
@@ -205,8 +240,18 @@ IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
 
 
 def load_checkpoint(checkpoint_path: str, device: torch.device):
+    """
+    Returns (model, idx_to_grade, idx_to_name, img_size, clahe).
+
+    Input resolution and CLAHE are read back out of the checkpoint rather than
+    hardcoded, so inference preprocessing always matches what the model was
+    trained on. A B4 trained at 380px fed 224px images would silently lose a
+    large chunk of its accuracy.
+    """
     ckpt = torch.load(checkpoint_path, map_location=device, weights_only=True)
-    model = build_model(ckpt["arch"], ckpt["num_classes"], pretrained=False)
+    model = build_model(
+        ckpt["arch"], ckpt["num_classes"], pretrained=False, dropout=ckpt.get("dropout", 0.4)
+    )
     model.load_state_dict(ckpt["model_state_dict"])
     model.to(device)
     model.eval()
@@ -214,14 +259,38 @@ def load_checkpoint(checkpoint_path: str, device: torch.device):
     idx_to_grade = {int(k): int(v) for k, v in ckpt["idx_to_grade"].items()}
     idx_to_name = {int(k): v for k, v in ckpt["idx_to_name"].items()}
     img_size = ckpt.get("img_size", 224)
-    return model, idx_to_grade, idx_to_name, img_size
+    clahe = bool(ckpt.get("clahe", False))
+    return model, idx_to_grade, idx_to_name, img_size, clahe
+
+
+def load_logit_adjust(checkpoint_path: str) -> Optional[torch.Tensor]:
+    """
+    Rebuild the class-prior correction the checkpoint was tuned with.
+
+    The model is trained on data where Grade 0 outnumbers Grade 4 ~13x, so it
+    learns to lean on that prior. train.py sweeps a correction strength (tau)
+    on the validation split; applying the same correction here keeps serving
+    predictions identical to the reported test numbers. Returns None when the
+    checkpoint predates this or was trained with --logit_adjust off.
+    """
+    ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
+    tau = float(ckpt.get("logit_tau", 0.0) or 0.0)
+    priors = ckpt.get("class_priors")
+    if tau == 0.0 or not priors:
+        return None
+    return tau * torch.log(torch.tensor(priors, dtype=torch.float).clamp(min=1e-8))
 
 
 @torch.no_grad()
-def predict_single(model, image_path: Path, transform, idx_to_grade, idx_to_name, device) -> Dict:
+def predict_single(
+    model, image_path: Path, transform, idx_to_grade, idx_to_name, device, logit_adjust=None
+) -> Dict:
     image = Image.open(image_path).convert("RGB")
     x = transform(image).unsqueeze(0).to(device)
-    probs = F.softmax(model(x), dim=1).squeeze(0).cpu()
+    logits = model(x)
+    if logit_adjust is not None:
+        logits = logits - logit_adjust
+    probs = F.softmax(logits, dim=1).squeeze(0).cpu()
     pred_idx = int(torch.argmax(probs).item())
 
     ranked = sorted(
@@ -247,7 +316,10 @@ def print_prediction(result: Dict) -> None:
 
 
 @torch.no_grad()
-def evaluate_folder(model, eval_dir: Path, transform, idx_to_grade, idx_to_name, device, batch_size: int = 32) -> None:
+def evaluate_folder(
+    model, eval_dir: Path, transform, idx_to_grade, idx_to_name, device,
+    batch_size: int = 32, logit_adjust=None,
+) -> None:
     """Batched evaluation on an ImageFolder-style labeled directory (e.g. test/)."""
     from sklearn.metrics import classification_report
 
@@ -265,15 +337,23 @@ def evaluate_folder(model, eval_dir: Path, transform, idx_to_grade, idx_to_name,
     all_preds, all_labels = [], []
     for images, labels in loader:
         images = images.to(device)
-        preds = model(images).argmax(dim=1).cpu()
-        all_preds.extend(preds.tolist())
+        # Flip TTA plus the checkpoint's class-prior correction, matching what
+        # train.py reports for the test split, so the numbers are comparable.
+        la = logit_adjust
+        lg_a, lg_b = model(images), model(torch.flip(images, dims=[3]))
+        if la is not None:
+            lg_a, lg_b = lg_a - la, lg_b - la
+        probs = F.softmax(lg_a, dim=1) + F.softmax(lg_b, dim=1)
+        all_preds.extend(probs.argmax(dim=1).cpu().tolist())
         all_labels.extend(labels.tolist())
 
     class_names = [idx_to_name[i] for i in range(len(idx_to_name))]
     print(f"\nEvaluation on {eval_dir}  ({len(dataset)} images)")
     print(classification_report(all_labels, all_preds, target_names=class_names, zero_division=0))
     correct = sum(p == l for p, l in zip(all_preds, all_labels))
+    within_one = sum(abs(p - l) <= 1 for p, l in zip(all_preds, all_labels))
     print(f"Overall accuracy: {correct / len(all_labels):.4f}")
+    print(f"Within-one-grade accuracy: {within_one / len(all_labels):.4f}")
 
 
 def main() -> None:
@@ -296,15 +376,24 @@ def main() -> None:
             "correct file with --checkpoint."
         )
 
-    model, idx_to_grade, idx_to_name, img_size = load_checkpoint(str(checkpoint_path), device)
-    transform = get_eval_transform(img_size)
-    print(f"Loaded checkpoint: {checkpoint_path} (device: {device})")
+    model, idx_to_grade, idx_to_name, img_size, clahe = load_checkpoint(str(checkpoint_path), device)
+    transform = get_eval_transform(img_size, clahe=clahe)
+    logit_adjust = load_logit_adjust(str(checkpoint_path))
+    if logit_adjust is not None:
+        logit_adjust = logit_adjust.to(device)
+    print(
+        f"Loaded checkpoint: {checkpoint_path} (device: {device}, "
+        f"img_size: {img_size}, clahe: {clahe}, "
+        f"logit_adjust: {'on' if logit_adjust is not None else 'off'})"
+    )
 
     if args.image:
         image_path = Path(args.image)
         if not image_path.is_file():
             raise FileNotFoundError(f"Image not found: {image_path}")
-        result = predict_single(model, image_path, transform, idx_to_grade, idx_to_name, device)
+        result = predict_single(
+            model, image_path, transform, idx_to_grade, idx_to_name, device, logit_adjust
+        )
         print_prediction(result)
 
     elif args.image_dir:
@@ -318,7 +407,11 @@ def main() -> None:
         results = []
         for p in image_paths:
             try:
-                results.append(predict_single(model, p, transform, idx_to_grade, idx_to_name, device))
+                results.append(
+                    predict_single(
+                        model, p, transform, idx_to_grade, idx_to_name, device, logit_adjust
+                    )
+                )
             except UnidentifiedImageError:
                 print(f"  (skipping unreadable file: {p})")
 
@@ -335,7 +428,10 @@ def main() -> None:
         eval_dir = Path(args.eval_dir)
         if not eval_dir.is_dir():
             raise FileNotFoundError(f"Folder not found: {eval_dir}")
-        evaluate_folder(model, eval_dir, transform, idx_to_grade, idx_to_name, device)
+        evaluate_folder(
+            model, eval_dir, transform, idx_to_grade, idx_to_name, device,
+            logit_adjust=logit_adjust,
+        )
 
 
 if __name__ == "__main__":

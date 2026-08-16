@@ -10,7 +10,7 @@ FastAPI backend for knee X-ray KL-grade classification and personalised rehab ex
 POST /analyse-xray
   │
   ├── validate_image()          image quality gate (contrast, exposure)
-  ├── KneeClassifier.predict()  ResNet50 → KL Grade 0–4 + confidence
+  ├── KneeClassifier.predict()  EfficientNet (B0–B5, B4 by default) → KL Grade 0–4 + confidence
   └── build_prescription()
         ├── get_phase()         surgery_type + weeks_post_op → rehab phase
         ├── _cap_exercises()    protocol angle limits capped by X-ray max_angle
@@ -38,8 +38,9 @@ uvicorn main:app --reload --port 8000
 Open `http://localhost:8000/docs` for the interactive Swagger UI.
 
 > **Demo mode** is active by default until you place trained weights at
-> `model/resnet50_kl_v1.pt`. All clinical logic (exercise selection, angle capping,
-> rationale) runs normally in demo mode.
+> `model/best_model.pth`. All clinical logic (exercise selection, angle capping,
+> rationale) runs normally in demo mode — only the KL grade becomes a
+> deterministic mock value derived from the image hash.
 
 ---
 
@@ -54,7 +55,7 @@ docker run -p 8000:8000 physio-backend
 
 # Run with trained weights mounted
 docker run -p 8000:8000 \
-  -v /path/to/resnet50_kl_v1.pt:/app/model/resnet50_kl_v1.pt \
+  -v /path/to/best_model.pth:/app/model/best_model.pth \
   physio-backend
 ```
 
@@ -109,14 +110,19 @@ curl -X POST http://localhost:8000/analyse-xray \
     }
   ],
   "rationale": "Your X-ray shows KL Grade 2 ...",
-  "model_version": "resnet50_kl_v1",
-  "demo_mode": true
+  "disclaimer": "For informational purposes only...",
+  "model_version": "efficientnet_b4_v2",
+  "demo_mode": false
 }
 ```
 
+### `GET /exercises`
+
+Query params: `surgery_type` (required), `weeks_post_op` (required unless `surgery_type=none`), `kl_grade` (optional, 0–4, default 0). Returns the same `exercise_list` shape without requiring an image upload.
+
 ### `GET /health`
 ```json
-{ "status": "ok", "model_loaded": true, "model_version": "resnet50_kl_v1", "demo_mode": true }
+{ "status": "ok", "model_loaded": true, "model_version": "efficientnet_b4_v2", "demo_mode": false }
 ```
 
 ---
@@ -142,16 +148,24 @@ protocol to a more severe presentation.
 
 ## Training the Model
 
-1. Download the **Knee Osteoarthritis Dataset with Severity Grading** from Kaggle.
-2. Train a ResNet50 (`torchvision.models.resnet50`) with its final FC replaced by
-   `nn.Linear(2048, 5)` for 5-class output (KL 0–4).
-3. Preprocessing during training must match inference:
-   - Convert to grayscale → CLAHE (clipLimit=2.0, tileGridSize=8×8) → RGB
-   - Resize to 224×224
-   - Normalize with ImageNet mean/std: `[0.485, 0.456, 0.406]` / `[0.229, 0.224, 0.225]`
-4. Save weights: `torch.save(model.state_dict(), "model/resnet50_kl_v1.pt")`
-5. Place the file at `model/resnet50_kl_v1.pt` (or set `MODEL_PATH` env var).
-6. Restart the server — it will detect and load the weights automatically.
+The training recipe (EfficientNet-B4 at its native 380px resolution, ordinal-aware
+loss, MixUp/CutMix, layer-wise LR decay, EMA weight averaging, and a post-hoc
+class-prior correction) lives entirely in `model/train.py` and is documented in
+**[model/TRAINING.md](model/TRAINING.md)**, including the exact Kaggle command,
+how to resume a run that stopped early, and how to read the confusion matrix /
+per-class report to decide what to tune next.
+
+Short version:
+```bash
+python model/train.py --data_dir "<path-to-kaggle-dataset>" --arch b4 --num_workers 4 --tta
+```
+Then copy the result into place:
+```bash
+cp outputs/best_model.pth backend/model/best_model.pth
+```
+Restart the server — it detects the file and switches out of demo mode automatically.
+The checkpoint embeds its own architecture, input resolution, CLAHE flag, and
+class-prior correction, so nothing else needs to be kept in sync manually.
 
 ---
 
@@ -159,5 +173,10 @@ protocol to a more severe presentation.
 
 | Variable       | Default | Description |
 |----------------|---------|-------------|
-| `MODEL_PATH`   | `model/resnet50_kl_v1.pt` | Path to trained weights |
-| `CORS_ORIGINS` | `http://localhost:5173,http://localhost:3000` | Comma-separated allowed origins |
+| `CORS_ORIGINS` | `http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://localhost:8080,http://127.0.0.1:8080,http://localhost:5500,http://127.0.0.1:5500,null` | Comma-separated allowed origins |
+
+> `MODEL_PATH` appears in `main.py`'s docstring and startup log message, but
+> nothing currently reads it to choose where weights are loaded from —
+> `model/inference.py` always loads `backend/model/best_model.pth`. Setting
+> the env var has no effect until that's wired up; place weights at that
+> fixed path.
