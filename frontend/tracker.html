@@ -817,21 +817,43 @@
       target_sets: 3,
       angle_limit: 60,
       hold_seconds: null,
+      tracked_joint: "knee",
+      hold_target: null,
+      start_angle: null,
+      hold_angle: null,
       angle_capped: false,
     };
+
+    // Older cached sessionStorage payloads predate these fields — default them
+    // so a stale tab can't fall back to the broken "bent past 15°" behaviour.
+    const trackedJoint = exercise.tracked_joint || "knee";
+    const holdTarget = exercise.hold_target || (exercise.hold_seconds ? "flexed" : null);
+
+    // Angle the patient must reach and hold. Defaults to the safety limit, but
+    // Seated Knee Extension is performed sitting at ~90° (its ceiling) while the
+    // goal is to extend to 45° — there the two numbers are genuinely different.
+    const holdAngle = (exercise.hold_angle ?? null) !== null
+      ? exercise.hold_angle
+      : exercise.angle_limit;
+
+    const isHoldMode = !!exercise.hold_seconds;
 
     document.getElementById('exercise-title-text').textContent = exercise.name;
     document.getElementById('phase-chip-text').textContent = rehabPhase || 'Demo mode';
     document.getElementById('pre-start-exercise-name').textContent = exercise.name;
     document.getElementById('pre-start-desc').textContent = exercise.description;
-    document.getElementById('pre-start-limit').textContent = `⚠ Safe angle limit: ${exercise.angle_limit}°` +
-      (exercise.angle_capped ? ' (reduced by your X-ray)' : '');
+    document.getElementById('pre-start-limit').textContent =
+      `⚠ Safe angle limit: ${exercise.angle_limit}°` +
+      (exercise.angle_capped ? ' (reduced by your X-ray)' : '') +
+      // Only worth saying when the hold target isn't just the limit itself.
+      (isHoldMode && holdAngle !== exercise.angle_limit
+        ? ` · hold ${holdTarget === 'straight' ? 'at or under' : 'at'} ${holdAngle}°`
+        : '');
     document.getElementById('limit-readout').textContent = `${exercise.angle_limit}°`;
     document.getElementById('rep-target').textContent = exercise.target_reps;
     document.getElementById('set-target').textContent = exercise.target_sets;
     document.getElementById('hold-set-target').textContent = exercise.target_sets;
 
-    const isHoldMode = !!exercise.hold_seconds;
     if (isHoldMode) {
       document.getElementById('rep-mode').style.display = 'none';
       document.getElementById('hold-mode').style.display = 'block';
@@ -940,12 +962,17 @@
     }
 
     // ── Camera setup ─────────────────────────────────────────────────────────
+    let cameraStream = null;
+    let rafId = null;
+    let trackingStopped = false;
+
     async function startCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { width: 960, height: 720, facingMode: 'user' },
           audio: false,
         });
+        cameraStream = stream;
         video.srcObject = stream;
         await new Promise(resolve => { video.onloadedmetadata = resolve; });
         video.play();
@@ -957,24 +984,69 @@
       }
     }
 
+    // ── Teardown ─────────────────────────────────────────────────────────────
+    // Previously nothing here: getUserMedia's stream was never stopped and the
+    // renderLoop rescheduled itself unconditionally, so after the final set the
+    // camera light stayed on and MediaPipe kept running a pose inference on
+    // every frame until the tab closed.
+    function releaseCamera() {
+      trackingStopped = true;
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+      }
+      video.srcObject = null;
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Covers tab close, navigation, and mobile backgrounding.
+    window.addEventListener('pagehide', releaseCamera);
+
     // ── Angle calculation ────────────────────────────────────────────────────
-    // MediaPipe Pose landmark indices: 23/24 hip, 25/26 knee, 27/28 ankle
-    function calcAngle(hip, knee, ankle) {
-      const v1 = { x: hip.x - knee.x, y: hip.y - knee.y };
-      const v2 = { x: ankle.x - knee.x, y: ankle.y - knee.y };
+    // MediaPipe Pose landmark indices:
+    //   23/24 hip, 25/26 knee, 27/28 ankle, 31/32 foot index
+    function jointAngle(a, b, c) {
+      const v1 = { x: a.x - b.x, y: a.y - b.y };
+      const v2 = { x: c.x - b.x, y: c.y - b.y };
       const dot = v1.x * v2.x + v1.y * v2.y;
       const mag1 = Math.sqrt(v1.x ** 2 + v1.y ** 2);
       const mag2 = Math.sqrt(v2.x ** 2 + v2.y ** 2);
+      if (mag1 === 0 || mag2 === 0) return 0;
       const cos = Math.max(-1, Math.min(1, dot / (mag1 * mag2)));
-      const angleRad = Math.acos(cos);
-      // Flexion angle = 180 - angle between vectors (straight leg = 0° flexion)
-      return 180 - (angleRad * 180 / Math.PI);
+      return Math.acos(cos) * 180 / Math.PI;
+    }
+
+    // Knee flexion: straight leg = 0°, fully bent ≈ 135°.
+    function calcKneeAngle(hip, knee, ankle) {
+      return 180 - jointAngle(hip, knee, ankle);
+    }
+
+    // Signed ankle deviation from neutral: positive = plantarflexion (toes
+    // pointed away), negative = dorsiflexion (toes pulled up). Kept signed so a
+    // pump reads as one clean oscillation through zero rather than two peaks.
+    // Ankle Pumps is the only exercise counted off this.
+    const ANKLE_NEUTRAL_DEG = 90;
+    function calcAnkleAngle(knee, ankle, footIndex) {
+      return jointAngle(knee, ankle, footIndex) - ANKLE_NEUTRAL_DEG;
     }
 
     function smoothAngle(newAngle) {
       angleHistory.push(newAngle);
       if (angleHistory.length > SMOOTHING_FRAMES) angleHistory.shift();
       return angleHistory.reduce((a, b) => a + b, 0) / angleHistory.length;
+    }
+
+    // Separate buffer — the counting joint may differ from the knee, and
+    // mixing the two into one rolling average would corrupt both.
+    let countAngleHistory = [];
+    function smoothCountAngle(newAngle) {
+      countAngleHistory.push(newAngle);
+      if (countAngleHistory.length > SMOOTHING_FRAMES) countAngleHistory.shift();
+      return countAngleHistory.reduce((a, b) => a + b, 0) / countAngleHistory.length;
     }
 
     // ── Safety state machine ─────────────────────────────────────────────────
@@ -1010,16 +1082,33 @@
       isPaused = false;
       sessionActive = true;
       breachStartTime = null;
+      // Start the movement cycle cleanly: the patient stopped mid-rep, so
+      // leaving repStage where it was can complete a rep they never finished,
+      // and the smoothing buffers still hold pre-breach angles.
+      repStage = 'EXTENDED';
+      holdStartTime = null;
+      angleHistory = [];
+      countAngleHistory = [];
       pausedPanel.classList.remove('visible');
       safetyOverlay.classList.remove('active');
       stopAlarm();
     });
 
     // ── Rep counting (dynamic exercises) ────────────────────────────────────
-    function updateRepCounter(angle) {
-      if (isPaused || !sessionActive) return;
+    function countRep() {
+      currentRep++;
+      document.getElementById('rep-current').textContent = currentRep;
+      if (currentRep >= exercise.target_reps) {
+        completeSet();
+      }
+    }
 
+    // Knee flexion reps. Every threshold is derived from the exercise's own
+    // limit — the old absolute `angle < 15` return threshold was always true
+    // for low-limit exercises, so reps fired on pose noise.
+    function updateKneeReps(angle) {
       const flexedThreshold = exercise.angle_limit * 0.7;
+      const returnThreshold = Math.max(flexedThreshold * 0.35, 4);
 
       if (repStage === 'EXTENDED' && angle > flexedThreshold * 0.4) {
         repStage = 'FLEXING';
@@ -1027,14 +1116,30 @@
         repStage = 'FLEXED';
       } else if (repStage === 'FLEXED' && angle < flexedThreshold * 0.6) {
         repStage = 'EXTENDING';
-      } else if (repStage === 'EXTENDING' && angle < 15) {
+      } else if (repStage === 'EXTENDING' && angle < returnThreshold) {
         repStage = 'EXTENDED';
-        currentRep++;
-        document.getElementById('rep-current').textContent = currentRep;
+        countRep();
+      }
+    }
 
-        if (currentRep >= exercise.target_reps) {
-          completeSet();
-        }
+    // Ankle pumps: one rep = one full point-away → pull-up cycle.
+    const ANKLE_SWING_DEG = 10;
+    let anklePhase = 'DORSI';
+    function updateAnkleReps(angle) {
+      if (anklePhase === 'DORSI' && angle > ANKLE_SWING_DEG) {
+        anklePhase = 'PLANTAR';
+        countRep();
+      } else if (anklePhase === 'PLANTAR' && angle < -ANKLE_SWING_DEG) {
+        anklePhase = 'DORSI';
+      }
+    }
+
+    function updateRepCounter(angle) {
+      if (isPaused || !sessionActive) return;
+      if (trackedJoint === 'ankle') {
+        updateAnkleReps(angle);
+      } else {
+        updateKneeReps(angle);
       }
     }
 
@@ -1062,7 +1167,14 @@
     function updateHoldTimer(angle) {
       if (isPaused || !sessionActive) return;
 
-      const inPosition = angle > 15; // threshold to count as "holding"
+      // "straight" holds (quad sets, straight leg raise, patellar mobilisation,
+      // single-leg balance, seated extension) are held at or BELOW the limit —
+      // the knee is locked out, not bent. The old absolute `angle > 15` made
+      // those impossible: the timer only advanced past 15°, but anything over
+      // the 5° limit fired the safety alarm and auto-paused the session.
+      const inPosition = holdTarget === 'straight'
+        ? angle <= holdAngle
+        : angle >= holdAngle * 0.7;
 
       if (inPosition) {
         if (holdStartTime === null) holdStartTime = performance.now();
@@ -1094,6 +1206,7 @@
     function finishExercise() {
       sessionActive = false;
       stopAlarm();
+      releaseCamera();
       document.getElementById('complete-reps').textContent =
         isHoldMode ? `${holdSetComplete} sets` : `${(currentSet - 1) * exercise.target_reps + currentRep}`;
       document.getElementById('complete-max-angle').textContent = Math.round(maxAngleReached) + '°';
@@ -1149,26 +1262,39 @@
           const hipIdx = useLeft ? 23 : 24;
           const kneeIdx = useLeft ? 25 : 26;
           const ankleIdx = useLeft ? 27 : 28;
+          const footIdx = useLeft ? 31 : 32;
 
           const hip = lm[hipIdx], knee = lm[kneeIdx], ankle = lm[ankleIdx];
-          const visibility = Math.min(hip.visibility ?? 1, knee.visibility ?? 1, ankle.visibility ?? 1);
+          const foot = lm[footIdx];
+          const trackingAnkle = trackedJoint === 'ankle';
+
+          let visibility = Math.min(hip.visibility ?? 1, knee.visibility ?? 1, ankle.visibility ?? 1);
+          if (trackingAnkle) {
+            visibility = Math.min(visibility, foot?.visibility ?? 0);
+          }
 
           if (visibility > 0.5) {
-            const rawAngle = calcAngle(hip, knee, ankle);
-            const angle = smoothAngle(rawAngle);
-            maxAngleReached = Math.max(maxAngleReached, angle);
+            // Safety is ALWAYS judged at the knee — angle_limit is a knee
+            // flexion ceiling even when reps are counted at another joint.
+            const kneeAngle = smoothAngle(calcKneeAngle(hip, knee, ankle));
+            maxAngleReached = Math.max(maxAngleReached, kneeAngle);
 
-            angleReadout.textContent = Math.round(angle) + '°';
+            // The angle that drives rep/hold counting.
+            const countAngle = trackingAnkle
+              ? smoothCountAngle(calcAnkleAngle(knee, ankle, foot))
+              : kneeAngle;
+
+            angleReadout.textContent = Math.round(kneeAngle) + '°';
             angleReadout.className = 'angle-value' +
-              (angle > exercise.angle_limit ? ' danger' :
-                angle > exercise.angle_limit * 0.85 ? ' warning' : '');
+              (kneeAngle > exercise.angle_limit ? ' danger' :
+                kneeAngle > exercise.angle_limit * 0.85 ? ' warning' : '');
 
-            handleSafetyCheck(angle);
+            handleSafetyCheck(kneeAngle);
 
             if (isHoldMode) {
-              updateHoldTimer(angle);
+              updateHoldTimer(countAngle);
             } else {
-              updateRepCounter(angle);
+              updateRepCounter(countAngle);
             }
 
             trackingDot.className = 'tracking-dot';
@@ -1182,7 +1308,11 @@
           trackingLabel.textContent = 'No pose detected';
         }
       }
-      requestAnimationFrame(renderLoop);
+      // finishExercise() calls releaseCamera() from *inside* this loop, so the
+      // reschedule below must check the flag rather than assume it still runs.
+      if (!trackingStopped) {
+        rafId = requestAnimationFrame(renderLoop);
+      }
     }
 
     // ── Start button handler ──────────────────────────────────────────────────

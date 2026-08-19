@@ -136,6 +136,51 @@ above. `tau=0` is always in the sweep, so it can never make validation worse.
 predictions match the reported test accuracy. Disable with `--logit_adjust off`
 or pin a value with `--logit_adjust 0.5`.
 
+## Calibration and OOD screening (on by default)
+
+Two more things are fitted on the validation split once training finishes. Both
+are post-hoc, cost one forward pass, and neither can change a prediction.
+
+**Temperature scaling.** A single scalar dividing the logits, fitted to minimise
+val NLL, so the confidence shown to a patient beside a movement restriction
+means what it says.
+
+Measured on this dataset (826 val / 1656 test, fitted on val only):
+
+| pipeline | acc | macro-F1 | within-1 | ECE | mean conf |
+|---|---|---|---|---|---|
+| raw softmax | 0.6987 | 0.6839 | 0.9517 | 0.0810 | 0.6355 |
+| + prior correction (τ=0.05) | 0.7035 | 0.6910 | 0.9529 | 0.0804 | 0.6318 |
+| **+ temperature (T=0.734)** | 0.7029 | 0.6902 | 0.9529 | **0.0407** | 0.7177 |
+
+**T came out below 1.0** — this model was *under*-confident, not over-confident.
+It reported 0.636 mean confidence against 0.699 accuracy, so calibration
+*sharpened* it. That is the opposite of the usual deep-network failure, which is
+why the fit brackets both sides of 1.0 instead of assuming T>1. Calibration
+error halves; the confidence gap goes from −0.063 to +0.015.
+
+**On argmax:** dividing logits is monotonic, so on a single forward pass
+temperature cannot change a prediction. With flip-TTA the two branches are
+averaged *after* softmax, and that average is not monotonic in T — a sharper T
+lets the more confident branch dominate. Measured drift: **1 image in 1656
+(0.06%)**. Small, but not zero. `train.py` warns above 0.5%.
+
+**Energy OOD reference.** `E(x) = -logsumexp(logits)`, low for inputs the model
+recognises and high for ones it does not. The classifier has five outputs and no
+"not a knee" class, so nothing else stops a chest film or a photo of a wall from
+receiving a confident grade that then sets a movement ceiling. Validation
+percentiles are stored and become the serving thresholds — above p95 warns, well
+beyond p99 rejects with a 422.
+
+Disable both with `--no_calibrate` (debugging only). A checkpoint trained without
+them still serves: `inference.py` falls back to raw softmax, reports
+`calibrated: false` and `ood_screening: false`, and logs a warning at startup
+instead of quietly implying a certainty it never validated.
+
+The shipped checkpoint now carries all of it: `logit_tau=0.05`, `class_priors`,
+`temperature=0.7344`, and an energy reference (`p50=-2.344 p95=-1.978
+p99=-1.828`). Weights are byte-identical to before — only metadata was added.
+
 ## Targeting a specific weak class
 
 `--class_weights` overrides the automatic weighting with explicit per-class

@@ -23,6 +23,7 @@ import hashlib
 import io
 import json
 import logging
+import os
 import sys
 from pathlib import Path
 from typing import Dict, Optional
@@ -37,9 +38,8 @@ from torchvision import datasets
 # Allow resolving siblings (prepare_dataset, train) when imported as a module
 sys.path.append(str(Path(__file__).resolve().parent))
 
-from prepare_dataset import DEFAULT_OUTPUT_DIR, get_eval_transform
-
 import torch.nn as nn
+from prepare_dataset import DEFAULT_OUTPUT_DIR, get_eval_transform
 from torchvision.models import (
     EfficientNet_B0_Weights,
     EfficientNet_B1_Weights,
@@ -86,13 +86,30 @@ def build_model(
 
 logger = logging.getLogger(__name__)
 
+# Fallback only. The real version is derived from the loaded checkpoint by
+# _derive_model_version() so a prescription can be traced to the exact weights
+# that produced it.
 MODEL_VERSION = "efficientnet_b4_v2"
 
-# KL Grade → clinical health score (0–100)
-KL_HEALTH_SCORE: Dict[int, int] = {0: 95, 1: 80, 2: 60, 3: 35, 4: 15}
+# Shared with clinical_logic via backend/kl_constants.py — see that module for
+# why these are not defined twice any more.
+_BACKEND_DIR = Path(__file__).resolve().parents[1]
+if str(_BACKEND_DIR) not in sys.path:
+    sys.path.append(str(_BACKEND_DIR))
+from kl_constants import KL_HEALTH_SCORE, KL_MAX_ANGLE
 
-# KL Grade → safe flexion ceiling (degrees)
-KL_MAX_ANGLE: Dict[int, int] = {0: 120, 1: 120, 2: 90, 3: 60, 4: 45}
+# Calibrated-confidence bands. Reporting "82%" to a patient beside a movement
+# restriction implies a precision the model does not have, so the API returns a
+# band and the UI leads with it.
+CONFIDENCE_BANDS = ((0.75, "high"), (0.50, "moderate"), (0.0, "low"))
+
+
+def confidence_band(confidence: float) -> str:
+    for floor, label in CONFIDENCE_BANDS:
+        if confidence >= floor:
+            return label
+    return "low"
+
 
 
 def validate_image(image_bytes: bytes) -> tuple[bool, str]:
@@ -134,8 +151,17 @@ class KneeClassifier:
         self.model = None
         self.demo_mode = True
         self.logit_adjust = None
+        self.calibration = {"temperature": 1.0, "calibrated": False,
+                            "warn_threshold": None, "reject_threshold": None, "ece": None}
+        self.model_version = MODEL_VERSION
 
-        checkpoint_path = Path(__file__).parent / "best_model.pth"
+        # MODEL_PATH lets the container mount weights anywhere; relative paths
+        # resolve against this directory so the default stays a bare filename.
+        env_path = os.getenv("MODEL_PATH", "").strip()
+        checkpoint_path = Path(env_path) if env_path else Path("best_model.pth")
+        if not checkpoint_path.is_absolute():
+            checkpoint_path = Path(__file__).parent / checkpoint_path
+
         if checkpoint_path.is_file():
             try:
                 (
@@ -148,13 +174,37 @@ class KneeClassifier:
                 self.transform = get_eval_transform(self.img_size, clahe=self.clahe)
                 adjust = load_logit_adjust(str(checkpoint_path))
                 self.logit_adjust = adjust.to(self.device) if adjust is not None else None
+                self.calibration = load_calibration(str(checkpoint_path))
+                self.model_version = _derive_model_version(
+                    torch.load(str(checkpoint_path), map_location="cpu", weights_only=True)
+                )
                 self.demo_mode = False
                 logger.info(
                     f"Model loaded from {checkpoint_path} "
-                    f"(img_size={self.img_size}, clahe={self.clahe})"
+                    f"(version={self.model_version}, img_size={self.img_size}, clahe={self.clahe})"
                 )
-            except Exception as exc:
-                logger.error(f"Failed to load model weights: {exc} — falling back to demo mode.")
+                if not self.calibration["calibrated"]:
+                    logger.warning(
+                        "Checkpoint carries no temperature — confidence is raw softmax and "
+                        "is NOT calibrated. Retrain with calibration enabled before "
+                        "presenting these numbers to patients."
+                    )
+                if self.calibration["reject_threshold"] is None:
+                    logger.warning(
+                        "Checkpoint carries no OOD energy reference — non-radiograph images "
+                        "cannot be screened out and will receive a KL grade."
+                    )
+                if self.logit_adjust is None:
+                    logger.warning(
+                        "Checkpoint carries no class-prior correction (logit_tau/class_priors). "
+                        "Serving does not match the tuned test numbers for this recipe."
+                    )
+            except Exception:
+                logger.exception(
+                    "Failed to load model weights from %s — falling back to DEMO MODE. "
+                    "Predictions will be deterministic mocks, not readings.",
+                    checkpoint_path,
+                )
         else:
             logger.warning(
                 f"Weights not found at '{checkpoint_path}'. Running in DEMO MODE. "
@@ -177,39 +227,67 @@ class KneeClassifier:
         return self._real_predict(image_bytes)
 
     def _real_predict(self, image_bytes: bytes) -> dict:
-        try:
-            image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-            x = self.transform(image).unsqueeze(0).to(self.device)
-            # Test-time augmentation (TTA) - original + mirrored
-            flipped = torch.flip(x, dims=[3])
+        """
+        Raises on failure rather than falling back to the demo predictor.
 
-            with torch.no_grad():
-                logits_a = self.model(x)
-                logits_b = self.model(flipped)
-                # Same class-prior correction the checkpoint was tuned with,
-                # applied to logits before softmax so serving matches the
-                # reported test accuracy.
-                if self.logit_adjust is not None:
-                    logits_a = logits_a - self.logit_adjust
-                    logits_b = logits_b - self.logit_adjust
-                probs_a = F.softmax(logits_a, dim=1)
-                probs_b = F.softmax(logits_b, dim=1)
-                probs = ((probs_a + probs_b) / 2.0).squeeze(0).cpu()
+        The demo grade is an MD5 of the image bytes. Serving that as though it
+        were a reading — where it goes on to set a movement ceiling — is worse
+        than returning an error, so an inference failure is allowed to surface
+        as a 500 and main.py turns it into "try a different image".
+        """
+        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        x = self.transform(image).unsqueeze(0).to(self.device)
+        # Test-time augmentation (TTA) - original + mirrored
+        flipped = torch.flip(x, dims=[3])
+        T = self.calibration["temperature"]
 
-            pred_idx = int(torch.argmax(probs).item())
-            kl_grade = self.idx_to_grade[pred_idx]
-            confidence = float(probs[pred_idx])
+        with torch.no_grad():
+            raw_a = self.model(x)
+            raw_b = self.model(flipped)
 
-            return {
-                "kl_grade":     kl_grade,
-                "health_score": KL_HEALTH_SCORE[kl_grade],
-                "max_angle":    KL_MAX_ANGLE[kl_grade],
-                "confidence":   round(confidence, 3),
-                "demo_mode":    False,
-            }
-        except Exception as exc:
-            logger.error(f"Error during real prediction: {exc}. Falling back to demo prediction.")
-            return self._demo_predict(image_bytes)
+            # Energy score is read off the RAW logits, before any correction —
+            # the reference percentiles in the checkpoint were fitted the same
+            # way, and prior correction/temperature would shift the scale.
+            energy = float(
+                (-torch.logsumexp(raw_a.float(), dim=1)
+                 - torch.logsumexp(raw_b.float(), dim=1)).mean() / 2.0
+            )
+
+            # Same class-prior correction the checkpoint was tuned with,
+            # applied to logits before softmax so serving matches the
+            # reported test accuracy.
+            logits_a, logits_b = raw_a, raw_b
+            if self.logit_adjust is not None:
+                logits_a = logits_a - self.logit_adjust
+                logits_b = logits_b - self.logit_adjust
+
+            # Temperature scaling, fitted on val. Monotonic per-branch, but the
+            # two TTA branches are averaged after softmax, so T can flip a
+            # borderline case (measured: 1 in 1656).
+            probs_a = F.softmax(logits_a / T, dim=1)
+            probs_b = F.softmax(logits_b / T, dim=1)
+            probs = ((probs_a + probs_b) / 2.0).squeeze(0).cpu()
+
+        pred_idx = int(torch.argmax(probs).item())
+        kl_grade = self.idx_to_grade[pred_idx]
+        confidence = float(probs[pred_idx])
+
+        warn_t = self.calibration["warn_threshold"]
+        reject_t = self.calibration["reject_threshold"]
+
+        return {
+            "kl_grade":          kl_grade,
+            "health_score":      KL_HEALTH_SCORE[kl_grade],
+            "max_angle":         KL_MAX_ANGLE[kl_grade],
+            "confidence":        round(confidence, 3),
+            "confidence_band":   confidence_band(confidence),
+            "calibrated":        self.calibration["calibrated"],
+            "energy":            round(energy, 3),
+            "ood_suspected":     warn_t is not None and energy > warn_t,
+            "ood_reject":        reject_t is not None and energy > reject_t,
+            "ood_screened":      reject_t is not None,
+            "demo_mode":         False,
+        }
 
     def _demo_predict(self, image_bytes: bytes) -> dict:
         """
@@ -228,11 +306,19 @@ class KneeClassifier:
         confidence = 0.62 + (digest % 27) / 100.0
 
         return {
-            "kl_grade":     kl_grade,
-            "health_score": KL_HEALTH_SCORE[kl_grade],
-            "max_angle":    KL_MAX_ANGLE[kl_grade],
-            "confidence":   round(confidence, 3),
-            "demo_mode":    True,
+            "kl_grade":        kl_grade,
+            "health_score":    KL_HEALTH_SCORE[kl_grade],
+            "max_angle":       KL_MAX_ANGLE[kl_grade],
+            "confidence":      round(confidence, 3),
+            "confidence_band": confidence_band(confidence),
+            # Demo confidence is a hash, not a probability. Never claim it is
+            # calibrated, and never claim an OOD screen ran.
+            "calibrated":      False,
+            "energy":          None,
+            "ood_suspected":   False,
+            "ood_reject":      False,
+            "ood_screened":    False,
+            "demo_mode":       True,
         }
 
 
@@ -261,6 +347,55 @@ def load_checkpoint(checkpoint_path: str, device: torch.device):
     img_size = ckpt.get("img_size", 224)
     clahe = bool(ckpt.get("clahe", False))
     return model, idx_to_grade, idx_to_name, img_size, clahe
+
+
+def _derive_model_version(ckpt: dict) -> str:
+    """
+    Build the version string from what the checkpoint actually contains rather
+    than a hardcoded constant, so /health and every prescription name the
+    weights that produced them.
+    """
+    arch = ckpt.get("arch", "unknown")
+    parts = [f"efficientnet_{arch}"]
+    trained = ckpt.get("trained_at")
+    if trained:
+        parts.append(str(trained)[:10].replace("-", ""))
+    if ckpt.get("temperature", 1.0) != 1.0:
+        parts.append("cal")
+    return "_".join(parts)
+
+
+def load_calibration(checkpoint_path: str) -> dict:
+    """
+    Read the temperature and OOD energy reference fitted on the validation split
+    at the end of training.
+
+    Both are optional. A checkpoint trained before this existed carries neither,
+    in which case serving falls back to raw softmax and reports
+    calibrated=False rather than implying a confidence it never validated.
+    """
+    ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
+    temperature = float(ckpt.get("temperature", 1.0) or 1.0)
+    energy_ref = ckpt.get("energy_ref") or {}
+
+    reject_threshold = None
+    warn_threshold = None
+    if energy_ref.get("p99") is not None and energy_ref.get("p50") is not None:
+        p50, p95, p99 = energy_ref["p50"], energy_ref.get("p95", energy_ref["p99"]), energy_ref["p99"]
+        warn_threshold = p95
+        # One full inter-percentile spread beyond p99: far into the tail for a
+        # genuine radiograph, while still catching inputs the model has no
+        # business grading at all.
+        reject_threshold = p99 + max(p99 - p50, 1e-3)
+
+    return {
+        "temperature":      temperature,
+        "calibrated":       temperature != 1.0,
+        "energy_ref":       energy_ref,
+        "warn_threshold":   warn_threshold,
+        "reject_threshold": reject_threshold,
+        "ece":              (ckpt.get("calibration") or {}).get("ece_after"),
+    }
 
 
 def load_logit_adjust(checkpoint_path: str) -> Optional[torch.Tensor]:

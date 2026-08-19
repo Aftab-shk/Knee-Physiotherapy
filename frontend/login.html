@@ -336,6 +336,21 @@
     }
 
     /* ── Info strip ──────────────────────────────────────────────────── */
+    .demo-notice {
+      margin: 0 0 24px;
+      padding: 12px 14px;
+      background: rgba(251, 191, 36, .10);
+      border: 1px solid rgba(251, 191, 36, .32);
+      border-radius: 10px;
+      font-size: 12px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, .62);
+    }
+
+    .demo-notice strong {
+      color: #fbbf24;
+    }
+
     .info-strip {
       margin-top: 28px;
       padding: 14px 16px;
@@ -414,6 +429,15 @@
       <h1 class="card-title">Log in to Knee-Physiotherapy</h1>
       <p class="card-sub">Access your X-ray analysis and exercise programme.</p>
 
+      <!-- There is no auth backend yet: any well-formed email and any 6+
+           character password proceeds, and so does "continue as guest". Saying
+           so is better than a login box that implies accounts exist. -->
+      <div class="demo-notice">
+        <strong>Demo sign-in.</strong>
+        Accounts aren't implemented yet — any email and password will let you
+        through, and nothing is saved between visits.
+      </div>
+
       <form id="login-form" novalidate>
 
         <div class="field">
@@ -453,10 +477,19 @@
         <a href="#" id="signup-link">Create one — it's free</a>
       </div>
 
+      <!--
+        This previously read "Your data stays on your device", which was not
+        true: upload.html POSTs the X-ray to the backend for grading. What IS
+        true is that the image is analysed in memory and never written to disk,
+        and that the webcam tracker runs entirely client-side. Say exactly that.
+      -->
       <div class="info-strip">
         <span class="info-strip-icon">🔒</span>
         <span class="info-strip-text">
-          <strong>Your data stays on your device.</strong>
+          <strong>How your data is handled.</strong>
+          Your X-ray is sent to the server to be graded, then discarded — it is never
+          saved. Webcam exercise tracking runs entirely in your browser; no video
+          ever leaves your device.
         </span>
       </div>
     </div>

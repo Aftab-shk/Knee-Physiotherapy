@@ -1,0 +1,79 @@
+# Lint configuration. CI runs `ruff check backend/`.
+#
+# The selection below is deliberately narrower than "everything ruff offers":
+# rules are here to catch defects, not to churn a working codebase into a
+# different house style the week before it ships.
+
+target-version = "py310"   # matches the Dockerfile's python:3.10-slim
+line-length = 110          # this code aligns assignments in columns; 88 fights it
+
+[lint]
+select = [
+    "E",      # pycodestyle errors
+    "F",      # pyflakes — undefined names, unused imports
+    "I",      # import sorting
+    "B",      # bugbear — real bug patterns
+    "C4",     # comprehension correctness
+    "RUF",    # ruff-specific correctness
+    "TRY",    # exception-handling antipatterns
+    "PLE",    # pylint errors
+    "PLW",    # pylint warnings
+]
+
+ignore = [
+    # FastAPI's entire dependency-injection API is function calls in argument
+    # defaults — Query(...), File(...), Form(...), Depends(...). This rule is
+    # correct in general and wrong for every FastAPI route ever written.
+    "B008",
+
+    # Long explanatory comments are load-bearing in this repo: several of them
+    # record why a clinical threshold or a calibration constant is what it is.
+    "E501",
+
+    # `raise ... from err` inside except blocks. Worth adopting eventually, but
+    # the HTTPExceptions here deliberately do not leak internal causes to the
+    # client, so the chained form adds noise without adding information.
+    "TRY003",
+    "TRY300",
+    "B904",
+
+    # Ambiguous-unicode rules. This project's strings are patient-facing
+    # clinical prose full of en dashes, em dashes and degree signs ("0–90°
+    # ROM", "reduced to 45°"). They are correct, intentional, and rendered to
+    # users; flagging them as typos is backwards here.
+    "RUF001",
+    "RUF002",
+    "RUF003",
+
+    # `x = x.to(device)` inside a training loop is the idiomatic PyTorch form,
+    # not an accidental shadow.
+    "PLW2901",
+
+    # `global classifier` in the FastAPI lifespan handler is how the app holds
+    # its loaded model. Deliberate.
+    "PLW0603",
+
+    # Cosmetic: aligned single-line dict entries and short `l`/`p` names in
+    # tensor maths read fine in context and are consistent across the file.
+    "E701",
+    "E741",
+
+    # zip(strict=) would be an improvement, but every call site here zips
+    # sequences whose equal length is structurally guaranteed, so adding it
+    # asserts something already proven.
+    "B905",
+]
+
+[lint.per-file-ignores]
+# These modules append to sys.path so sibling modules resolve whether they are
+# imported as a package or run as scripts. The imports genuinely cannot come
+# first, and that is the point.
+"backend/model/inference.py" = ["E402"]
+"backend/model/train.py" = ["E402"]
+"backend/tests/*.py" = [
+    "E402",     # same sys.path bootstrap
+    "RUF012",   # test stubs use plain mutable class attributes on purpose
+]
+
+[lint.isort]
+known-first-party = ["clinical_logic", "exercise_protocols", "kl_constants", "schemas", "main"]

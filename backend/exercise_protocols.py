@@ -8,7 +8,53 @@ Structure:
 Each exercise dict:
   name, description, target_reps, target_sets,
   protocol_angle_limit (degrees), hold_seconds (optional),
+  tracked_joint, hold_target, start_angle, hold_angle,
   instructions (list), cautions (optional str)
+
+Tracker fields
+--------------
+tracked_joint  Which joint drives rep/hold counting in the webcam tracker:
+               "knee" for every exercise except Ankle Pumps, which is an ankle
+               movement. Note the *safety* check always watches the knee against
+               angle_limit regardless of this field — the ceiling is a knee
+               flexion ceiling.
+
+hold_target    Only meaningful when hold_seconds is set. Says where the hold
+               position sits relative to angle_limit:
+                 "straight" — hold at or below the limit (isometrics with the
+                              knee locked, extension end-range, single-leg
+                              balance). Quad Sets holds at ~0°, limit 5°.
+                 "flexed"   — hold near the limit (flexion end-range, e.g.
+                              Seated Knee Bend holds at ~90°, limit 90°).
+               None for rep-counted exercises.
+
+Without hold_target the tracker cannot tell a straight-leg hold from a bent-leg
+hold, and defaulted to "bent past 15°" — which made every isometric with a limit
+under 15° impossible to complete without triggering the safety alarm.
+
+start_angle    The unavoidable passive knee flexion the exercise begins from,
+               for exercises performed seated or on equipment. Sitting in a
+               chair puts the knee at ~90° before the patient does anything;
+               a stationary bike bottoms out at ~90°; a leg press starts at
+               ~90°. None when the exercise starts from extension.
+
+               This is a SCREENING field, not an exemption. If start_angle
+               exceeds the patient's X-ray-derived ceiling, they cannot get
+               into the starting position safely, so the exercise is excluded
+               from their prescription rather than prescribed-and-alarmed-at.
+               See clinical_logic._cap_exercises.
+
+hold_angle     The angle to reach and hold, when it differs from angle_limit.
+               Only Seated Knee Extension needs it: performed seated, the knee
+               sits at 90° (its true ceiling) while the goal is to EXTEND to
+               45° and hold there. Without this the two numbers collapse and
+               the hold either never registers or never ends.
+               None → the tracker derives the hold position from angle_limit.
+
+The distinction that matters: angle_limit is a safety ceiling (never exceed),
+hold_angle is a performance target (try to reach). Seated Knee Extension was
+originally filed with 45 as its angle_limit, which read as "never bend past 45°"
+for an exercise you perform sitting at 90°.
 
 Sources:
   ACL  — MassGeneral Hospital ACL Reconstruction Protocol
@@ -19,7 +65,6 @@ Sources:
 """
 
 from typing import Optional
-
 
 # ---------------------------------------------------------------------------
 # Shared exercise building blocks (referenced by multiple protocols)
@@ -32,6 +77,10 @@ _ANKLE_PUMPS = {
     "target_sets": 3,
     "protocol_angle_limit": 10,
     "hold_seconds": None,
+    "tracked_joint": "ankle",
+    "hold_target": None,
+    "start_angle": None,
+    "hold_angle": None,
     "instructions": [
         "Lie flat or sit with legs extended.",
         "Flex your foot toward you, then point it away — one full cycle is one rep.",
@@ -47,6 +96,10 @@ _QUAD_SETS = {
     "target_sets": 3,
     "protocol_angle_limit": 5,
     "hold_seconds": 10,
+    "tracked_joint": "knee",
+    "hold_target": "straight",
+    "start_angle": None,
+    "hold_angle": None,
     "instructions": [
         "Lie flat with knee as straight as possible.",
         "Tighten the thigh muscle firmly — you should see the kneecap draw upward.",
@@ -62,6 +115,10 @@ _SLR = {
     "target_sets": 3,
     "protocol_angle_limit": 5,
     "hold_seconds": 2,
+    "tracked_joint": "knee",
+    "hold_target": "straight",
+    "start_angle": None,
+    "hold_angle": None,
     "instructions": [
         "Lie flat; tighten the quad to lock the knee fully straight.",
         "Raise the leg to the height of the opposite (bent) knee.",
@@ -77,6 +134,10 @@ _HEEL_SLIDES_90 = {
     "target_sets": 3,
     "protocol_angle_limit": 90,
     "hold_seconds": None,
+    "tracked_joint": "knee",
+    "hold_target": None,
+    "start_angle": None,
+    "hold_angle": None,
     "instructions": [
         "Lie on your back with legs straight.",
         "Slowly slide the heel toward your buttocks as far as comfortable.",
@@ -92,6 +153,10 @@ _PATELLAR_MOB = {
     "target_sets": 2,
     "protocol_angle_limit": 5,
     "hold_seconds": 5,
+    "tracked_joint": "knee",
+    "hold_target": "straight",
+    "start_angle": None,
+    "hold_angle": None,
     "instructions": [
         "Sit with knee fully straight and relaxed.",
         "Use fingertips to gently push the kneecap up, down, and side-to-side.",
@@ -107,6 +172,10 @@ _MINI_SQUAT_60 = {
     "target_sets": 3,
     "protocol_angle_limit": 60,
     "hold_seconds": None,
+    "tracked_joint": "knee",
+    "hold_target": None,
+    "start_angle": None,
+    "hold_angle": None,
     "instructions": [
         "Stand feet shoulder-width apart; hold a support if needed.",
         "Bend knees slowly to 45–60° keeping knees behind toes.",
@@ -122,6 +191,10 @@ _STATIONARY_BIKE_LOW = {
     "target_sets": 1,
     "protocol_angle_limit": 100,
     "hold_seconds": None,
+    "tracked_joint": "knee",
+    "hold_target": None,
+    "start_angle": 90,
+    "hold_angle": None,
     "instructions": [
         "Set seat so knee bends to ~90° at the lowest pedal position.",
         "Start with half-revolutions until full rotation is comfortable.",
@@ -137,6 +210,10 @@ _STEP_UP_LOW = {
     "target_sets": 3,
     "protocol_angle_limit": 60,
     "hold_seconds": None,
+    "tracked_joint": "knee",
+    "hold_target": None,
+    "start_angle": None,
+    "hold_angle": None,
     "instructions": [
         "Stand at the base of a low step (4–6 in / 10–15 cm) with a handrail.",
         "Step up with the surgical leg; bring the other up to meet it.",
@@ -152,6 +229,10 @@ _HAMSTRING_CURL = {
     "target_sets": 3,
     "protocol_angle_limit": 90,
     "hold_seconds": None,
+    "tracked_joint": "knee",
+    "hold_target": None,
+    "start_angle": None,
+    "hold_angle": None,
     "instructions": [
         "Lie face-down with legs straight.",
         "Slowly bend the surgical knee toward the buttocks — stop at 90° or discomfort.",
@@ -167,6 +248,10 @@ _FULL_SQUAT = {
     "target_sets": 3,
     "protocol_angle_limit": 120,
     "hold_seconds": None,
+    "tracked_joint": "knee",
+    "hold_target": None,
+    "start_angle": None,
+    "hold_angle": None,
     "instructions": [
         "Feet shoulder-width apart, toes slightly out.",
         "Lower slowly, adding depth each week as tolerated.",
@@ -182,6 +267,10 @@ _STATIONARY_BIKE_MOD = {
     "target_sets": 1,
     "protocol_angle_limit": 110,
     "hold_seconds": None,
+    "tracked_joint": "knee",
+    "hold_target": None,
+    "start_angle": 90,
+    "hold_angle": None,
     "instructions": [
         "Cycle 20–30 min at moderate resistance.",
         "Maintain a comfortable cadence of 60–80 RPM.",
@@ -196,6 +285,10 @@ _FORWARD_LUNGE = {
     "target_sets": 3,
     "protocol_angle_limit": 90,
     "hold_seconds": None,
+    "tracked_joint": "knee",
+    "hold_target": None,
+    "start_angle": None,
+    "hold_angle": None,
     "instructions": [
         "Step forward with the surgical leg; lower the back knee toward the floor.",
         "Keep the front shin vertical — knee must not pass the toes.",
@@ -211,6 +304,10 @@ _SINGLE_LEG_BALANCE = {
     "target_sets": 3,
     "protocol_angle_limit": 20,
     "hold_seconds": 30,
+    "tracked_joint": "knee",
+    "hold_target": "straight",
+    "start_angle": None,
+    "hold_angle": None,
     "instructions": [
         "Stand on the surgical leg only, near a wall for safety.",
         "Hold 30 s without excessive trunk sway.",
@@ -226,6 +323,10 @@ _LEG_PRESS = {
     "target_sets": 4,
     "protocol_angle_limit": 120,
     "hold_seconds": None,
+    "tracked_joint": "knee",
+    "hold_target": None,
+    "start_angle": 90,
+    "hold_angle": None,
     "instructions": [
         "Set machine so the knee starts at ~90°.",
         "Press through both heels to full extension.",
@@ -241,6 +342,10 @@ _RUNNING_PROGRAM = {
     "target_sets": 1,
     "protocol_angle_limit": 120,
     "hold_seconds": None,
+    "tracked_joint": "knee",
+    "hold_target": None,
+    "start_angle": None,
+    "hold_angle": None,
     "instructions": [
         "Begin with 1 min walk / 1 min jog intervals for 20 min.",
         "Increase jogging intervals each week if no swelling follows.",
@@ -256,6 +361,10 @@ _SEATED_BEND = {
     "target_sets": 3,
     "protocol_angle_limit": 90,
     "hold_seconds": 5,
+    "tracked_joint": "knee",
+    "hold_target": "flexed",
+    "start_angle": 90,
+    "hold_angle": None,
     "instructions": [
         "Sit in a chair and slide the foot back under it using gravity.",
         "Use the other foot to gently assist if needed.",
@@ -271,6 +380,10 @@ _STAIR_DESCENT = {
     "target_sets": 2,
     "protocol_angle_limit": 100,
     "hold_seconds": None,
+    "tracked_joint": "knee",
+    "hold_target": None,
+    "start_angle": 80,
+    "hold_angle": None,
     "instructions": [
         "Hold the handrail. Descend step-over-step (not step-to-step).",
         "Control the surgical knee as you lower the opposite foot to the next step.",
@@ -286,6 +399,10 @@ _STANDING_KNEE_BEND = {
     "target_sets": 3,
     "protocol_angle_limit": 90,
     "hold_seconds": 5,
+    "tracked_joint": "knee",
+    "hold_target": "flexed",
+    "start_angle": None,
+    "hold_angle": None,
     "instructions": [
         "Stand facing a wall with fingertips touching for balance.",
         "Bend the surgical knee, lifting the foot behind you.",
@@ -301,6 +418,10 @@ _WALKING_PROGRAM = {
     "target_sets": 1,
     "protocol_angle_limit": 120,
     "hold_seconds": None,
+    "tracked_joint": "knee",
+    "hold_target": None,
+    "start_angle": None,
+    "hold_angle": None,
     "instructions": [
         "Walk 20–40 min daily on flat, even surfaces.",
         "Aim for a normal heel-to-toe gait pattern.",
@@ -314,8 +435,14 @@ _SEATED_EXT_GRAVITY = {
     "description": "Gentle active extension with no added resistance.",
     "target_reps": 10,
     "target_sets": 3,
-    "protocol_angle_limit": 45,
+    # Performed seated, so the knee passively sits at ~90 deg: that is the real
+    # flexion ceiling. Extending to 45 deg is the goal, tracked via hold_angle.
+    "protocol_angle_limit": 90,
     "hold_seconds": 5,
+    "tracked_joint": "knee",
+    "hold_target": "straight",
+    "start_angle": 90,
+    "hold_angle": 45,
     "instructions": [
         "Sit in a chair.",
         "Slowly extend the knee as far as comfortable — use gravity only.",
@@ -331,6 +458,10 @@ _POOL_WALKING = {
     "target_sets": 1,
     "protocol_angle_limit": 60,
     "hold_seconds": None,
+    "tracked_joint": "knee",
+    "hold_target": None,
+    "start_angle": None,
+    "hold_angle": None,
     "instructions": [
         "Walk in chest-deep water for 15–20 min at a comfortable pace.",
         "Water reduces effective body weight by ~75%, protecting the joint.",
@@ -605,10 +736,21 @@ def get_phase(
 
     protocol = PROTOCOLS.get(surgery_type)
     if protocol is None:
-        # Unknown surgery type — conservative fallback
-        for level in reversed(OA_LEVELS):
-            if kl_grade <= level["kl_max"]:
-                return level
+        # Unknown surgery type: fall back to the most restrictive OA protocol.
+        #
+        # This was written as `for level in reversed(OA_LEVELS): if kl_grade <=
+        # level["kl_max"]: return level`, which reads like a grade-dependent
+        # search but is not — reversed() puts oa_severe first and its kl_max is
+        # 4, so every grade matched on the first iteration. Worse, if nothing
+        # had matched, control fell through to protocol["phases"] and raised
+        # TypeError on None.
+        #
+        # Returning the most restrictive protocol for an input we do not
+        # recognise is the right call; it is just stated directly now.
+        # Unreachable through the API, where the SurgeryType enum rejects
+        # unknown values first, but get_phase is also called from tests and
+        # scripts.
+        return OA_LEVELS[-1]
 
     for phase in protocol["phases"]:
         lo, hi = phase["weeks"]

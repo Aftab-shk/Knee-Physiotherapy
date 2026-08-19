@@ -10,3 +10,6 @@ torch==2.3.0
 torchvision==0.18.0
 pydantic==2.7.1
 python-dotenv==1.0.1
+
+# dev only — `python -m pytest backend/tests -q`
+pytest==8.2.0

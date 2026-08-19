@@ -1,0 +1,9 @@
+{
+  "filename": "best_model.pth",
+  "arch": "efficientnet_b4",
+  "img_size": 380,
+  "note": "Set 'url' to a GitHub Release asset, then run: python backend/model/fetch_weights.py",
+  "url": "",
+  "size_bytes": 70979667,
+  "sha256": "5393f2c324e3d9cc26bb9641e8543f981a0b2a754ae3a5e56ad3f93f04ad9c57"
+}

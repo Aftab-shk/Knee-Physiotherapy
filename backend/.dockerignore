@@ -1,0 +1,51 @@
+# The Dockerfile does `COPY . .`, which would otherwise pull the ~70 MB
+# checkpoint and any local virtualenv into the image layer. Weights are mounted
+# at runtime instead:
+#   docker run -v /path/to/weights:/app/model physio-backend
+
+# Model weights + training artefacts
+model/*.pt
+model/*.pth
+model/*.pth.*
+model/*.onnx
+model/*.safetensors
+model/training_curves.png
+model/confusion_matrix*.png
+model/*_report.json
+model/history.json
+model/label_map.json
+model/predictions.json
+
+# Datasets
+data/
+combined/
+archive/
+*.zip
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+physio-env/
+venv/
+env/
+pe/
+.pytest_cache/
+
+# Tests are not needed in the runtime image
+tests/
+
+# Environment / secrets
+.env
+.env.local
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# VCS
+.git/
+.gitignore

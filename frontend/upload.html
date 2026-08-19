@@ -659,6 +659,43 @@
       font-family: var(--mono);
     }
 
+    .conf-high {
+      color: #16a34a;
+    }
+
+    .conf-moderate {
+      color: #b45309;
+    }
+
+    .conf-low {
+      color: var(--red);
+    }
+
+    .confidence-note {
+      display: none;
+      margin-top: 14px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 12px;
+      padding: 12px 16px;
+    }
+
+    .confidence-note.visible {
+      display: block;
+    }
+
+    .confidence-note-item {
+      font-size: 13px;
+      color: #78350f;
+      line-height: 1.7;
+    }
+
+    .confidence-note-item + .confidence-note-item {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #fde68a;
+    }
+
     .kl-0 {
       color: #16a34a;
     }
@@ -898,6 +935,70 @@
 
     .instructions-list {
       counter-reset: step;
+    }
+
+    /* Withheld exercises — hidden unless the ceiling screened something out */
+    .excluded-section {
+      display: none;
+      margin-top: 28px;
+    }
+
+    .excluded-section.visible {
+      display: block;
+    }
+
+    .excluded-title {
+      font-family: var(--display);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--navy);
+    }
+
+    .excluded-intro {
+      font-size: 13px;
+      color: var(--slate);
+      line-height: 1.7;
+      margin-bottom: 14px;
+      max-width: 68ch;
+    }
+
+    .excluded-item {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+    }
+
+    .excluded-item-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+
+    .excluded-item-name {
+      font-weight: 600;
+      color: #9a3412;
+      font-size: 15px;
+    }
+
+    .excluded-badge {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: #9a3412;
+      background: #ffedd5;
+      border-radius: 100px;
+      padding: 3px 10px;
+      white-space: nowrap;
+    }
+
+    .excluded-item-reason {
+      font-size: 13px;
+      color: #7c2d12;
+      line-height: 1.7;
     }
 
     .caution-box {
@@ -1171,6 +1272,9 @@
       <!-- Summary cards -->
       <div class="summary-grid" id="summary-grid"></div>
 
+      <!-- Confidence caveats: low band / OOD image / uncalibrated model -->
+      <div class="confidence-note" id="confidence-note"></div>
+
       <!-- Phase + rationale -->
       <div class="rationale-box" id="rationale-box"></div>
 
@@ -1180,6 +1284,21 @@
         <div class="exercises-count" id="exercises-count"></div>
       </div>
       <div id="exercise-list"></div>
+
+      <!-- Withheld exercises (start position exceeds the safe ceiling) -->
+      <div class="excluded-section" id="excluded-section">
+        <div class="exercises-header">
+          <div class="excluded-title">Withheld from the standard protocol</div>
+          <div class="exercises-count" id="excluded-count"></div>
+        </div>
+        <div class="excluded-intro">
+          These exercises are part of the standard protocol for your phase, but
+          they begin from a seated or equipment-supported position that is already
+          beyond your safe angle ceiling. They are listed here so your
+          physiotherapist can suggest an alternative.
+        </div>
+        <div id="excluded-list"></div>
+      </div>
 
       <!-- Disclaimer -->
       <div class="disclaimer-box">
@@ -1361,6 +1480,10 @@
 
       // Summary cards
       const klColors = ['kl-0', 'kl-1', 'kl-2', 'kl-3', 'kl-4'];
+      // Lead with the band, not the percentage. A raw softmax maximum reads as
+      // a probability of being right and is not one unless calibrated.
+      const band = data.confidence_band || 'low';
+      const bandLabel = { high: 'High', moderate: 'Moderate', low: 'Low' }[band] || 'Low';
       const summaryEl = document.getElementById('summary-grid');
       summaryEl.innerHTML = `
       <div class="summary-card">
@@ -1376,10 +1499,12 @@
         <span class="summary-card-label">Safe Ceiling</span>
       </div>
       <div class="summary-card">
-        <span class="summary-card-value" style="font-size:16px; color: var(--navy)">${Math.round(data.confidence * 100)}%</span>
-        <span class="summary-card-label">Confidence</span>
+        <span class="summary-card-value conf-${band}" style="font-size:16px">${bandLabel}</span>
+        <span class="summary-card-label">Confidence${data.calibrated ? ` · ${Math.round(data.confidence * 100)}%` : ''}</span>
       </div>
     `;
+
+      renderConfidenceNote(data);
 
       // Rationale box
       document.getElementById('rationale-box').innerHTML = `
@@ -1459,12 +1584,91 @@
         });
       });
 
+      renderExcluded(data.excluded_exercises || []);
+
       // Disclaimer
       document.getElementById('disclaimer-text').textContent = data.disclaimer;
 
       // Show results
       document.getElementById('results').classList.add('visible');
       document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Confidence caveats. Three separate things can be wrong with the number
+    // above, and they are not interchangeable: the model can be unsure (low
+    // band), the number itself can be unvalidated (uncalibrated), or the image
+    // can be outside what the model was trained on (OOD).
+    function renderConfidenceNote(data) {
+      const box = document.getElementById('confidence-note');
+      const notes = [];
+
+      if ((data.confidence_band || 'low') === 'low') {
+        notes.push(
+          'The model is not confident in this grade. Treat the safe ceiling as ' +
+          'provisional and have a physiotherapist confirm it.'
+        );
+      }
+      if (data.ood_suspected) {
+        notes.push(
+          'This image sits outside the range the model normally sees — it may not be ' +
+          'a standard front-on knee radiograph. Check you uploaded the right file.'
+        );
+      }
+      if (data.calibrated === false && !data.demo_mode) {
+        notes.push(
+          'This model has not been confidence-calibrated, so the certainty above is ' +
+          'a rough indication only and tends to overstate how sure the model is.'
+        );
+      }
+
+      if (!notes.length) {
+        box.classList.remove('visible');
+        return;
+      }
+
+      box.innerHTML = '';
+      notes.forEach(text => {
+        const p = document.createElement('div');
+        p.className = 'confidence-note-item';
+        p.textContent = text;
+        box.appendChild(p);
+      });
+      box.classList.add('visible');
+    }
+
+    // Exercises withheld because their starting position exceeds the safe
+    // ceiling. Shown rather than silently dropped — a physiotherapist needs to
+    // see what was removed from the standard protocol and prescribe around it.
+    function renderExcluded(excluded) {
+      const section = document.getElementById('excluded-section');
+      if (!excluded.length) {
+        section.classList.remove('visible');
+        return;
+      }
+
+      const listEl = document.getElementById('excluded-list');
+      listEl.innerHTML = '';
+
+      excluded.forEach(ex => {
+        const row = document.createElement('div');
+        row.className = 'excluded-item';
+        row.innerHTML = `
+          <div class="excluded-item-head">
+            <span class="excluded-item-name"></span>
+            <span class="excluded-badge">starts at ${ex.start_angle}° · ceiling ${ex.max_angle}°</span>
+          </div>
+          <div class="excluded-item-reason"></div>
+        `;
+        // textContent, not innerHTML — these strings are server-composed but
+        // carry patient-facing prose; no reason to let markup through.
+        row.querySelector('.excluded-item-name').textContent = ex.name;
+        row.querySelector('.excluded-item-reason').textContent = ex.reason;
+        listEl.appendChild(row);
+      });
+
+      document.getElementById('excluded-count').textContent =
+        `${excluded.length} withheld`;
+      section.classList.add('visible');
     }
 
     function launchTracker(exercise, kneeSide, phaseLabel) {

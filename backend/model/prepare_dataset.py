@@ -317,8 +317,8 @@ def get_eval_transform(img_size: int = IMG_SIZE, clahe: bool = False) -> transfo
     """Deterministic preprocessing used for validation, test, and inference."""
     pre = [CLAHE()] if clahe else []
     return transforms.Compose(
-        pre
-        + [
+        [
+            *pre,
             transforms.Resize((img_size, img_size)),
             transforms.ToTensor(),
             transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),

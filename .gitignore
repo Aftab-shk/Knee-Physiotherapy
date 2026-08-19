@@ -10,15 +10,26 @@ env/
 *.egg-info/
 
 # ── Model weights (large — never commit binaries to git) ────────────────
-model/*.pt
-model/*.pth
-model/training_curves.png
-model/confusion_matrix.png
-model/*.json
+# NOTE: these were once written as `model/*.pth`. A pattern containing a slash
+# is anchored to this file's directory, so it only ever matched <repo>/model/
+# and never backend/model/ — which is why a 70 MB checkpoint sat tracked in the
+# repo for four commits. Keep the `**/` prefix, or drop the directory entirely.
+*.pt
+*.pth
+*.pth.*
+*.onnx
+*.safetensors
+**/model/training_curves.png
+**/model/confusion_matrix*.png
+**/model/*_report.json
+**/model/history.json
+**/model/label_map.json
+**/model/predictions.json
 
 # ── Datasets (large — never commit to git) ───────────────────────────────
 data/
 combined/
+archive/
 *.zip
 
 # ── Environment / secrets ────────────────────────────────────────────────
@@ -28,6 +39,7 @@ combined/
 # ── OS / editor ───────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+desktop.ini
 .vscode/
 .idea/
 

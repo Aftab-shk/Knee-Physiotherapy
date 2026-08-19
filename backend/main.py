@@ -16,19 +16,21 @@ Environment variables:
   CORS_ORIGINS  comma-separated allow-list (default: localhost:5173, localhost:3000)
 """
 
+import asyncio
 import logging
 import os
 import time
 import uuid
+from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import RedirectResponse
+from model.inference import MODEL_VERSION, KneeClassifier, validate_image
 
 from clinical_logic import build_prescription, get_exercises_only
-from model.inference import KneeClassifier, MODEL_VERSION, validate_image
 from schemas import (
     AnalyseXrayResponse,
     ExercisesResponse,
@@ -73,13 +75,40 @@ async def lifespan(app: FastAPI):
 # App
 # ---------------------------------------------------------------------------
 
-CORS_ORIGINS = os.getenv(
-    "CORS_ORIGINS",
-    "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,"
-    "http://localhost:8080,http://127.0.0.1:8080,"
-    "http://localhost:5500,http://127.0.0.1:5500,"
-    "null",
-).split(",")
+# The "null" origin was removed deliberately. It is what a sandboxed iframe and
+# a file:// page send, so allowing it alongside allow_credentials lets any local
+# HTML file — or a sandboxed iframe on a hostile page — make credentialed
+# requests to this API. Serve the frontend over http:// instead (the README says
+# to, and tracker.html needs a real origin for camera permissions anyway).
+CORS_ORIGINS = [
+    o.strip() for o in os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,"
+        "http://localhost:8080,http://127.0.0.1:8080,"
+        "http://localhost:5500,http://127.0.0.1:5500",
+    ).split(",") if o.strip()
+]
+
+if "null" in CORS_ORIGINS or "*" in CORS_ORIGINS:
+    logger.warning(
+        "CORS_ORIGINS contains %r. Combined with credentials this allows any "
+        "sandboxed iframe or file:// page to call this API.",
+        "null" if "null" in CORS_ORIGINS else "*",
+    )
+
+# Request-size ceiling, enforced while streaming rather than after buffering.
+MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", str(10 * 1024 * 1024)))
+
+# Sliding-window rate limit for the inference endpoint. A B4 forward pass on CPU
+# is ~300 ms, so an unthrottled endpoint is trivially exhausted.
+RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "20"))
+RATE_LIMIT_WINDOW_S = int(os.getenv("RATE_LIMIT_WINDOW_S", "60"))
+
+# Bucket-table bounds. Sweeping starts at the soft cap; above the hard cap the
+# oldest entries are evicted outright so memory cannot grow with attacker-chosen
+# source addresses.
+_RATE_BUCKET_SOFT_CAP = 4096
+_RATE_BUCKET_HARD_CAP = 8192
 
 app = FastAPI(
     title       = "AI Knee Physiotherapy API",
@@ -94,10 +123,128 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins     = CORS_ORIGINS,
-    allow_credentials = True,
-    allow_methods     = ["*"],
-    allow_headers     = ["*"],
+    # No cookies or Authorization headers are used by this API today. Turning
+    # credentials off means a stolen origin cannot ride a browser session, and
+    # it removes the "null" origin footgun entirely.
+    allow_credentials = False,
+    allow_methods     = ["GET", "POST", "OPTIONS"],
+    allow_headers     = ["Content-Type"],
+    expose_headers    = ["X-Request-ID", "X-Response-Time"],
+    max_age           = 600,
 )
+
+
+# ---------------------------------------------------------------------------
+# Rate limiting
+# ---------------------------------------------------------------------------
+
+_rate_buckets: dict[str, deque] = defaultdict(deque)
+_rate_lock = asyncio.Lock()
+
+
+def _client_key(request: Request) -> str:
+    """
+    Client identity for rate limiting.
+
+    X-Forwarded-For is only trusted when TRUST_PROXY is set — otherwise any
+    caller could spoof the header and get a fresh bucket per request, which
+    would make the limiter worse than useless.
+    """
+    if os.getenv("TRUST_PROXY", "").lower() in ("1", "true", "yes"):
+        fwd = request.headers.get("x-forwarded-for", "")
+        if fwd:
+            return fwd.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+async def enforce_rate_limit(request: Request) -> None:
+    """
+    Sliding-window limiter for the expensive endpoint.
+
+    NOTE: state is per-process. The Dockerfile runs `--workers 2`, so the
+    effective limit is RATE_LIMIT_REQUESTS x worker count. That is fine as a
+    backstop against accidental hammering; a real deployment should enforce this
+    at the reverse proxy (nginx `limit_req`) or with a shared Redis bucket.
+    """
+    if RATE_LIMIT_REQUESTS <= 0:
+        return
+
+    key = _client_key(request)
+    now = time.monotonic()
+    cutoff = now - RATE_LIMIT_WINDOW_S
+
+    async with _rate_lock:
+        bucket = _rate_buckets[key]
+        while bucket and bucket[0] < cutoff:
+            bucket.popleft()
+
+        if len(bucket) >= RATE_LIMIT_REQUESTS:
+            retry_after = max(1, int(bucket[0] + RATE_LIMIT_WINDOW_S - now) + 1)
+            logger.warning("Rate limit hit by %s (%d in %ds)", key, len(bucket), RATE_LIMIT_WINDOW_S)
+            raise HTTPException(
+                status_code = status.HTTP_429_TOO_MANY_REQUESTS,
+                detail      = f"Too many requests. Try again in {retry_after}s.",
+                headers     = {"Retry-After": str(retry_after)},
+            )
+
+        bucket.append(now)
+
+        # Bound the bucket table.
+        #
+        # Entries are only trimmed on a key's own next request, so a client that
+        # calls once and never returns leaves a non-empty deque behind. The
+        # original cleanup deleted only already-empty buckets, which reclaimed
+        # nothing at all. Sweeping expired entries fixes that, but is still not
+        # enough on its own: a spread-out flood whose buckets are all *live*
+        # sweeps to nothing and keeps growing, which turns a DoS defence into a
+        # memory-exhaustion vector. So sweep first, then hard-evict by age.
+        if len(_rate_buckets) > _RATE_BUCKET_SOFT_CAP:
+            for k in list(_rate_buckets):
+                stale = _rate_buckets[k]
+                while stale and stale[0] < cutoff:
+                    stale.popleft()
+                if not stale:
+                    del _rate_buckets[k]
+
+            if len(_rate_buckets) > _RATE_BUCKET_HARD_CAP:
+                # Evict least-recently-seen first. Dropping a bucket only ever
+                # forgives a client, never penalises one, so the worst case is
+                # that an attacker at this scale gets their window reset — by
+                # which point the proxy-level limit is the real defence anyway.
+                by_age = sorted(_rate_buckets, key=lambda k: _rate_buckets[k][-1])
+                for k in by_age[: len(_rate_buckets) - _RATE_BUCKET_HARD_CAP]:
+                    del _rate_buckets[k]
+                logger.warning(
+                    "Rate-limit table hit its cap (%d clients); evicted oldest entries. "
+                    "Enforce rate limiting at the reverse proxy for traffic at this scale.",
+                    _RATE_BUCKET_HARD_CAP,
+                )
+
+
+async def read_capped(upload: UploadFile, limit: int) -> bytes:
+    """
+    Read an upload, aborting as soon as it exceeds `limit`.
+
+    The previous version did `await upload.read()` and checked the length
+    afterwards, which buffers the whole body first — a handful of concurrent
+    multi-gigabyte POSTs would exhaust memory before any check ran. Declared
+    Content-Length is rejected up front, but it is only a hint, so the streaming
+    loop is what actually enforces the ceiling.
+    """
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        chunk = await upload.read(1 << 20)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > limit:
+            raise HTTPException(
+                status_code = status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail      = f"Image exceeds {limit // (1024 * 1024)} MB. Please compress and retry.",
+            )
+        chunks.append(chunk)
+    return b"".join(chunks)
 
 
 # ---------------------------------------------------------------------------
@@ -139,8 +286,13 @@ async def health() -> HealthResponse:
     return HealthResponse(
         status        = "ok",
         model_loaded  = classifier is not None,
-        model_version = MODEL_VERSION,
+        model_version = classifier.model_version if classifier else MODEL_VERSION,
         demo_mode     = classifier.demo_mode if classifier else True,
+        # Surfaced so a deployment can be checked for these without reading logs:
+        # an uncalibrated or unscreened model is servable but should not be
+        # quoting confidence percentages at patients.
+        calibrated    = bool(classifier and classifier.calibration["calibrated"]),
+        ood_screening = bool(classifier and classifier.calibration["reject_threshold"] is not None),
     )
 
 
@@ -199,6 +351,7 @@ async def get_exercises(
     tags           = ["analysis"],
 )
 async def analyse_xray(
+    request: Request,
     image: UploadFile = File(
         ...,
         description = "Knee X-ray image — JPEG or PNG, ≤ 10 MB.",
@@ -219,6 +372,10 @@ async def analyse_xray(
     ),
 ) -> AnalyseXrayResponse:
 
+    # ── 0. Rate limit ────────────────────────────────────────────────────────
+    # Before any work: this endpoint runs a B4 forward pass per request.
+    await enforce_rate_limit(request)
+
     # ── 1. Model ready guard ─────────────────────────────────────────────────
     if classifier is None:
         raise HTTPException(
@@ -234,13 +391,17 @@ async def analyse_xray(
             detail      = f"Unsupported file type '{image.content_type}'. Upload JPEG or PNG.",
         )
 
-    # ── 3. File size check (10 MB) ───────────────────────────────────────────
-    image_bytes = await image.read()
-    if len(image_bytes) > 10 * 1024 * 1024:
+    # ── 3. File size check ───────────────────────────────────────────────────
+    # Reject an oversized declaration before reading a byte, then enforce the
+    # real ceiling while streaming — Content-Length is a hint, not a guarantee.
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > MAX_UPLOAD_BYTES * 2:
         raise HTTPException(
             status_code = status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail      = "Image exceeds 10 MB. Please compress and retry.",
+            detail      = f"Request exceeds {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.",
         )
+
+    image_bytes = await read_capped(image, MAX_UPLOAD_BYTES)
 
     # ── 4. Image quality check ───────────────────────────────────────────────
     ok, quality_msg = validate_image(image_bytes)
@@ -265,24 +426,46 @@ async def analyse_xray(
     # ── 6. Model inference ───────────────────────────────────────────────────
     try:
         result = classifier.predict(image_bytes)
-    except Exception as exc:
-        logger.exception("Inference error: %s", exc)
+    except Exception:
+        logger.exception("Inference failed for an uploaded image")
         raise HTTPException(
             status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail      = "Inference failed. Please try a different image.",
         )
 
+    # ── 6b. Out-of-distribution guard ────────────────────────────────────────
+    # The classifier has five outputs and no "not a knee" class, so nothing else
+    # stops a chest X-ray or a photo of a wall returning a confident grade that
+    # then sets a movement ceiling. Inert until the checkpoint carries an energy
+    # reference (see model/inference.load_calibration).
+    if result.get("ood_reject"):
+        logger.warning(
+            "OOD reject | energy=%s exceeds the reference for this checkpoint",
+            result.get("energy"),
+        )
+        raise HTTPException(
+            status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail      = (
+                "This image does not look like a knee X-ray to the model, so it has not "
+                "been graded. Please check you uploaded the right file — a plain "
+                "anteroposterior (front-on) knee radiograph works best."
+            ),
+        )
+
     # ── 7. Build prescription ────────────────────────────────────────────────
     prescription = build_prescription(
-        kl_grade      = result["kl_grade"],
-        health_score  = result["health_score"],
-        max_angle     = result["max_angle"],
-        confidence    = result["confidence"],
-        demo_mode     = result["demo_mode"],
-        knee_side     = knee_side.value,
-        surgery_type  = surgery_type.value,
-        weeks_post_op = weeks_post_op,
-        model_version = MODEL_VERSION,
+        kl_grade        = result["kl_grade"],
+        health_score    = result["health_score"],
+        max_angle       = result["max_angle"],
+        confidence      = result["confidence"],
+        confidence_band = result["confidence_band"],
+        calibrated      = result["calibrated"],
+        ood_suspected   = result["ood_suspected"],
+        demo_mode       = result["demo_mode"],
+        knee_side       = knee_side.value,
+        surgery_type    = surgery_type.value,
+        weeks_post_op   = weeks_post_op,
+        model_version   = classifier.model_version,
     )
 
     logger.info(
