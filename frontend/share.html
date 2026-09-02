@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shared progress — Knee-Physiotherapy</title>
+  <!-- A share link is not for search engines. -->
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/theme.css">
+  <link rel="stylesheet" href="assets/progress-view.css">
+  <style>
+    /* Only what this page adds. Every chart, tile and table style comes from
+       assets/progress-view.css, shared with progress.html — a clinician and a
+       patient look at the same charts, so they read the same code. */
+    .shared-banner {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 8px 16px;
+      margin-bottom: 22px;
+      padding: 13px 18px;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--teal);
+      border-radius: 10px;
+      background: var(--white);
+      font-size: 13px;
+      color: var(--slate);
+    }
+
+    .shared-banner strong { color: var(--text); }
+
+    .shared-expiry {
+      font-family: var(--mono);
+      font-size: 12px;
+      margin-left: auto;
+    }
+
+    .disclaimer {
+      margin-top: 26px;
+      padding: 14px 18px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--white);
+      font-size: 12.5px;
+      line-height: 1.65;
+      color: var(--slate);
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav class="topnav">
+    <a href="index.html" class="nav-logo">
+      <img src="logo.png" alt="Knee-Physiotherapy Logo" class="nav-logo-img">
+      <span class="nav-logo-text">Knee-Physiotherapy</span>
+    </a>
+    <div class="nav-right">
+      <span class="nav-who">Shared view</span>
+    </div>
+  </nav>
+
+  <div class="page">
+
+    <div class="head">
+      <div>
+        <div class="head-title" id="head-title">Shared progress</div>
+        <div class="head-sub" id="head-sub">Rehabilitation progress shared by a patient.</div>
+      </div>
+      <div class="ranges" role="group" aria-label="Time range">
+        <button class="range-btn" type="button" data-days="30" aria-pressed="false">30 days</button>
+        <button class="range-btn" type="button" data-days="90" aria-pressed="true">90 days</button>
+        <button class="range-btn" type="button" data-days="365" aria-pressed="false">1 year</button>
+      </div>
+    </div>
+
+    <div class="shared-banner hidden" id="shared-banner">
+      <span id="shared-who"></span>
+      <span class="shared-expiry" id="shared-expiry"></span>
+    </div>
+
+    <div class="notice notice-err hidden" id="error-notice">
+      <span aria-hidden="true">⚠</span>
+      <span id="error-text"></span>
+    </div>
+
+    <div class="notice notice-warn hidden" id="unverified-notice">
+      <span aria-hidden="true">⚠</span>
+      <span id="unverified-text"></span>
+    </div>
+
+    <div id="loading">
+      <div class="spinner"></div>
+    </div>
+
+    <div id="empty" class="card empty hidden">
+      <div class="empty-title">Nothing recorded yet</div>
+      <p class="empty-sub">This patient has not completed any tracked exercise sessions in this period.</p>
+    </div>
+
+    <!-- The charts are injected here by assets/progress-view.js. -->
+    <div id="content" class="hidden"></div>
+
+    <div class="disclaimer hidden" id="disclaimer">
+      <strong>About these figures.</strong>
+      Knee angles are measured from a webcam using pose estimation, not goniometry, and
+      are only recorded when the camera could see the leg side-on. Sessions performed
+      from an unverified camera angle are counted towards consistency but excluded from
+      every angle shown here. Pain and exertion are the patient's own ratings.
+      This is a record of what was done at home — it is not a clinical assessment.
+    </div>
+
+  </div>
+
+  <script src="assets/config.js"></script>
+  <script src="assets/api.js"></script>
+  <script src="assets/progress-view.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const TZ_OFFSET = -new Date().getTimezoneOffset();
+
+    // The link itself is the credential, so it travels in the URL. Read once,
+    // and never written anywhere: not to localStorage, not into history.
+    const token = new URLSearchParams(location.search).get('t');
+
+    let rangeDays = 90;
+
+    ProgressView.mount($('content'));
+    const { render, longDate } = ProgressView;
+
+    function fail(message) {
+      $('loading').classList.add('hidden');
+      $('content').classList.add('hidden');
+      $('shared-banner').classList.add('hidden');
+      $('error-text').textContent = message;
+      $('error-notice').classList.remove('hidden');
+    }
+
+    async function load() {
+      if (!token) {
+        fail('This page needs a share link. Ask your patient to send you theirs.');
+        return;
+      }
+
+      $('loading').classList.remove('hidden');
+      $('content').classList.add('hidden');
+      $('empty').classList.add('hidden');
+      $('error-notice').classList.add('hidden');
+
+      try {
+        const data = await PhysioAPI.getSharedProgress(token, {
+          days: rangeDays, tzOffsetMinutes: TZ_OFFSET,
+        });
+        $('loading').classList.add('hidden');
+
+        const who = data.patient_name ? `${data.patient_name}'s` : 'A patient’s';
+        $('head-title').textContent = data.patient_name || 'Shared progress';
+        $('head-sub').textContent = `${who} knee rehabilitation, shared with you.`;
+        document.title = `${data.patient_name || 'Shared'} — progress`;
+
+        $('shared-who').innerHTML = '';
+        const label = data.label ? ` · ${data.label}` : '';
+        $('shared-who').textContent = `Shared on ${longDate(data.shared_at)}${label}`;
+        $('shared-expiry').textContent = `Link expires ${longDate(data.expires_at)}`;
+        $('shared-banner').classList.remove('hidden');
+        $('disclaimer').classList.remove('hidden');
+
+        if (data.progress.summary.sessions === 0) {
+          $('empty').classList.remove('hidden');
+          return;
+        }
+        $('content').classList.remove('hidden');
+        render(data.progress);
+
+      } catch (err) {
+        // A 404 covers expired, withdrawn and never-existed alike — the server
+        // will not say which, so neither can this page.
+        if (err instanceof PhysioAPI.ApiError && err.status === 404) {
+          fail('This link is no longer valid. It may have expired, or the patient may have withdrawn it.');
+          return;
+        }
+        fail(await PhysioAPI.describeFailure(err));
+      }
+    }
+
+    for (const btn of document.querySelectorAll('.range-btn')) {
+      btn.addEventListener('click', () => {
+        for (const b of document.querySelectorAll('.range-btn')) b.setAttribute('aria-pressed', 'false');
+        btn.setAttribute('aria-pressed', 'true');
+        rangeDays = Number(btn.dataset.days);
+        load();
+      });
+    }
+
+    load();
+  </script>
+</body>
+
+</html>

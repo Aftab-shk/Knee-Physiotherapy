@@ -28,7 +28,6 @@ import sys
 from pathlib import Path
 from typing import Dict, Optional
 
-import numpy as np
 import torch
 import torch.nn.functional as F
 from PIL import Image, UnidentifiedImageError
@@ -112,32 +111,10 @@ def confidence_band(confidence: float) -> str:
 
 
 
-def validate_image(image_bytes: bytes) -> tuple[bool, str]:
-    """
-    Lightweight quality check before inference.
-    Rejects blank, inverted, or non-radiograph images.
-    Returns (ok: bool, message: str).
-    """
-    try:
-        img  = Image.open(io.BytesIO(image_bytes))
-        gray = np.array(img.convert("L"), dtype=np.float32)
-    except Exception:
-        return False, "Could not decode the uploaded file. Please upload a valid JPEG or PNG."
-
-    std  = gray.std()
-    mean = gray.mean()
-
-    if std < 15:
-        return False, (
-            "Image contrast is too low. "
-            "Please ensure you are uploading a clear knee X-ray."
-        )
-    if mean < 10:
-        return False, "Image appears completely black. Please check the file."
-    if mean > 245:
-        return False, "Image appears overexposed / blank. Please check the file."
-
-    return True, "ok"
+# validate_image lives in image_checks so that it can be imported without torch
+# (see that module). Re-exported here because the CLI below and existing callers
+# import it from this module — F401 is the re-export, not a stray import.
+from image_checks import validate_image  # noqa: F401
 
 
 class KneeClassifier:

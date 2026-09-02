@@ -1,0 +1,57 @@
+/*
+ * theme.css — brand tokens and the base reset, shared by every page.
+ * ==================================================================
+ *
+ * This file holds only what is genuinely common: the palette, the type stacks
+ * and the reset. Page layout stays in each page's own <style> block, because
+ * a landing page, a login form, an upload wizard and a fullscreen camera view
+ * have almost no layout in common — pretending otherwise would produce a
+ * shared stylesheet that every page then had to fight.
+ *
+ * Load it before the page's own <style> so page rules win:
+ *   <link rel="stylesheet" href="assets/theme.css">
+ *
+ * The surface tokens below describe the LIGHT surfaces used by index.html and
+ * upload.html. login.html and tracker.html sit on the navy ground and override
+ * what they need in their own <style> — those overrides are deliberate, not
+ * drift.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* ── Brand palette ─────────────────────────────────────────────────────
+     The -rgb triplets exist so rgba() can vary alpha against the same colour:
+     rgba(var(--teal-rgb), .15). Keep each pair in step. */
+  --navy:           #132733;
+  --navy-rgb:       19, 39, 51;
+  --navy-mid:       #1f3949;
+  --navy-mid-rgb:   31, 57, 73;
+  --blue:           #629bb5;
+  --blue-rgb:       98, 155, 182;
+  --teal:           #447f98;
+  --teal-rgb:       68, 127, 152;
+  --teal-light:     #629bb5;
+  --teal-light-rgb: 98, 155, 182;
+  --red:            #dc2626;
+  --white:          #ffffff;
+
+  /* ── Light-surface tokens ──────────────────────────────────────────── */
+  --off-white:      #d6ebf3;  /* Ice Blue  */
+  --border:         #dadee1;  /* Platinum  */
+  --slate:          #5a7380;
+  --text:           #1b2f3a;
+
+  /* ── Type ──────────────────────────────────────────────────────────────
+     Faces come from the Google Fonts <link> in each page's <head>; the
+     fallbacks matter because that request can fail. */
+  --mono:    'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --display: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
+  --body:    'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+}

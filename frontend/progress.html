@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your progress — Knee-Physiotherapy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/theme.css">
+  <link rel="stylesheet" href="assets/progress-view.css">
+</head>
+
+<body>
+
+  <nav class="topnav">
+    <a href="index.html" class="nav-logo">
+      <img src="logo.png" alt="Knee-Physiotherapy Logo" class="nav-logo-img">
+      <span class="nav-logo-text">Knee-Physiotherapy</span>
+    </a>
+    <div class="nav-right">
+      <span class="nav-who" id="nav-who"></span>
+      <a href="upload.html" class="nav-link">New analysis</a>
+      <a href="#" class="nav-link" id="share-link-open">Share</a>
+      <a href="#" class="nav-link" id="logout-link">Log out</a>
+    </div>
+  </nav>
+
+  <div class="page">
+
+    <div class="head">
+      <div>
+        <div class="head-title">Your progress</div>
+        <div class="head-sub" id="head-sub">How far your knee is bending, and how often you are working it.</div>
+      </div>
+      <div class="ranges" role="group" aria-label="Time range">
+        <button class="range-btn" type="button" data-days="30" aria-pressed="false">30 days</button>
+        <button class="range-btn" type="button" data-days="90" aria-pressed="true">90 days</button>
+        <button class="range-btn" type="button" data-days="365" aria-pressed="false">1 year</button>
+      </div>
+    </div>
+
+    <!-- Sharing. A clinician will click a link; they will not create an account
+         in their patient's app, so the link is the credential. Which makes
+         withdrawing it the part that matters — hence the list below. -->
+    <div class="card hidden" id="share-panel" style="margin-bottom:22px">
+      <div class="card-head">
+        <div class="card-title">Share with your physiotherapist</div>
+        <button class="range-btn" type="button" id="share-close">Close</button>
+      </div>
+      <div class="card-sub">
+        Creates a read-only link to these charts. Whoever has the link can open it —
+        no account needed — until it expires or you withdraw it.
+      </div>
+
+      <div class="share-form">
+        <input class="share-input" type="text" id="share-label" maxlength="120"
+          placeholder="Who is it for? e.g. Dr Okonkwo, 14 Aug">
+        <select class="share-input" id="share-days">
+          <option value="7">Expires in 7 days</option>
+          <option value="14" selected>Expires in 14 days</option>
+          <option value="30">Expires in 30 days</option>
+          <option value="90">Expires in 90 days</option>
+        </select>
+        <button class="btn" type="button" id="share-create">Create link</button>
+      </div>
+
+      <div class="share-new hidden" id="share-new">
+        <div class="share-new-label">Copy this now — it is not shown again.</div>
+        <div class="share-new-row">
+          <input class="share-input share-url" type="text" id="share-url" readonly>
+          <button class="btn" type="button" id="share-copy">Copy</button>
+        </div>
+      </div>
+
+      <div id="share-list"></div>
+    </div>
+
+    <!-- Triage. Above everything else because a patient whose knee is going
+         backwards should not have to scroll past their streak to find out.
+         Empty for most people, most weeks. -->
+    <div id="flags"></div>
+
+    <div class="notice notice-err hidden" id="error-notice">
+      <span aria-hidden="true">⚠</span>
+      <span id="error-text"></span>
+    </div>
+
+    <div class="notice notice-warn hidden" id="unverified-notice">
+      <span aria-hidden="true">⚠</span>
+      <span id="unverified-text"></span>
+    </div>
+
+    <div id="loading">
+      <div class="skeleton" style="height:96px;margin-bottom:18px"></div>
+      <div class="skeleton"></div>
+    </div>
+
+    <div id="empty" class="card empty hidden">
+      <div class="empty-icon" aria-hidden="true">📈</div>
+      <div class="empty-title">Nothing recorded yet</div>
+      <p class="empty-text">
+        Once you work through an exercise with the webcam tracker, this page fills in:
+        how far your knee bent each day, how consistently you have been training, and
+        where you went past your safe limit.
+      </p>
+      <a href="upload.html" class="btn">Start an exercise →</a>
+    </div>
+
+    <!-- The charts live in assets/progress-view.js, shared with share.html. -->
+    <div id="content" class="hidden"></div>
+  </div>
+
+  <script src="assets/config.js"></script>
+  <script src="assets/api.js"></script>
+  <script src="assets/progress-view.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    // Minutes east of UTC. Sent so an evening session is bucketed on the evening
+    // it happened rather than the next UTC day, which would split a streak the
+    // patient never broke.
+    const TZ_OFFSET = -new Date().getTimezoneOffset();
+
+    let rangeDays = 90;
+
+    // The charts, the tiles and the state behind them live in
+    // assets/progress-view.js, shared with share.html.
+    ProgressView.mount($('content'));
+    const { render, longDate } = ProgressView;
+
+    function showError(message) {
+      $('error-text').textContent = message;
+      $('error-notice').classList.remove('hidden');
+      $('loading').classList.add('hidden');
+    }
+
+    async function load() {
+      $('loading').classList.remove('hidden');
+      $('content').classList.add('hidden');
+      $('empty').classList.add('hidden');
+      $('error-notice').classList.add('hidden');
+
+      try {
+        const data = await PhysioAPI.getProgress({ days: rangeDays, tzOffsetMinutes: TZ_OFFSET });
+        $('loading').classList.add('hidden');
+
+        if (data.summary.sessions === 0) {
+          $('empty').classList.remove('hidden');
+          return;
+        }
+        $('content').classList.remove('hidden');
+        render(data);
+      } catch (err) {
+        if (err instanceof PhysioAPI.ApiError && err.status === 401) {
+          window.location.href = 'login.html';
+          return;
+        }
+        showError(await PhysioAPI.describeFailure(err));
+      }
+    }
+
+    for (const btn of document.querySelectorAll('.range-btn')) {
+      btn.addEventListener('click', () => {
+        for (const b of document.querySelectorAll('.range-btn')) b.setAttribute('aria-pressed', 'false');
+        btn.setAttribute('aria-pressed', 'true');
+        rangeDays = Number(btn.dataset.days);
+        load();
+      });
+    }
+
+    $('logout-link').addEventListener('click', (e) => {
+      e.preventDefault();
+      PhysioAPI.logout();
+      window.location.href = 'login.html';
+    });
+
+    // Redraw on resize: the tooltip and hit areas are positioned from the
+    // rendered box, so a stale layout puts them in the wrong place.
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      // The payload lives in the view module, so the redraw does too.
+      resizeTimer = setTimeout(() => ProgressView.redraw(), 150);
+    });
+
+    // ── Sharing ────────────────────────────────────────────────────────────
+    const sharePanel = $('share-panel');
+
+    function renderShareList(links) {
+      const host = $('share-list');
+      host.innerHTML = '';
+
+      if (!links.length) {
+        const note = document.createElement('div');
+        note.className = 'share-empty';
+        note.textContent = 'You have not shared this with anyone yet.';
+        host.appendChild(note);
+        return;
+      }
+
+      for (const link of links) {
+        const row = document.createElement('div');
+        row.className = 'share-row' + (link.is_active ? '' : ' expired');
+
+        const main = document.createElement('div');
+        main.className = 'share-row-main';
+
+        const label = document.createElement('div');
+        label.className = 'share-row-label';
+        // textContent, not innerHTML: this is a string the patient typed.
+        label.textContent = link.label || 'Untitled link';
+
+        const opened = link.access_count === 0
+          ? 'never opened'
+          : `opened ${link.access_count}\u00d7, last ${longDate(link.last_accessed_at)}`;
+
+        const meta = document.createElement('div');
+        meta.className = 'share-row-meta';
+        meta.textContent = link.revoked_at
+          ? `withdrawn \u00b7 ${opened}`
+          : link.is_active
+            ? `expires ${longDate(link.expires_at)} \u00b7 ${opened}`
+            : `expired ${longDate(link.expires_at)} \u00b7 ${opened}`;
+
+        main.append(label, meta);
+        row.appendChild(main);
+
+        if (link.is_active) {
+          const revoke = document.createElement('button');
+          revoke.type = 'button';
+          revoke.className = 'share-revoke';
+          revoke.textContent = 'Withdraw';
+          revoke.addEventListener('click', async () => {
+            revoke.disabled = true;
+            try {
+              await PhysioAPI.revokeShareLink(link.id);
+              await loadShareLinks();
+            } catch (err) {
+              revoke.disabled = false;
+              showError(await PhysioAPI.describeFailure(err));
+            }
+          });
+          row.appendChild(revoke);
+        }
+
+        host.appendChild(row);
+      }
+    }
+
+    async function loadShareLinks() {
+      try {
+        renderShareList(await PhysioAPI.listShareLinks());
+      } catch (err) {
+        showError(await PhysioAPI.describeFailure(err));
+      }
+    }
+
+    $('share-link-open').addEventListener('click', (e) => {
+      e.preventDefault();
+      sharePanel.classList.remove('hidden');
+      $('share-new').classList.add('hidden');
+      loadShareLinks();
+      sharePanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+
+    $('share-close').addEventListener('click', () => sharePanel.classList.add('hidden'));
+
+    $('share-create').addEventListener('click', async () => {
+      const btn = $('share-create');
+      btn.disabled = true;
+      try {
+        const created = await PhysioAPI.createShareLink({
+          label: $('share-label').value.trim() || null,
+          days: Number($('share-days').value),
+        });
+        // The token exists nowhere else — only its hash was stored — so this is
+        // the one and only chance to hand it over.
+        $('share-url').value = new URL(created.path, location.href).href;
+        $('share-new').classList.remove('hidden');
+        $('share-label').value = '';
+        await loadShareLinks();
+      } catch (err) {
+        showError(await PhysioAPI.describeFailure(err));
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    $('share-copy').addEventListener('click', async () => {
+      const input = $('share-url');
+      input.select();
+      try {
+        await navigator.clipboard.writeText(input.value);
+        $('share-copy').textContent = 'Copied';
+        setTimeout(() => { $('share-copy').textContent = 'Copy'; }, 1600);
+      } catch {
+        // Clipboard access can be refused; the text is selected either way.
+        $('share-copy').textContent = 'Press Ctrl+C';
+      }
+    });
+
+    // ── Anything worth raising with a physiotherapist ──────────────────────
+    async function loadFlags() {
+      const host = $('flags');
+      host.innerHTML = '';
+
+      let data;
+      try {
+        data = await PhysioAPI.myFlags();
+      } catch {
+        // A triage panel is not worth an error message of its own; the charts
+        // below are the page.
+        return;
+      }
+
+      for (const flag of data.flags) {
+        const row = document.createElement('div');
+        row.className = 'notice ' + (flag.severity === 'urgent' ? 'notice-err' : 'notice-warn');
+
+        const icon = document.createElement('span');
+        icon.setAttribute('aria-hidden', 'true');
+        icon.textContent = flag.severity === 'urgent' ? '\u26a0' : '\u24d8';
+
+        // textContent: this is clinical wording, not markup.
+        const text = document.createElement('span');
+        text.textContent = flag.message;
+
+        row.append(icon, text);
+        host.appendChild(row);
+      }
+    }
+
+    (async function start() {
+      const patient = await PhysioAPI.me().catch(() => null);
+      if (!patient) {
+        window.location.href = 'login.html';
+        return;
+      }
+      $('nav-who').textContent = patient.display_name || patient.email;
+      load();
+      loadFlags();
+    })();
+  </script>
+</body>
+
+</html>

@@ -5,40 +5,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Exercise Tracker — Knee-Physiotherapy</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/theme.css">
   <link
     href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap"
     rel="stylesheet">
   <style>
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    :root {
-      --navy:       #132733;
-      --navy-rgb:   19, 39, 51;
-      --navy-mid:   #1f3949;
-      --navy-mid-rgb: 31, 57, 73;
-      --blue:       #629bb5;
-      --blue-rgb:   98, 155, 182;
-      --teal:       #447f98;
-      --teal-rgb:   68, 127, 152;
-      --teal-light: #629bb5;
-      --teal-light-rgb: 98, 155, 182;
-      --red:        #dc2626;
-      --white:      #ffffff;
-      --off-white:  #d6ebf3; /* Ice Blue */
-      --border:     #dadee1; /* Platinum */
-      --slate:      #5a7380;
-      --text:       #1b2f3a;
-      --mono:       'JetBrains Mono', monospace;
-      --display:    'Space Grotesk', sans-serif;
-      --body:       'Plus Jakarta Sans', sans-serif;
-    }
 
     html,
     body {
@@ -210,6 +182,83 @@
       transform: translateY(-1px);
     }
 
+    /* ── Pain and exertion ────────────────────────────────────────────
+       A row of eleven buttons rather than a slider: a slider has to be dragged
+       to a value the patient then has to read back, while these are one tap and
+       the chosen number stays legible. 0–10 is the Numeric Pain Rating Scale and
+       Borg CR10 both, so the same control serves both questions. */
+    .rating-block {
+      width: 100%;
+      max-width: 460px;
+      margin: 0 auto 20px;
+      text-align: left;
+    }
+
+    .rating-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, .85);
+      margin-bottom: 3px;
+    }
+
+    .rating-hint {
+      font-size: 11.5px;
+      color: rgba(255, 255, 255, .4);
+      margin-bottom: 10px;
+    }
+
+    .rating-scale {
+      display: grid;
+      grid-template-columns: repeat(11, 1fr);
+      gap: 4px;
+    }
+
+    .rating-btn {
+      padding: 8px 0;
+      border: 1px solid rgba(255, 255, 255, .16);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, .05);
+      font-family: var(--mono);
+      font-size: 12px;
+      color: rgba(255, 255, 255, .65);
+      cursor: pointer;
+      transition: background .15s, color .15s, border-color .15s;
+    }
+
+    .rating-btn:hover {
+      background: rgba(255, 255, 255, .12);
+      color: var(--white);
+    }
+
+    .rating-btn[aria-pressed="true"] {
+      background: var(--teal);
+      border-color: var(--teal-light);
+      color: var(--white);
+      font-weight: 600;
+    }
+
+    .rating-btn:focus-visible {
+      outline: 2px solid var(--teal-light);
+      outline-offset: 2px;
+    }
+
+    .rating-ends {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 5px;
+      font-size: 10.5px;
+      color: rgba(255, 255, 255, .35);
+    }
+
+    /* Every rating is optional. Saying so where it is asked stops it reading as
+       a form to be completed before the camera will start. */
+    .rating-optional {
+      font-size: 11px;
+      color: rgba(255, 255, 255, .32);
+      text-align: center;
+      margin-bottom: 14px;
+    }
+
     .cam-permission-note {
       margin-top: 16px;
       font-size: 12px;
@@ -251,6 +300,134 @@
     .model-loading-text {
       color: rgba(255, 255, 255, .6);
       font-size: 14px;
+    }
+
+    /* ── Camera setup gate ───────────────────────────────────────────── */
+    /* A knee angle computed from 2D landmarks is only valid when the camera
+       sees the leg side-on. Square to the camera, femur and tibia project onto
+       nearly the same line and a knee bent to 90 degrees reads close to 0 — the
+       ceiling is never crossed and the alarm never fires. This overlay holds
+       the session until the view is verified, and returns if it is lost. */
+    .setup-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(var(--navy-rgb),.92);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 44;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .setup-overlay.hidden {
+      display: none;
+    }
+
+    .setup-icon {
+      font-size: 48px;
+      margin-bottom: 18px;
+    }
+
+    .setup-title {
+      font-family: var(--display);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 10px;
+    }
+
+    .setup-hint {
+      font-size: 14px;
+      color: rgba(255, 255, 255, .55);
+      max-width: 400px;
+      line-height: 1.7;
+      margin-bottom: 22px;
+    }
+
+    .setup-status {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      max-width: 430px;
+      padding: 12px 22px;
+      border-radius: 10px;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--teal-light);
+      background: rgba(var(--teal-rgb),.15);
+      border: 1px solid rgba(var(--teal-rgb),.35);
+    }
+
+    .setup-status.blocked {
+      color: #fbbf24;
+      background: rgba(251, 191, 36, .12);
+      border-color: rgba(251, 191, 36, .35);
+    }
+
+    .setup-progress {
+      width: 220px;
+      height: 4px;
+      margin-top: 20px;
+      background: rgba(255, 255, 255, .12);
+      border-radius: 100px;
+      overflow: hidden;
+    }
+
+    .setup-progress-fill {
+      width: 0;
+      height: 100%;
+      background: var(--teal-light);
+      border-radius: 100px;
+      transition: width .12s linear;
+    }
+
+    .setup-skip {
+      margin-top: 26px;
+      background: none;
+      border: none;
+      font-family: var(--body);
+      font-size: 12px;
+      color: rgba(255, 255, 255, .38);
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .setup-skip:hover {
+      color: rgba(255, 255, 255, .65);
+    }
+
+    .setup-skip.hidden {
+      display: none;
+    }
+
+    /* Persistent banner for a session the patient chose to run unverified. */
+    .view-warn {
+      position: absolute;
+      top: 72px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 46;
+      display: none;
+      align-items: flex-start;
+      gap: 10px;
+      max-width: min(92vw, 470px);
+      padding: 10px 18px;
+      border-radius: 10px;
+      background: rgba(251, 191, 36, .95);
+      color: #3a2c05;
+      font-size: 12.5px;
+      font-weight: 600;
+      line-height: 1.5;
+      text-align: left;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, .3);
+    }
+
+    .view-warn.visible {
+      display: flex;
     }
 
     /* ── HUD (heads-up display) ──────────────────────────────────────── */
@@ -703,7 +880,14 @@
       <div class="pre-start-limit" id="pre-start-limit">
         ⚠ Safe angle limit: —°
       </div>
-      <br>
+      <div class="rating-block" id="pain-before-block">
+        <div class="rating-label">How is your knee right now?</div>
+        <div class="rating-hint">Rate the pain before you begin.</div>
+        <div class="rating-scale" id="pain-before-scale" role="group" aria-label="Pain before exercising, 0 to 10"></div>
+        <div class="rating-ends"><span>0 · no pain</span><span>10 · worst imaginable</span></div>
+      </div>
+      <div class="rating-optional">Optional — skip it and start whenever you like.</div>
+
       <button class="btn-start-cam" id="start-cam-btn">Enable camera &amp; start →</button>
       <div class="cam-permission-note">Your browser will ask for camera permission. Nothing is uploaded or recorded.
       </div>
@@ -713,6 +897,30 @@
     <div class="model-loading hidden" id="model-loading">
       <div class="loading-spinner-cam"></div>
       <div class="model-loading-text" id="model-loading-text">Loading pose detection model…</div>
+    </div>
+
+    <!-- Camera setup gate — verifies a side-on view before tracking starts -->
+    <div class="setup-overlay hidden" id="setup-overlay">
+      <span class="setup-icon" id="setup-icon">📐</span>
+      <div class="setup-title" id="setup-title">Position your camera</div>
+      <p class="setup-hint" id="setup-hint">
+        Put the camera to your <strong>side</strong>, roughly level with your knee, and far enough
+        back that your hip, knee and ankle are all in frame.
+      </p>
+      <div class="setup-status" id="setup-status">Looking for you…</div>
+      <div class="setup-progress">
+        <div class="setup-progress-fill" id="setup-progress-fill"></div>
+      </div>
+      <button class="setup-skip hidden" id="setup-skip" type="button">
+        Start anyway without verifying the camera angle
+      </button>
+    </div>
+
+    <!-- Shown for the rest of the session if the gate was overridden -->
+    <div class="view-warn" id="view-warn">
+      <span aria-hidden="true">⚠</span>
+      <span>Camera angle unverified — your knee may be bending further than the reading shows,
+        so safety alerts are less reliable. Reposition side-on when you can.</span>
     </div>
 
     <!-- HUD -->
@@ -789,6 +997,22 @@
           <div class="complete-stat-label">Safety alerts</div>
         </div>
       </div>
+      <div class="rating-block" id="pain-after-block">
+        <div class="rating-label">How does your knee feel now?</div>
+        <div class="rating-hint">The same scale as before, so the two can be compared.</div>
+        <div class="rating-scale" id="pain-after-scale" role="group" aria-label="Pain after exercising, 0 to 10"></div>
+        <div class="rating-ends"><span>0 · no pain</span><span>10 · worst imaginable</span></div>
+      </div>
+
+      <div class="rating-block" id="rpe-block">
+        <div class="rating-label">How hard did that feel?</div>
+        <div class="rating-hint">Your effort, not your pain.</div>
+        <div class="rating-scale" id="rpe-scale" role="group" aria-label="Perceived exertion, 0 to 10"></div>
+        <div class="rating-ends"><span>0 · nothing at all</span><span>10 · maximal</span></div>
+      </div>
+
+      <div class="rating-optional" id="rating-status">Optional — these help your physiotherapist see how you're doing.</div>
+
       <div class="complete-actions">
         <a href="upload.html" class="btn-complete-primary">← Back to exercise plan</a>
         <button class="btn-complete-secondary" id="restart-btn">Do it again</button>
@@ -797,6 +1021,11 @@
 
   </div>
 
+  <!-- Classic scripts run before module scripts, so window.PhysioAPI is
+       already there by the time the module below executes. -->
+  <script src="assets/config.js"></script>
+  <script src="assets/api.js"></script>
+
   <!-- MediaPipe Tasks Vision (Pose Landmarker) — loaded from CDN -->
   <script type="module">
     import {
@@ -804,10 +1033,27 @@
       FilesetResolver,
     } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
 
+    // Joint geometry and camera-view validation live in their own module so the
+    // maths that decides whether an angle can be trusted is testable without a
+    // browser. See frontend/tests/pose-gate.test.mjs.
+    import {
+      POSE_GATE,
+      assessView,
+      isHardFail,
+      landmarkIndices,
+      calcKneeAngle,
+      calcAnkleAngle,
+    } from "./assets/pose-gate.js";
+
     // ── Load exercise data passed from upload.html ─────────────────────────
     const exerciseData = JSON.parse(sessionStorage.getItem('physioai_current_exercise') || 'null');
     const kneeSide = sessionStorage.getItem('physioai_knee_side') || 'right';
     const rehabPhase = sessionStorage.getItem('physioai_phase_label') || '';
+
+    // Landmark indices for the leg being tracked, and the label for it that any
+    // on-screen guidance has to agree with. Declared after kneeSide, which it
+    // reads.
+    const idx = landmarkIndices(kneeSide);
 
     // Fallback demo data if page opened directly without navigating from upload.html
     const exercise = exerciseData || {
@@ -867,6 +1113,76 @@
       setProgressEl.appendChild(dot);
     }
 
+    // ── Pain and exertion ────────────────────────────────────────────────────
+    // Nothing here can block the session. A rating is asked for and never
+    // required: an app that will not open the camera until a form is filled in
+    // is an app people stop opening.
+    const ratings = { painBefore: null, painAfter: null, rpe: null };
+
+    function buildScale(containerId, onPick) {
+      const host = document.getElementById(containerId);
+      for (let value = 0; value <= 10; value++) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'rating-btn';
+        btn.textContent = value;
+        btn.setAttribute('aria-pressed', 'false');
+        btn.addEventListener('click', () => {
+          // Tapping the chosen number again clears it — otherwise a mis-tap is
+          // permanent, and a wrong pain score is worse than none.
+          const already = btn.getAttribute('aria-pressed') === 'true';
+          host.querySelectorAll('.rating-btn').forEach(b => b.setAttribute('aria-pressed', 'false'));
+          if (already) {
+            onPick(null);
+          } else {
+            btn.setAttribute('aria-pressed', 'true');
+            onPick(value);
+          }
+        });
+        host.appendChild(btn);
+      }
+    }
+
+    buildScale('pain-before-scale', v => { ratings.painBefore = v; });
+    buildScale('pain-after-scale', v => { ratings.painAfter = v; sendReport(); });
+    buildScale('rpe-scale', v => { ratings.rpe = v; sendReport(); });
+
+    /**
+     * Send the post-session ratings.
+     *
+     * Debounced and fire-and-forget: the patient may tap pain, then exertion,
+     * then change their mind, and none of that should surface a network error on
+     * a screen that says "Exercise complete". The server merges what it is given
+     * rather than replacing, so a later call adding exertion cannot wipe a pain
+     * score already stored.
+     */
+    let reportTimer = null;
+    function sendReport() {
+      const status = document.getElementById('rating-status');
+      if (!window.PhysioAPI || !PhysioAPI.isSignedIn()) {
+        status.textContent = 'Sign in to keep these with your progress.';
+        return;
+      }
+      if (ratings.painAfter === null && ratings.rpe === null) return;
+
+      clearTimeout(reportTimer);
+      reportTimer = setTimeout(() => {
+        PhysioAPI.recordReport({
+          client_session_id: clientSessionId,
+          pain_after: ratings.painAfter,
+          rpe: ratings.rpe,
+        }).then(() => {
+          status.textContent = '✓ Saved to your progress.';
+        }).catch((err) => {
+          // 404 means no set was ever recorded — there is nothing to attach a
+          // rating to, which is not the patient's problem to solve.
+          status.textContent = err.status === 404
+            ? 'No completed set to attach this to.'
+            : 'Could not save that — it will not be kept.';
+        });
+      }, 600);
+    }
+
     // ── DOM refs ────────────────────────────────────────────────────────────
     const video = document.getElementById('video');
     const canvas = document.getElementById('overlay-canvas');
@@ -887,6 +1203,14 @@
     const trackingLabel = document.getElementById('tracking-label');
     const completePanel = document.getElementById('complete-panel');
     const restartBtn = document.getElementById('restart-btn');
+    const setupOverlay = document.getElementById('setup-overlay');
+    const setupIcon = document.getElementById('setup-icon');
+    const setupTitle = document.getElementById('setup-title');
+    const setupHint = document.getElementById('setup-hint');
+    const setupStatus = document.getElementById('setup-status');
+    const setupProgressFill = document.getElementById('setup-progress-fill');
+    const setupSkip = document.getElementById('setup-skip');
+    const viewWarn = document.getElementById('view-warn');
 
     safetySubText.textContent = `Your knee is past the safe limit of ${exercise.angle_limit}°`;
 
@@ -910,6 +1234,119 @@
 
     let alarmInterval = null;
     let audioCtx = null;
+
+    // ── What this set is costing the knee ────────────────────────────────────
+    // Every number below was already being computed at thirty frames a second
+    // and discarded when the set ended. Peak flexion is the range-of-motion
+    // trend; breach count and seconds are the safety record; mean visibility
+    // and suspended time say how much either is worth.
+    const clientSessionId = (crypto.randomUUID
+      ? crypto.randomUUID()
+      : String(Date.now()) + Math.random().toString(36).slice(2)).replace(/-/g, '');
+
+    const prescriptionId = sessionStorage.getItem('physioai_prescription_id') || null;
+
+    let setMetrics = null;
+
+    function startSetMetrics() {
+      setMetrics = {
+        startedAt: performance.now(),
+        peakFlexion: 0,
+        breachCount: 0,
+        breachMs: 0,
+        breachEnteredAt: null,
+        suspendedMs: 0,
+        suspendedEnteredAt: null,
+        visibilitySum: 0,
+        visibilityFrames: 0,
+        holdSecondsAchieved: null,
+      };
+    }
+
+    function sampleFrame(kneeAngle, visibility) {
+      if (!setMetrics) return;
+      setMetrics.peakFlexion = Math.max(setMetrics.peakFlexion, kneeAngle);
+      if (typeof visibility === 'number') {
+        setMetrics.visibilitySum += visibility;
+        setMetrics.visibilityFrames++;
+      }
+    }
+
+    // Breach time is accumulated from transitions rather than by adding a frame
+    // delta each tick: requestAnimationFrame stops firing in a backgrounded tab,
+    // and per-frame accumulation would silently under-count exactly when the
+    // patient walked away mid-breach.
+    function markBreach(active) {
+      if (!setMetrics) return;
+      const now = performance.now();
+      if (active && setMetrics.breachEnteredAt === null) {
+        setMetrics.breachEnteredAt = now;
+        setMetrics.breachCount++;
+      } else if (!active && setMetrics.breachEnteredAt !== null) {
+        setMetrics.breachMs += now - setMetrics.breachEnteredAt;
+        setMetrics.breachEnteredAt = null;
+      }
+    }
+
+    function markSuspended(active) {
+      if (!setMetrics) return;
+      const now = performance.now();
+      if (active && setMetrics.suspendedEnteredAt === null) {
+        setMetrics.suspendedEnteredAt = now;
+      } else if (!active && setMetrics.suspendedEnteredAt !== null) {
+        setMetrics.suspendedMs += now - setMetrics.suspendedEnteredAt;
+        setMetrics.suspendedEnteredAt = null;
+      }
+    }
+
+    /**
+     * Send one finished set to the backend.
+     *
+     * Fire-and-forget on purpose. A patient mid-exercise must never be shown a
+     * network error, and a guest has nowhere to store this at all — so a failure
+     * here is logged and dropped. The set is lost, the session is not.
+     */
+    function recordSet(setIndex, repsCompleted) {
+      if (!setMetrics) return;
+
+      // Close any interval still open, so a set that ends mid-breach still
+      // accounts for the time spent there.
+      markBreach(false);
+      markSuspended(false);
+
+      const m = setMetrics;
+      const payload = {
+        client_session_id: clientSessionId,
+        prescription_id:   prescriptionId,
+        exercise_name:     exercise.name,
+        tracked_joint:     trackedJoint,
+        knee_side:         idx.side,
+        angle_limit:       exercise.angle_limit,
+        target_reps:       exercise.target_reps ?? null,
+        target_sets:       exercise.target_sets,
+        hold_seconds:      exercise.hold_seconds ?? null,
+        set_index:         setIndex,
+        reps_completed:    repsCompleted,
+        duration_seconds:  (performance.now() - m.startedAt) / 1000,
+        // Clamped to the column's range: a wild landmark should not be able to
+        // write an impossible angle into a clinical record.
+        peak_flexion_deg:  Math.min(180, Math.max(0, m.peakFlexion)),
+        breach_count:      m.breachCount,
+        breach_seconds:    m.breachMs / 1000,
+        hold_seconds_achieved: m.holdSecondsAchieved,
+        mean_visibility:   m.visibilityFrames ? m.visibilitySum / m.visibilityFrames : null,
+        suspended_seconds: m.suspendedMs / 1000,
+        view_verified:     viewVerified,
+        pain_before:       ratings.painBefore,
+      };
+
+      startSetMetrics();
+
+      if (!window.PhysioAPI || !PhysioAPI.isSignedIn()) return;
+      PhysioAPI.recordSet(payload).catch((err) => {
+        console.warn('Could not save this set:', err.message);
+      });
+    }
 
     const AUTO_PAUSE_MS = 500;
 
@@ -1006,34 +1443,6 @@
     // Covers tab close, navigation, and mobile backgrounding.
     window.addEventListener('pagehide', releaseCamera);
 
-    // ── Angle calculation ────────────────────────────────────────────────────
-    // MediaPipe Pose landmark indices:
-    //   23/24 hip, 25/26 knee, 27/28 ankle, 31/32 foot index
-    function jointAngle(a, b, c) {
-      const v1 = { x: a.x - b.x, y: a.y - b.y };
-      const v2 = { x: c.x - b.x, y: c.y - b.y };
-      const dot = v1.x * v2.x + v1.y * v2.y;
-      const mag1 = Math.sqrt(v1.x ** 2 + v1.y ** 2);
-      const mag2 = Math.sqrt(v2.x ** 2 + v2.y ** 2);
-      if (mag1 === 0 || mag2 === 0) return 0;
-      const cos = Math.max(-1, Math.min(1, dot / (mag1 * mag2)));
-      return Math.acos(cos) * 180 / Math.PI;
-    }
-
-    // Knee flexion: straight leg = 0°, fully bent ≈ 135°.
-    function calcKneeAngle(hip, knee, ankle) {
-      return 180 - jointAngle(hip, knee, ankle);
-    }
-
-    // Signed ankle deviation from neutral: positive = plantarflexion (toes
-    // pointed away), negative = dorsiflexion (toes pulled up). Kept signed so a
-    // pump reads as one clean oscillation through zero rather than two peaks.
-    // Ankle Pumps is the only exercise counted off this.
-    const ANKLE_NEUTRAL_DEG = 90;
-    function calcAnkleAngle(knee, ankle, footIndex) {
-      return jointAngle(knee, ankle, footIndex) - ANKLE_NEUTRAL_DEG;
-    }
-
     function smoothAngle(newAngle) {
       angleHistory.push(newAngle);
       if (angleHistory.length > SMOOTHING_FRAMES) angleHistory.shift();
@@ -1049,9 +1458,113 @@
       return countAngleHistory.reduce((a, b) => a + b, 0) / countAngleHistory.length;
     }
 
+    // ── Tracker state machine ────────────────────────────────────────────────
+    // IDLE → CALIBRATING → TRACKING ⇄ SUSPENDED. `sessionActive` is true only
+    // in TRACKING, so reps, holds and the safety check never run on an angle
+    // measured from a viewpoint that has not been verified.
+    let trackerState = 'IDLE';
+    let goodFrames = 0;
+    let badFrames = 0;
+    let viewVerified = true;        // false once the patient overrides the gate
+    let calibrationStartedAt = 0;
+
+    // Every buffer holding angle history has to be cleared whenever tracking
+    // stops and restarts. Otherwise the rolling average blends readings from
+    // before and after the interruption, and a half-finished rep resumes into a
+    // stage it never actually reached.
+    function resetAngleBuffers() {
+      angleHistory = [];
+      countAngleHistory = [];
+      repStage = 'EXTENDED';
+      anklePhase = 'DORSI';
+      holdStartTime = null;
+      holdRingFg.style.strokeDashoffset = RING_CIRC;
+      holdRingText.textContent = '0s';
+    }
+
+    function beginTracking() {
+      trackerState = 'TRACKING';
+      sessionActive = true;
+      goodFrames = 0;
+      badFrames = 0;
+      resetAngleBuffers();
+      if (!setMetrics) startSetMetrics();
+      setupOverlay.classList.add('hidden');
+      hud.classList.remove('hidden');
+      viewWarn.classList.toggle('visible', !viewVerified);
+    }
+
+    function suspendForView(view) {
+      // Time with no usable measurement is recorded, not ignored: a set held
+      // together by ten seconds of guesswork is not the same as a clean one.
+      markSuspended(true);
+      markBreach(false);
+      trackerState = 'SUSPENDED';
+      sessionActive = false;
+      goodFrames = 0;
+      badFrames = 0;
+
+      // Drop any breach in flight. It was measured from a viewpoint we no
+      // longer trust, and leaving a red screen up while nothing is being
+      // measured is how a patient learns to ignore the red screen.
+      breachStartTime = null;
+      safetyOverlay.classList.remove('active');
+      stopAlarm();
+
+      // Blank rather than freeze the readout — a stale number looks live.
+      angleReadout.textContent = '—';
+      angleReadout.className = 'angle-value';
+
+      setupIcon.textContent = '⏸';
+      setupTitle.textContent = 'Tracking paused';
+      setupHint.textContent = 'Counting has stopped because your knee angle can\u2019t be measured reliably from here. It picks up again on its own once the view is back.';
+      setupStatus.textContent = view.message;
+      setupStatus.classList.add('blocked');
+      setupProgressFill.style.width = '0%';
+      setupOverlay.classList.remove('hidden');
+    }
+
+    function updateTrackingBadge(view, passes) {
+      if (passes) {
+        trackingDot.className = 'tracking-dot' + (viewVerified ? '' : ' poor');
+        trackingLabel.textContent = viewVerified ? 'Tracking' : 'Unverified view';
+      } else if (view.code === 'no-pose') {
+        trackingDot.className = 'tracking-dot lost';
+        trackingLabel.textContent = 'No pose detected';
+      } else {
+        trackingDot.className = 'tracking-dot poor';
+        trackingLabel.textContent = 'Adjust position';
+      }
+    }
+
+    function runCalibration(view, passes) {
+      goodFrames = passes ? goodFrames + 1 : 0;
+
+      setupStatus.textContent = passes ? 'Hold still\u2026' : view.message;
+      setupStatus.classList.toggle('blocked', !passes);
+      setupProgressFill.style.width =
+        Math.min(100, (goodFrames / POSE_GATE.CALIBRATION_FRAMES) * 100) + '%';
+
+      // Escape hatch. These are heuristics over a pose estimate, and a patient
+      // whose room, wheelchair or body shape defeats them must not be locked
+      // out of their own programme — they would simply stop using it. Taking it
+      // clears viewVerified, which keeps the warning banner up for the session.
+      if (performance.now() - calibrationStartedAt > POSE_GATE.ESCAPE_AFTER_MS) {
+        setupSkip.classList.remove('hidden');
+      }
+
+      if (goodFrames >= POSE_GATE.CALIBRATION_FRAMES) beginTracking();
+    }
+
+    setupSkip.addEventListener('click', () => {
+      viewVerified = false;
+      beginTracking();
+    });
+
     // ── Safety state machine ─────────────────────────────────────────────────
     function handleSafetyCheck(angle) {
       const overLimit = angle > exercise.angle_limit;
+      markBreach(overLimit);
 
       if (overLimit) {
         if (!safetyOverlay.classList.contains('active')) {
@@ -1092,6 +1605,10 @@
       pausedPanel.classList.remove('visible');
       safetyOverlay.classList.remove('active');
       stopAlarm();
+      // The view gate was held off while the breach went unacknowledged, so
+      // start its counters clean rather than resuming mid-tally.
+      goodFrames = 0;
+      badFrames = 0;
     });
 
     // ── Rep counting (dynamic exercises) ────────────────────────────────────
@@ -1144,6 +1661,8 @@
     }
 
     function completeSet() {
+      recordSet(currentSet, currentRep);
+
       const dots = document.querySelectorAll('#set-progress .set-dot');
       if (dots[currentSet - 1]) dots[currentSet - 1].classList.add('done');
       if (dots[currentSet - 1]) dots[currentSet - 1].classList.remove('current');
@@ -1185,6 +1704,8 @@
         holdRingFg.style.strokeDashoffset = RING_CIRC * (1 - progress);
 
         if (remaining <= 0) {
+          if (setMetrics) setMetrics.holdSecondsAchieved = exercise.hold_seconds;
+          recordSet(holdSetComplete + 1, 0);
           holdSetComplete++;
           holdStartTime = null;
           holdRingFg.style.strokeDashoffset = RING_CIRC;
@@ -1253,65 +1774,106 @@
         lastVideoTime = video.currentTime;
         const result = poseLandmarker.detectForVideo(video, performance.now());
 
-        if (result.landmarks && result.landmarks.length > 0) {
-          const lm = result.landmarks[0];
+        const lm = (result.landmarks && result.landmarks[0]) || null;
+        const world = (result.worldLandmarks && result.worldLandmarks[0]) || null;
+
+        if (lm) {
           drawSkeleton(lm);
-
-          // Select landmarks based on knee side
-          const useLeft = kneeSide === 'left';
-          const hipIdx = useLeft ? 23 : 24;
-          const kneeIdx = useLeft ? 25 : 26;
-          const ankleIdx = useLeft ? 27 : 28;
-          const footIdx = useLeft ? 31 : 32;
-
-          const hip = lm[hipIdx], knee = lm[kneeIdx], ankle = lm[ankleIdx];
-          const foot = lm[footIdx];
-          const trackingAnkle = trackedJoint === 'ankle';
-
-          let visibility = Math.min(hip.visibility ?? 1, knee.visibility ?? 1, ankle.visibility ?? 1);
-          if (trackingAnkle) {
-            visibility = Math.min(visibility, foot?.visibility ?? 0);
-          }
-
-          if (visibility > 0.5) {
-            // Safety is ALWAYS judged at the knee — angle_limit is a knee
-            // flexion ceiling even when reps are counted at another joint.
-            const kneeAngle = smoothAngle(calcKneeAngle(hip, knee, ankle));
-            maxAngleReached = Math.max(maxAngleReached, kneeAngle);
-
-            // The angle that drives rep/hold counting.
-            const countAngle = trackingAnkle
-              ? smoothCountAngle(calcAnkleAngle(knee, ankle, foot))
-              : kneeAngle;
-
-            angleReadout.textContent = Math.round(kneeAngle) + '°';
-            angleReadout.className = 'angle-value' +
-              (kneeAngle > exercise.angle_limit ? ' danger' :
-                kneeAngle > exercise.angle_limit * 0.85 ? ' warning' : '');
-
-            handleSafetyCheck(kneeAngle);
-
-            if (isHoldMode) {
-              updateHoldTimer(countAngle);
-            } else {
-              updateRepCounter(countAngle);
-            }
-
-            trackingDot.className = 'tracking-dot';
-            trackingLabel.textContent = 'Tracking';
-          } else {
-            trackingDot.className = 'tracking-dot poor';
-            trackingLabel.textContent = 'Adjust position';
-          }
         } else {
-          trackingDot.className = 'tracking-dot lost';
-          trackingLabel.textContent = 'No pose detected';
+          // Otherwise the last skeleton stays painted over a frame it no longer
+          // describes, which reads as tracking that is still working.
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // The side-on threshold loosens once tracking is under way, so a small
+        // shift mid-rep does not bounce the session in and out of suspension.
+        const spreadCeiling = trackerState === 'TRACKING'
+          ? POSE_GATE.SPREAD_RECOVER
+          : POSE_GATE.SPREAD_OK;
+
+        const view = assessView(lm, world, idx, { spreadCeiling, trackedJoint });
+
+        // A patient who overrode the gate keeps tracking regardless of the
+        // side-on tests, but the visibility and framing checks still apply:
+        // without those there is no angle to report at all, verified or not.
+        const passes = viewVerified ? view.ok : !isHardFail(view.code);
+
+        updateTrackingBadge(view, passes);
+
+        if (trackerState === 'CALIBRATING') {
+          runCalibration(view, passes);
+        } else if (trackerState === 'TRACKING' || trackerState === 'SUSPENDED') {
+          runSession(lm, view, passes);
         }
       }
+
       // finishExercise() calls releaseCamera() from *inside* this loop, so the
       // reschedule below must check the flag rather than assume it still runs.
       if (!trackingStopped) {
         rafId = requestAnimationFrame(renderLoop);
+      }
+    }
+
+    function runSession(lm, view, passes) {
+      // A safety breach outranks the view gate. The patient has been told to
+      // stop and has to acknowledge it; swapping that red screen for a camera
+      // hint would let a real breach go unacknowledged.
+      if (isPaused) return;
+
+      if (trackerState === 'SUSPENDED') {
+        goodFrames = passes ? goodFrames + 1 : 0;
+        setupStatus.textContent = passes ? 'Hold still\u2026' : view.message;
+        setupStatus.classList.toggle('blocked', !passes);
+        setupProgressFill.style.width =
+          Math.min(100, (goodFrames / POSE_GATE.RESUME_FRAMES) * 100) + '%';
+
+        if (goodFrames >= POSE_GATE.RESUME_FRAMES) {
+          markSuspended(false);
+          trackerState = 'TRACKING';
+          sessionActive = true;
+          goodFrames = 0;
+          badFrames = 0;
+          resetAngleBuffers();
+          setupOverlay.classList.add('hidden');
+        }
+        return;
+      }
+
+      if (!passes) {
+        // Tolerate a few bad frames — a hand passing over the hip should not
+        // stop a set — but stop counting well before a whole rep goes by.
+        badFrames++;
+        if (badFrames >= POSE_GATE.SUSPEND_FRAMES) suspendForView(view);
+        return;
+      }
+      badFrames = 0;
+
+      const hip = lm[idx.hip], knee = lm[idx.knee], ankle = lm[idx.ankle];
+      const foot = lm[idx.foot];
+      const trackingAnkle = trackedJoint === 'ankle';
+
+      // Safety is ALWAYS judged at the knee — angle_limit is a knee flexion
+      // ceiling even when reps are counted at another joint.
+      const kneeAngle = smoothAngle(calcKneeAngle(hip, knee, ankle));
+      maxAngleReached = Math.max(maxAngleReached, kneeAngle);
+      sampleFrame(kneeAngle, view.visibility);
+
+      // The angle that drives rep/hold counting.
+      const countAngle = trackingAnkle
+        ? smoothCountAngle(calcAnkleAngle(knee, ankle, foot))
+        : kneeAngle;
+
+      angleReadout.textContent = Math.round(kneeAngle) + '\u00B0';
+      angleReadout.className = 'angle-value' +
+        (kneeAngle > exercise.angle_limit ? ' danger' :
+          kneeAngle > exercise.angle_limit * 0.85 ? ' warning' : '');
+
+      handleSafetyCheck(kneeAngle);
+
+      if (isHoldMode) {
+        updateHoldTimer(countAngle);
+      } else {
+        updateRepCounter(countAngle);
       }
     }
 
@@ -1321,16 +1883,24 @@
       modelLoading.classList.remove('hidden');
 
       try {
-        modelLoadingText.textContent = 'Requesting camera access…';
+        modelLoadingText.textContent = 'Requesting camera access\u2026';
         await startCamera();
 
-        modelLoadingText.textContent = 'Loading pose detection model…';
+        modelLoadingText.textContent = 'Loading pose detection model\u2026';
         await loadPoseModel();
 
         modelLoading.classList.add('hidden');
-        hud.classList.remove('hidden');
         trackingStatus.classList.remove('hidden');
-        sessionActive = true;
+
+        // The HUD stays hidden until the view is verified. Showing an angle
+        // readout before the measurement can be trusted is how a wrong number
+        // gets believed — and a wrong number here is one the patient is
+        // supposed to keep their knee under.
+        trackerState = 'CALIBRATING';
+        calibrationStartedAt = performance.now();
+        goodFrames = 0;
+        badFrames = 0;
+        setupOverlay.classList.remove('hidden');
 
         renderLoop();
       } catch (err) {
@@ -1338,6 +1908,7 @@
         modelLoadingText.textContent = 'Failed to start. Please reload and try again.';
       }
     });
+
   </script>
 </body>
 

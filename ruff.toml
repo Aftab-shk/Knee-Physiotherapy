@@ -70,10 +70,18 @@ ignore = [
 # first, and that is the point.
 "backend/model/inference.py" = ["E402"]
 "backend/model/train.py" = ["E402"]
+# Alembic writes these from its own template, and env.py must import after the
+# sys.path bootstrap. Reformatting generated files is churn, and reordering
+# env.py's imports would break it.
+"backend/migrations/env.py" = ["E402", "I001"]
+"backend/migrations/versions/*.py" = ["I001"]
 "backend/tests/*.py" = [
     "E402",     # same sys.path bootstrap
     "RUF012",   # test stubs use plain mutable class attributes on purpose
 ]
 
 [lint.isort]
-known-first-party = ["clinical_logic", "exercise_protocols", "kl_constants", "schemas", "main"]
+known-first-party = [
+    "auth", "clinical_logic", "db", "exercise_protocols",
+    "kl_constants", "main", "models", "schemas", "triage",
+]

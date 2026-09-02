@@ -9,6 +9,7 @@ Key rule (do not change):
   These are independent. The ceiling caps each exercise's angle limit.
 """
 
+from datetime import date
 from typing import Optional
 
 from exercise_protocols import get_phase
@@ -35,6 +36,30 @@ SURGERY_LABELS = {
     "arthroscopy": "knee arthroscopy",
     "none":        "conservative OA management (no surgery)",
 }
+
+
+# The longest recovery the protocols describe. Matches the API's own bound, so
+# a date far enough back to exceed it is reported rather than silently clamped.
+MAX_WEEKS_POST_OP = 520
+
+
+def weeks_since_surgery(surgery_date: date, today: Optional[date] = None) -> int:
+    """
+    Whole weeks between the operation and today.
+
+    Floored, not rounded. The protocols are written as spans — "weeks 0–2",
+    "weeks 3–6" — and a patient is in week N until day 7(N+1). Rounding would
+    advance someone into the next phase three days early, which for a knee two
+    weeks out of a replacement means loading it before it is ready.
+
+    Day of surgery is week 0, matching the form's own instruction to enter 0 for
+    the first week post-op.
+    """
+    today = today or date.today()
+    days = (today - surgery_date).days
+    if days < 0:
+        raise ValueError("surgery_date is in the future")
+    return min(days // 7, MAX_WEEKS_POST_OP)
 
 
 def _cap_exercises(raw_exercises: list, max_angle: int) -> tuple[list, list]:

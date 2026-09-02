@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exercise Animations — Knee-Physiotherapy</title>
+  <link rel="icon" href="logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --navy: #132733;
+      --navy-mid: #1f3949;
+      --blue: #629bb5;
+      --teal: #447f98;
+      --red: #dc2626;
+      --white: #ffffff;
+      --off-white: #d6ebf3;
+      --border: #dadee1;
+      --slate: #5a7380;
+      --text: #1b2f3a;
+      --mono: 'JetBrains Mono', monospace;
+      --display: 'Space Grotesk', sans-serif;
+      --body: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #f4f7f9;
+      color: var(--text);
+      font-family: var(--body);
+    }
+
+    header {
+      background: var(--navy);
+      color: var(--white);
+      padding: 28px 32px;
+    }
+
+    h1 {
+      font-family: var(--display);
+      font-size: 22px;
+      margin: 0 0 6px;
+      letter-spacing: -.01em;
+    }
+
+    header p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--off-white);
+      max-width: 70ch;
+      line-height: 1.6;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 18px;
+      padding: 16px 32px;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+
+    .controls label {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--slate);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type=range] {
+      width: 190px;
+      accent-color: var(--teal);
+    }
+
+    .cap-val {
+      font-weight: 600;
+      color: var(--navy);
+      min-width: 62px;
+    }
+
+    button {
+      font-family: var(--body);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 7px 14px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--white);
+      color: var(--navy);
+      cursor: pointer;
+    }
+
+    button.on {
+      background: var(--teal);
+      color: var(--white);
+      border-color: var(--teal);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 18px;
+      padding: 24px 32px 60px;
+    }
+
+    .card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .card h2 {
+      font-family: var(--display);
+      font-size: 14px;
+      margin: 0 0 2px;
+      color: var(--navy);
+    }
+
+    .meta {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--slate);
+      margin-bottom: 10px;
+      letter-spacing: .04em;
+    }
+
+    .missing {
+      color: var(--red);
+      font-size: 12px;
+      font-family: var(--mono);
+    }
+
+    @media (max-width:640px) {
+
+      header,
+      .controls,
+      .grid {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Exercise tutorial animations</h1>
+    <p>Every exercise in <code>backend/exercise_protocols.py</code>, drawn from one articulated figure. Drag the ceiling
+      slider to see what a patient whose X-ray capped their range actually gets shown — the figure bends only as far as
+      their limit allows, and the knee marker turns amber then red exactly as the webcam tracker does.
+      Squats are drawn face-on, since their cue is knee tracking rather than flexion angle.</p>
+  </header>
+
+  <div class="controls">
+    <label>Knee ceiling
+      <input type="range" id="cap" min="5" max="130" value="130">
+      <span class="cap-val" id="cap-val">protocol</span>
+    </label>
+    <button id="toggle" class="on">Pause all</button>
+    <button id="reset">Reset ceiling</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <script src="exercise-animations.js"></script>
+  <script>
+    // Protocol angle limits, mirrored from backend/exercise_protocols.py so this
+    // page shows each exercise at its own real ceiling rather than a shared one.
+    const LIMITS = {
+      'Ankle Pumps': 10,
+      'Quad Sets (Isometric)': 5,
+      'Straight Leg Raise': 5,
+      'Heel Slides': 90,
+      'Patellar Mobilisation': 5,
+      'Mini Squat': 60,
+      'Stationary Bike (Low Resistance)': 100,
+      'Step Up (4-6 inch step)': 60,
+      'Prone Hamstring Curl': 90,
+      'Full Squat (Progressed)': 120,
+      'Stationary Bike (Moderate Resistance)': 110,
+      'Forward Lunge': 90,
+      'Single-Leg Balance': 20,
+      'Leg Press': 120,
+      'Walk-to-Run Programme': 120,
+      'Seated Knee Bend': 90,
+      'Reciprocal Stair Descent': 100,
+      'Standing Knee Bend': 90,
+      'Walking Programme': 120,
+      'Seated Knee Extension (Gravity Only)': 90,
+      'Pool Walking (if available)': 60
+    };
+
+    const grid = document.getElementById('grid');
+    const mounted = [];
+
+    PhysioAnimations.names().forEach(name => {
+      const limit = LIMITS[name] ?? null;
+      const card = document.createElement('div');
+      card.className = 'card';
+      const view = PhysioAnimations.get(name)?.kfs[0].view === 'front' ? 'front view' : 'side view';
+      card.innerHTML = `<h2>${name}</h2><div class="meta">${view} · ceiling ${limit ?? '—'}°</div>`;
+      grid.appendChild(card);
+
+      const anim = PhysioAnimations.mount(card, { name, angleLimit: limit });
+      if (anim) mounted.push({ anim, limit });
+      else card.insertAdjacentHTML('beforeend', '<div class="missing">no animation registered</div>');
+    });
+
+    const cap = document.getElementById('cap');
+    const capVal = document.getElementById('cap-val');
+
+    cap.addEventListener('input', () => {
+      const v = +cap.value;
+      const atMax = v >= +cap.max;
+      capVal.textContent = atMax ? 'protocol' : v + '°';
+      mounted.forEach(({ anim, limit }) => anim.setLimit(atMax ? limit : Math.min(limit ?? v, v)));
+    });
+
+    document.getElementById('reset').addEventListener('click', () => {
+      cap.value = cap.max;
+      cap.dispatchEvent(new Event('input'));
+    });
+
+    let playing = true;
+    document.getElementById('toggle').addEventListener('click', e => {
+      playing = !playing;
+      mounted.forEach(({ anim }) => playing ? anim.play() : anim.pause());
+      e.target.textContent = playing ? 'Pause all' : 'Play all';
+      e.target.classList.toggle('on', playing);
+    });
+  </script>
+</body>
+
+</html>

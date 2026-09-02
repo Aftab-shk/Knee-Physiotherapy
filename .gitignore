@@ -32,6 +32,14 @@ combined/
 archive/
 *.zip
 
+# ── Local database ───────────────────────────────────────────────────────
+# SQLite lives beside backend/ by default (see backend/db.py). It holds real
+# patient rows and password hashes — never commit it. -wal and -shm are the
+# write-ahead-log sidecars SQLite creates in WAL mode.
+*.db
+*.db-wal
+*.db-shm
+
 # ── Environment / secrets ────────────────────────────────────────────────
 .env
 .env.local

@@ -759,3 +759,22 @@ def get_phase(
 
     # weeks_post_op exceeds all defined phases — return last phase
     return protocol["phases"][-1]
+
+
+def all_exercises() -> list[dict]:
+    """
+    Every exercise the protocols know about, de-duplicated by name.
+
+    Used by the clinician review screen: a clinician adding an exercise the model
+    did not prescribe has to pick from the same catalogue everything else comes
+    from, so the tracker knows how to count it and what joint to watch.
+    """
+    seen: dict[str, dict] = {}
+    for protocol in PROTOCOLS.values():
+        for phase in protocol.get("phases", []):
+            for ex in phase["exercises"]:
+                seen.setdefault(ex["name"], ex)
+    for level in OA_LEVELS:
+        for ex in level["exercises"]:
+            seen.setdefault(ex["name"], ex)
+    return sorted(seen.values(), key=lambda e: e["name"])

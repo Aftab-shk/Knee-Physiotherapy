@@ -40,6 +40,22 @@ jobs:
           pip uninstall -y torch torchvision
           python -m pytest backend/tests -q -p no:cacheprovider
 
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # No build step and no dependencies — assets/pose-gate.js is loaded
+      # directly by tracker.html and imported unchanged by the tests, so what
+      # runs here is exactly what runs in the browser.
+      - name: Test pose gate
+        run: node --test
+        working-directory: frontend
+
   no-large-files:
     runs-on: ubuntu-latest
     steps:

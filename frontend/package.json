@@ -1,0 +1,9 @@
+{
+  "name": "knee-physiotherapy-frontend",
+  "private": true,
+  "type": "module",
+  "description": "No build step. This file exists so Node treats assets/*.js as ES modules, which is what lets the pose-gate tests import the same file the browser loads.",
+  "scripts": {
+    "test": "node --test"
+  }
+}

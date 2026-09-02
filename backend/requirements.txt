@@ -11,5 +11,19 @@ torchvision==0.18.0
 pydantic==2.7.1
 python-dotenv==1.0.1
 
+# Accounts + persistence. SQLAlchemy talks to SQLite out of the box; point
+# DATABASE_URL at Postgres for a real deployment. Argon2id is the password
+# hasher (OWASP's first choice, and no silent 72-byte truncation like bcrypt).
+# >=2.0.43: earlier releases crash resolving `Mapped[str | None]` on
+# Python 3.13+, which is what a current dev machine will have.
+SQLAlchemy==2.0.52
+PyJWT==2.10.1
+argon2-cffi==23.1.0
+email-validator==2.2.0
+
+# Schema migrations. init_db() runs `upgrade head` at startup, so development
+# and deployment take the same path and cannot drift. See backend/migrations/.
+alembic==1.14.0
+
 # dev only — `python -m pytest backend/tests -q`
 pytest==8.2.0

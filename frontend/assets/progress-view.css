@@ -1,0 +1,432 @@
+/*
+ * progress-view.css — the charts, tiles and tables of the progress view.
+ * ======================================================================
+ *
+ * Shared by progress.html (the patient's own view) and share.html (what a
+ * clinician sees through a share link). They render identical charts over an
+ * identical payload; only where the data comes from differs.
+ *
+ * Load after assets/theme.css, which supplies the tokens used below.
+ */
+    /*
+     * Chart colours are not the brand colours.
+     *
+     * --teal (#447f98) is the right accent for buttons and chips, but as a data
+     * mark it reads gray: its chroma sits below the floor where a fill still
+     * looks like a colour rather than a shade of the page. The data hue below is
+     * the same blue family with enough chroma to carry meaning, checked against
+     * the breach red for colour-vision separation (ΔE 18.7 protan, 31.9 normal)
+     * and for contrast against the white card it sits on.
+     *
+     * The adherence ramp is sequential — one hue, light to dark, three steps
+     * because a patient does one, two, or three-plus sessions in a day. A fourth
+     * step would put two near-identical blues side by side for a distinction
+     * nobody makes. The lightest step clears 2:1 against white, so a single
+     * quiet day is still visible.
+     */
+    :root {
+      --data:        #1d6fa5;  /* the one data series: range of motion */
+      --data-soft:   rgba(29, 111, 165, .12);
+      --breach:      #dc2626;  /* status, reserved — never a series colour */
+      --breach-soft: rgba(220, 38, 38, .10);
+
+      --heat-0: #eef2f5;       /* no session: absence, not a value */
+      --heat-1: #8cb6d4;
+      --heat-2: #3f7fb2;
+      --heat-3: #15537c;
+
+      --grid:  #e6ecef;
+      --axis:  #93a5ae;
+    }
+
+    body {
+      font-family: var(--body);
+      color: var(--text);
+      background: var(--off-white);
+      min-height: 100vh;
+    }
+
+    /* ── Top nav ─────────────────────────────────────────────────────── */
+    .topnav {
+      background: var(--navy);
+      padding: 0 40px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, .05);
+    }
+
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo-img { width: 30px; height: 30px; object-fit: contain; }
+    .nav-logo-text { font-family: var(--display); font-size: 18px; font-weight: 700; color: var(--white); }
+
+    .nav-right { display: flex; align-items: center; gap: 18px; }
+
+    .nav-link {
+      font-size: 13.5px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, .65);
+      text-decoration: none;
+    }
+
+    .nav-link:hover { color: var(--white); }
+
+    .nav-who {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: rgba(255, 255, 255, .45);
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .page { max-width: 980px; margin: 0 auto; padding: 36px 24px 80px; }
+
+    /* ── Header + range filter (one row, above the charts) ───────────── */
+    .head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 26px;
+    }
+
+    .head-title { font-family: var(--display); font-size: 30px; font-weight: 700; letter-spacing: -.02em; }
+    .head-sub { font-size: 14.5px; color: var(--slate); margin-top: 5px; }
+
+    .ranges { display: flex; gap: 4px; padding: 4px; background: #e3eaee; border-radius: 9px; }
+
+    .range-btn {
+      padding: 7px 14px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      font-family: var(--body);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--slate);
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+
+    .range-btn:hover { color: var(--text); }
+    .range-btn[aria-pressed="true"] { background: var(--white); color: var(--navy); box-shadow: 0 1px 2px rgba(19, 39, 51, .1); }
+    .range-btn:focus-visible { outline: 2px solid var(--data); outline-offset: 2px; }
+
+    /* ── Cards ───────────────────────────────────────────────────────── */
+    .card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px 24px;
+      margin-bottom: 18px;
+    }
+
+    .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; margin-bottom: 4px; }
+
+    .card-title { font-family: var(--display); font-size: 16px; font-weight: 600; color: var(--navy); }
+
+    .card-note { font-size: 12.5px; color: var(--slate); }
+
+    .card-sub { font-size: 13px; color: var(--slate); margin-bottom: 18px; }
+
+    /* ── KPI row ─────────────────────────────────────────────────────── */
+    .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+
+    .kpi {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+    }
+
+    .kpi-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--slate);
+      margin-bottom: 8px;
+    }
+
+    /* The hero figures. Tabular so the column of digits does not jitter as the
+       range changes. */
+    .kpi-value {
+      font-family: var(--display);
+      font-size: 34px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--navy);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .kpi-unit { font-size: 17px; font-weight: 600; color: var(--slate); margin-left: 2px; }
+    .kpi-foot { font-size: 12px; color: var(--slate); margin-top: 7px; }
+    .kpi-none { font-size: 20px; font-weight: 600; color: var(--axis); }
+
+    /* ── Charts ──────────────────────────────────────────────────────── */
+    .ex-picker { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+
+    .ex-btn {
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      background: var(--white);
+      font-family: var(--body);
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--slate);
+      cursor: pointer;
+    }
+
+    .ex-btn:hover { border-color: var(--data); color: var(--navy); }
+    .ex-btn[aria-pressed="true"] { background: var(--data); border-color: var(--data); color: var(--white); }
+    .ex-btn:focus-visible { outline: 2px solid var(--data); outline-offset: 2px; }
+
+    .chart-wrap { position: relative; overflow-x: auto; }
+    .chart { display: block; width: 100%; min-width: 460px; height: auto; }
+
+    .grid-line { stroke: var(--grid); stroke-width: 1; }
+    .axis-text { fill: var(--axis); font-family: var(--mono); font-size: 10px; }
+
+    .limit-line { stroke: var(--axis); stroke-width: 1.5; stroke-dasharray: 5 4; fill: none; }
+    .limit-label { fill: var(--axis); font-family: var(--mono); font-size: 10px; font-weight: 600; }
+
+    .rom-area { fill: var(--data-soft); }
+    .rom-line { stroke: var(--data); stroke-width: 2; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+    /* A 2px surface ring so a marker sitting on the line still reads as a point. */
+    .rom-dot { fill: var(--data); stroke: var(--white); stroke-width: 2; }
+    .rom-dot-breach { fill: var(--breach); stroke: var(--white); stroke-width: 2; }
+
+    .crosshair { stroke: var(--axis); stroke-width: 1; stroke-dasharray: 3 3; }
+    .hit { fill: transparent; cursor: crosshair; }
+
+    /* ── Heatmap ─────────────────────────────────────────────────────── */
+    .heat-cell { rx: 2.5; }
+    .heat-cell:hover { stroke: var(--navy); stroke-width: 1.5; }
+    .heat-label { fill: var(--axis); font-family: var(--mono); font-size: 9.5px; }
+
+    .legend { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 14px; font-size: 12px; color: var(--slate); }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+    .legend-scale { display: flex; align-items: center; gap: 4px; }
+
+    /* ── Tooltip ─────────────────────────────────────────────────────── */
+    .tip {
+      position: absolute;
+      pointer-events: none;
+      opacity: 0;
+      transform: translate(-50%, -100%);
+      background: var(--navy);
+      color: var(--white);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 12px;
+      line-height: 1.55;
+      white-space: nowrap;
+      box-shadow: 0 6px 20px rgba(19, 39, 51, .28);
+      transition: opacity .1s;
+      z-index: 20;
+    }
+
+    .tip.on { opacity: 1; }
+    .tip-title { font-family: var(--mono); font-size: 11px; color: rgba(255, 255, 255, .6); margin-bottom: 3px; }
+    .tip-row { display: flex; gap: 8px; justify-content: space-between; }
+    .tip-val { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    /* ── Exercise table ──────────────────────────────────────────────── */
+    .tbl-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 520px; }
+
+    th {
+      text-align: left;
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--slate);
+      padding: 0 10px 10px 0;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td { padding: 12px 10px 12px 0; border-bottom: 1px solid #f0f3f5; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .ex-name { font-weight: 600; color: var(--navy); }
+
+    /* Inline magnitude, same hue as the chart — it is the same measure. */
+    .bar-track { display: block; height: 6px; width: 72px; background: var(--heat-0); border-radius: 3px; overflow: hidden; }
+    .bar-fill { display: block; height: 100%; background: var(--data); border-radius: 3px; }
+
+    .breach-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 8px;
+      border-radius: 100px;
+      background: var(--breach-soft);
+      color: #a11d1d;
+      font-size: 12px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .quiet { color: var(--axis); }
+
+    /* ── Notices ─────────────────────────────────────────────────────── */
+    .notice {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      padding: 13px 16px;
+      border-radius: 11px;
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 18px;
+    }
+
+    .notice-warn { background: #fef6e7; border: 1px solid #f5d99b; color: #6b4b12; }
+    .notice-err { background: #fdeaea; border: 1px solid #f3bcbc; color: #8c1d1d; }
+
+    /* ── Empty + loading ─────────────────────────────────────────────── */
+    .empty { text-align: center; padding: 54px 24px; }
+    .empty-icon { font-size: 40px; margin-bottom: 14px; }
+    .empty-title { font-family: var(--display); font-size: 19px; font-weight: 600; color: var(--navy); margin-bottom: 8px; }
+    .empty-text { font-size: 14px; color: var(--slate); max-width: 420px; margin: 0 auto 22px; line-height: 1.65; }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      background: var(--teal);
+      border: none;
+      border-radius: 9px;
+      font-family: var(--display);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--white);
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .btn:hover { background: var(--teal-light); }
+
+    .skeleton { height: 200px; border-radius: 12px; background: linear-gradient(100deg, #eef2f5 30%, #f6f9fa 50%, #eef2f5 70%); background-size: 200% 100%; animation: shimmer 1.3s linear infinite; }
+
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    .hidden { display: none !important; }
+
+    /* Reachable by a screen reader, invisible on screen. The chart descriptions
+       are referenced by aria-labelledby, so they must stay in the tree. */
+    .sr-only {
+      position: absolute;
+      width: 1px; height: 1px;
+      margin: -1px; padding: 0;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; }
+    }
+
+    @media (max-width: 720px) {
+      .topnav { padding: 0 20px; }
+      .nav-who { display: none; }
+      .page { padding: 24px 16px 60px; }
+      .kpis { grid-template-columns: repeat(2, 1fr); }
+      .head-title { font-size: 24px; }
+    }
+
+/* ── Sharing (progress.html only) ─────────────────────────────────────────── */
+.share-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.share-input {
+  flex: 1 1 200px;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: var(--body);
+  font-size: 13px;
+  color: var(--text);
+  background: var(--white);
+}
+
+.share-input:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 1px;
+}
+
+.share-url { font-family: var(--mono); font-size: 12px; }
+
+.share-new {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(var(--teal-rgb), .35);
+  border-radius: 9px;
+  background: rgba(var(--teal-rgb), .07);
+}
+
+.share-new.hidden { display: none; }
+
+.share-new-label {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--teal);
+}
+
+.share-new-row { display: flex; gap: 8px; }
+
+.share-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.share-row-main { flex: 1; min-width: 0; }
+
+.share-row-label { color: var(--text); }
+
+.share-row-meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--slate);
+  margin-top: 2px;
+}
+
+.share-row.expired .share-row-label,
+.share-row.expired .share-row-meta { opacity: .5; }
+
+.share-revoke {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--body);
+  font-size: 12px;
+  color: var(--red);
+  text-decoration: underline;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.share-empty { padding-top: 10px; font-size: 12.5px; color: var(--slate); }

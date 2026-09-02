@@ -5,42 +5,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Analyse X-ray — Knee-Physiotherapy</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/theme.css">
   <link
     href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap"
     rel="stylesheet">
   <style>
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    :root {
-      --navy: #132733;
-      --navy-rgb: 19, 39, 51;
-      --navy-mid: #1f3949;
-      --navy-mid-rgb: 31, 57, 73;
-      --blue: #629bb5;
-      --blue-rgb: 98, 155, 182;
-      --teal: #447f98;
-      --teal-rgb: 68, 127, 152;
-      --teal-light: #629bb5;
-      --teal-light-rgb: 98, 155, 182;
-      --red: #dc2626;
-      --white: #ffffff;
-      --off-white: #d6ebf3;
-      /* Ice Blue */
-      --border: #dadee1;
-      /* Platinum */
-      --slate: #5a7380;
-      --text: #1b2f3a;
-      --mono: 'JetBrains Mono', monospace;
-      --display: 'Space Grotesk', sans-serif;
-      --body: 'Plus Jakarta Sans', sans-serif;
-    }
 
     html {
       scroll-behavior: smooth;
@@ -66,6 +36,9 @@
       z-index: 100;
       box-shadow: 0 1px 0 rgba(255, 255, 255, .05);
     }
+
+    /* Used by the progress link, which only appears for a signed-in patient. */
+    .hidden { display: none !important; }
 
     .nav-logo {
       display: flex;
@@ -329,6 +302,58 @@
     }
 
     .field {}
+
+    /* ── Derived weeks-post-op ────────────────────────────────────────
+       Shown in place of the number input once a surgery date is on file. */
+    .derived-weeks {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 11px 14px;
+      border: 1px solid rgba(var(--teal-rgb), .35);
+      border-radius: 10px;
+      background: rgba(var(--teal-rgb), .08);
+    }
+
+    .derived-weeks-value {
+      font-family: var(--mono);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--teal);
+    }
+
+    .derived-weeks-from {
+      font-size: 12px;
+      color: var(--slate);
+    }
+
+    .link-button {
+      background: none;
+      border: none;
+      padding: 0;
+      font-family: var(--body);
+      font-size: 12px;
+      color: var(--teal);
+      text-decoration: underline;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .link-button:hover { color: var(--navy); }
+
+    .remember-date {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--slate);
+    }
+
+    .field.hidden,
+    .remember-date.hidden,
+    .derived-weeks.hidden { display: none; }
 
     .field-label {
       display: block;
@@ -1035,6 +1060,109 @@
       transform: translateY(-1px);
     }
 
+    /* Tutorial + Start sit on one row; Start keeps the visual weight. */
+    .exercise-actions {
+      grid-column: 1 / -1;
+      margin-top: 16px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .exercise-actions .btn-start-exercise {
+      margin-top: 0;
+      flex: 1;
+    }
+
+    .btn-tutorial {
+      padding: 12px 18px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      font-family: var(--display);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--navy);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: border-color .2s, color .2s, transform .15s;
+    }
+
+    .btn-tutorial:hover {
+      border-color: var(--teal);
+      color: var(--teal);
+      transform: translateY(-1px);
+    }
+
+    /* Tutorial modal */
+    .tut-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(var(--navy-rgb), .55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+
+    .tut-overlay.open {
+      display: flex;
+    }
+
+    .tut-modal {
+      background: var(--white);
+      border-radius: 14px;
+      width: min(520px, 100%);
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 22px;
+    }
+
+    .tut-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .tut-title {
+      font-family: var(--display);
+      font-size: 18px;
+      color: var(--navy);
+      margin: 0;
+    }
+
+    .tut-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      line-height: 1;
+      color: var(--slate);
+      cursor: pointer;
+      padding: 0 4px;
+    }
+
+    .tut-close:hover {
+      color: var(--navy);
+    }
+
+    .tut-desc {
+      font-size: 13px;
+      color: var(--slate);
+      margin: 6px 0 16px;
+      line-height: 1.5;
+    }
+
+    .tut-steps {
+      margin-top: 18px;
+    }
+
+    @media (max-width:640px) {
+      .exercise-actions {
+        flex-direction: column;
+      }
+    }
+
     /* Disclaimer */
     .disclaimer-box {
       background: var(--white);
@@ -1127,6 +1255,7 @@
       </div>
     </div>
     <div class="nav-right">
+      <a href="progress.html" class="nav-home hidden" id="progress-link">Your progress</a>
       <a href="index.html" class="nav-home">← Home</a>
     </div>
   </nav>
@@ -1213,12 +1342,28 @@
             </select>
           </div>
 
-          <!-- Weeks post-op -->
+          <!-- Weeks post-op. Two ways in: the date (preferred, because
+               nobody miscounts a calendar) or the number, for guests and for
+               anyone who would rather just type it. -->
           <div class="field" id="weeks-field">
             <label class="field-label" for="weeks-input">Weeks since surgery <span
                 class="field-required">*</span></label>
+
+            <div class="derived-weeks hidden" id="derived-weeks">
+              <div>
+                <div class="derived-weeks-value" id="derived-weeks-value">—</div>
+                <div class="derived-weeks-from" id="derived-weeks-from"></div>
+              </div>
+              <button type="button" class="link-button" id="change-surgery-date">Change date</button>
+            </div>
+
             <input class="field-input-num" type="number" id="weeks-input" min="0" max="520" placeholder="e.g. 4"
               disabled>
+
+            <div class="remember-date hidden" id="remember-date-row">
+              <label class="field-label" for="surgery-date-input" style="margin:0">Date of surgery</label>
+              <input class="field-input-num" type="date" id="surgery-date-input" style="flex:1">
+            </div>
           </div>
 
         </div>
@@ -1315,9 +1460,28 @@
 
   </div><!-- /page -->
 
-  <script>
-    const API_BASE = 'http://127.0.0.1:8000';
+  <!-- Tutorial modal. One instance, reused: the animation is mounted on open
+       and destroyed on close so instances do not accumulate. -->
+  <div class="tut-overlay" id="tut-overlay" role="dialog" aria-modal="true" aria-labelledby="tut-title">
+    <div class="tut-modal" id="tut-modal">
+      <div class="tut-head">
+        <h3 class="tut-title" id="tut-title">Exercise</h3>
+        <button class="tut-close" id="tut-close" aria-label="Close tutorial">&times;</button>
+      </div>
+      <p class="tut-desc" id="tut-desc"></p>
+      <div id="tut-anim"></div>
+      <div class="tut-steps">
+        <div class="ex-section-title">Instructions</div>
+        <ol class="instructions-list" id="tut-steps"></ol>
+      </div>
+      <div id="tut-caution"></div>
+    </div>
+  </div>
 
+  <script src="assets/config.js"></script>
+  <script src="assets/api.js"></script>
+  <script src="exercise-animations.js"></script>
+  <script>
     let selectedFile = null;
 
     const dropZone = document.getElementById('drop-zone');
@@ -1378,6 +1542,109 @@
     });
 
     // ── Surgery type ───────────────────────────────────────────────────────
+    // ── Weeks post-op, from a date on file ───────────────────────────────
+    // That number selects the entire rehab protocol, and it was being retyped
+    // from memory on every visit. A plausible wrong week looks exactly like a
+    // plausible right one, so nothing catches the mistake — the patient is
+    // simply prescribed a phase they are not in.
+    const derivedBox = document.getElementById('derived-weeks');
+    const derivedValue = document.getElementById('derived-weeks-value');
+    const derivedFrom = document.getElementById('derived-weeks-from');
+    const changeDateBtn = document.getElementById('change-surgery-date');
+    const rememberRow = document.getElementById('remember-date-row');
+    const surgeryDateEl = document.getElementById('surgery-date-input');
+
+    let storedSurgeryDate = null;   // ISO date on the patient's record, if any
+
+    function formatDate(iso) {
+      const d = new Date(iso + 'T00:00:00');
+      return Number.isNaN(d.valueOf())
+        ? iso
+        : d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+
+    function weeksSince(iso) {
+      const surgery = new Date(iso + 'T00:00:00');
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      // Floored, matching weeks_since_surgery() on the server: week N runs until
+      // day 7(N+1), and rounding up would advance someone a phase early.
+      return Math.floor((today - surgery) / (7 * 24 * 60 * 60 * 1000));
+    }
+
+    /** Show the derived week instead of the number field, or fall back to it. */
+    function applySurgeryDate(iso) {
+      storedSurgeryDate = iso || null;
+      const surgical = surgeryEl.value !== 'none' && surgeryEl.value !== '';
+
+      if (!storedSurgeryDate || !surgical) {
+        derivedBox.classList.add('hidden');
+        weeksEl.style.display = '';
+        validateForm();
+        return;
+      }
+
+      const weeks = weeksSince(storedSurgeryDate);
+      derivedValue.textContent = `Week ${weeks} post-op`;
+      derivedFrom.textContent = `From your surgery on ${formatDate(storedSurgeryDate)}`;
+      derivedBox.classList.remove('hidden');
+      // Hidden rather than removed: the value is still what gets submitted, and
+      // the server would derive the same number anyway.
+      weeksEl.style.display = 'none';
+      weeksEl.value = String(weeks);
+      validateForm();
+    }
+
+    changeDateBtn.addEventListener('click', () => {
+      derivedBox.classList.add('hidden');
+      weeksEl.style.display = '';
+      weeksEl.value = '';
+      rememberRow.classList.remove('hidden');
+      surgeryDateEl.value = storedSurgeryDate || '';
+      surgeryDateEl.focus();
+      validateForm();
+    });
+
+    surgeryDateEl.addEventListener('change', async () => {
+      const iso = surgeryDateEl.value;
+      if (!iso) return;
+      if (new Date(iso + 'T00:00:00') > new Date()) {
+        showError('That date is in the future', 'Please check the date of your surgery.');
+        return;
+      }
+      hideError();
+      weeksEl.value = String(weeksSince(iso));
+      validateForm();
+
+      // Saved so it never has to be entered again. A failure here is not worth
+      // interrupting the analysis for — the week has already been filled in.
+      if (window.PhysioAPI && PhysioAPI.isSignedIn()) {
+        try {
+          await PhysioAPI.setSurgery({
+            surgeryDate: iso,
+            surgeryType: surgeryEl.value === 'none' ? null : surgeryEl.value,
+          });
+          rememberRow.classList.add('hidden');
+          applySurgeryDate(iso);
+        } catch (err) {
+          console.warn('Could not save the surgery date:', err.message);
+        }
+      }
+    });
+
+    // On load: pick up a date already on file.
+    if (window.PhysioAPI) {
+      PhysioAPI.me().then((patient) => {
+        if (!patient) return;
+        if (patient.surgery_type && !surgeryEl.value) {
+          surgeryEl.value = patient.surgery_type;
+          surgeryEl.dispatchEvent(new Event('change'));
+        }
+        if (patient.surgery_date) applySurgeryDate(patient.surgery_date);
+        else rememberRow.classList.remove('hidden');
+      }).catch(() => { /* offline or signed out; the number field still works */ });
+    }
+
     surgeryEl.addEventListener('change', () => {
       const isNone = surgeryEl.value === 'none';
       const isEmpty = surgeryEl.value === '';
@@ -1388,6 +1655,9 @@
       } else if (!isEmpty) {
         weeksEl.placeholder = 'e.g. 4';
       }
+      // "No surgery" means there is nothing to count weeks from, so the derived
+      // display has to go with it.
+      applySurgeryDate(storedSurgeryDate);
       validateForm();
     });
 
@@ -1415,14 +1685,6 @@
       const surgeryType = surgeryEl.value;
       const weeksVal = weeksEl.value;
 
-      const formData = new FormData();
-      formData.append('image', selectedFile);
-      formData.append('knee_side', kneeSide);
-      formData.append('surgery_type', surgeryType);
-      if (surgeryType !== 'none' && weeksVal !== '') {
-        formData.append('weeks_post_op', parseInt(weeksVal));
-      }
-
       // Show loading
       document.getElementById('upload-panel').style.display = 'none';
       showLoading();
@@ -1431,29 +1693,24 @@
         // Animate loading steps
         await animateLoadingSteps();
 
-        const response = await fetch(`${API_BASE}/analyse-xray`, {
-          method: 'POST',
-          body: formData,
+        const data = await PhysioAPI.analyseXray({
+          file: selectedFile,
+          kneeSide: kneeSide,
+          surgeryType: surgeryType,
+          weeksPostOp: weeksVal,
         });
 
-        if (!response.ok) {
-          const err = await response.json();
-          throw new Error(err.detail || `Server error ${response.status}`);
-        }
-
-        const data = await response.json();
         hideLoading();
         renderResults(data);
 
       } catch (err) {
         hideLoading();
         document.getElementById('upload-panel').style.display = 'block';
-        showError(
-          'Analysis failed',
-          err.message.includes('Failed to fetch')
-            ? 'Could not connect to the backend. Make sure the server is running at localhost:8000.'
-            : err.message
-        );
+        // describeFailure() tells an unreachable backend apart from a CORS
+        // rejection; both surface as "Failed to fetch" in the browser, and
+        // blaming the server outright sends people off to restart one that was
+        // never down.
+        showError('Analysis failed', await PhysioAPI.describeFailure(err));
       }
     }
 
@@ -1469,6 +1726,8 @@
 
     // ── Render results ─────────────────────────────────────────────────────
     function renderResults(data) {
+      currentPrescriptionId = data.prescription_id || null;
+
       // Update nav steps
       document.getElementById('step1-indicator').className = 'nav-step done';
       document.getElementById('step2-indicator').className = 'nav-step active';
@@ -1571,7 +1830,10 @@
             </div>
             ${cautionHTML}
           </div>
-          <button class="btn-start-exercise" data-idx="${idx}">▶ Start exercise with webcam tracker</button>
+          <div class="exercise-actions">
+            ${hasTutorial(ex.name) ? '<button class="btn-tutorial" type="button">▶ Tutorial</button>' : ''}
+            <button class="btn-start-exercise" data-idx="${idx}">▶ Start exercise with webcam tracker</button>
+          </div>
         </div>
       `;
 
@@ -1581,6 +1843,12 @@
         card.querySelector('.btn-start-exercise').addEventListener('click', (e) => {
           e.stopPropagation();
           launchTracker(ex, data.knee_side, data.rehab_phase_label);
+        });
+
+        const tutBtn = card.querySelector('.btn-tutorial');
+        if (tutBtn) tutBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openTutorial(ex);
         });
       });
 
@@ -1671,16 +1939,89 @@
       section.classList.add('visible');
     }
 
+    // The progress page has nothing on it for a guest, so the link only appears
+    // once there is an account behind it.
+    if (window.PhysioAPI && PhysioAPI.isSignedIn()) {
+      PhysioAPI.me()
+        .then((patient) => {
+          if (patient) document.getElementById('progress-link').classList.remove('hidden');
+        })
+        .catch(() => { /* backend unreachable; the upload flow still works */ });
+    }
+
+    // Set by renderResults when the analysis was saved to an account. The
+    // tracker files its sessions against it, so a set can be traced back to the
+    // X-ray whose ceiling it was performed under.
+    let currentPrescriptionId = null;
+
     function launchTracker(exercise, kneeSide, phaseLabel) {
       sessionStorage.setItem('physioai_current_exercise', JSON.stringify(exercise));
       sessionStorage.setItem('physioai_knee_side', kneeSide);
       sessionStorage.setItem('physioai_phase_label', phaseLabel);
+      // Removed rather than left stale: a guest analysis after a signed-in one
+      // would otherwise inherit the previous prescription's id.
+      if (currentPrescriptionId) {
+        sessionStorage.setItem('physioai_prescription_id', currentPrescriptionId);
+      } else {
+        sessionStorage.removeItem('physioai_prescription_id');
+      }
       window.location.href = 'tracker.html';
     }
+
+    const hasTutorial = (name) =>
+      typeof PhysioAnimations !== 'undefined' && PhysioAnimations.has(name);
 
     function toggleExercise(header) {
       header.closest('.exercise-card').classList.toggle('open');
     }
+
+    // ── Tutorial modal ───────────────────────────────────────────────────────
+    // The animation honours this patient's ceiling rather than the textbook
+    // range: pass angle_limit and angle_capped straight through, so someone
+    // capped by their X-ray is shown the range they are actually cleared for.
+    let tutAnim = null;
+    const tutOverlay = document.getElementById('tut-overlay');
+    let tutOpener = null;
+
+    function openTutorial(ex) {
+      closeTutorial();
+      tutOpener = document.activeElement;
+
+      document.getElementById('tut-title').textContent = ex.name;
+      document.getElementById('tut-desc').textContent = ex.description;
+      document.getElementById('tut-steps').innerHTML =
+        ex.instructions.map(step => `<li>${step}</li>`).join('');
+      document.getElementById('tut-caution').innerHTML =
+        ex.cautions ? `<div class="caution-box">⚠️ ${ex.cautions}</div>` : '';
+
+      tutAnim = PhysioAnimations.mount(document.getElementById('tut-anim'), {
+        name: ex.name,
+        angleLimit: ex.angle_limit,
+        capped: !!ex.angle_capped
+      });
+
+      tutOverlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      document.getElementById('tut-close').focus();
+    }
+
+    function closeTutorial() {
+      // destroy() removes the animation from the shared rAF loop as well as
+      // from the DOM; without it every open would leave a frame loop running.
+      if (tutAnim) { tutAnim.destroy(); tutAnim = null; }
+      document.getElementById('tut-anim').innerHTML = '';
+      tutOverlay.classList.remove('open');
+      document.body.style.overflow = '';
+      if (tutOpener) { tutOpener.focus(); tutOpener = null; }
+    }
+
+    document.getElementById('tut-close').addEventListener('click', closeTutorial);
+    tutOverlay.addEventListener('click', (e) => {
+      if (e.target === tutOverlay) closeTutorial();   // backdrop only, not the card
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && tutOverlay.classList.contains('open')) closeTutorial();
+    });
 
 
     // ── Error / loading helpers ────────────────────────────────────────────
