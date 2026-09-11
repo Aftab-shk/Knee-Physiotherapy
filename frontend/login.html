@@ -5,11 +5,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Log in — Knee-Physiotherapy</title>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="assets/theme.css">
-  <link
-    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap"
-    rel="stylesheet">
   <style>
     /* Dark-surface overrides. login.html sits on the navy ground, so the
        light --border from assets/theme.css would be invisible on it. */
@@ -677,8 +675,9 @@
           await PhysioAPI.login({ email: emailVal, password: passVal });
         }
 
-        showToast(mode === 'signup' ? '✓ Account created — redirecting…' : '✓ Logged in — redirecting…');
-        setTimeout(() => { window.location.href = 'upload.html'; }, 800);
+        // Navigate immediately. A "redirecting…" toast that delays the redirect
+        // creates the wait it announces — the destination page is the feedback.
+        window.location.href = 'upload.html';
 
       } catch (err) {
         loginBtn.classList.remove('loading');
@@ -687,8 +686,11 @@
 
         // 409 is the one failure with an obvious next step, so it gets one.
         if (err instanceof PhysioAPI.ApiError && err.status === 409) {
-          showFormError('An account already exists for that email. Try logging in instead.');
+          // setMode() ends in clearErrors(), so it has to run BEFORE the message
+          // is set — the other order wipes the only explanation the user gets and
+          // leaves them typing a new password at an account that already has one.
           setMode('login');
+          showFormError('An account already exists for that email. Log in with the password you set when you created it.');
           emailEl.value = emailVal;
           passEl.focus();
           return;
@@ -701,8 +703,7 @@
       // A stale token would otherwise quietly attach itself to a guest
       // analysis and file it under someone else's account.
       PhysioAPI.logout();
-      showToast('Continuing as guest…');
-      setTimeout(() => { window.location.href = 'upload.html'; }, 700);
+      window.location.href = 'upload.html';
     });
 
     // Already signed in? Say so rather than presenting an empty login form.
