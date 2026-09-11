@@ -1,0 +1,27 @@
+# Training and test-only dependencies.
+# ============================================================================
+# Deliberately NOT in requirements.txt, which the Dockerfile installs wholesale
+# into the serving image. Nothing on the serving path imports model/train.py —
+# these two packages are ~100 MB that would ride along for code that only runs
+# while training. Same reasoning as reportlab-over-WeasyPrint in that file.
+#
+# The test suite still needs them: backend/tests/test_calibration.py imports
+# fit_temperature, serve_probs, expected_calibration_error and
+# fit_energy_reference from model/train.py, and importing that module pulls in
+# its plotting and metrics stack. Without this file those 8 tests error out at
+# collection with ModuleNotFoundError — which is what they did in CI.
+#
+#   pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+
+# Both are pinned to the last releases built against NumPy 1.x. Current
+# matplotlib/scikit-learn resolve numpy>=2, which silently upgrades the
+# numpy==1.26.4 pin in requirements.txt and breaks torch 2.3.0 — it keeps
+# importing, then throws "Numpy is not available" on any .numpy() call.
+# Do not unpin these without moving torch to a NumPy 2 build first.
+
+# Confusion matrix and training-curve figures (train.py only).
+matplotlib==3.8.4
+
+# classification_report / confusion_matrix / f1_score, used by train.py's
+# evaluation pass and lazily by model/inference.py's offline report helper.
+scikit-learn==1.4.2

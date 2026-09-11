@@ -248,9 +248,10 @@ def test_expired_rate_limit_buckets_are_reclaimed(monkeypatch):
 
     Deliberately not timing-dependent — an earlier version of this test raced
     the loop against a one-second window and passed or failed on how warm the
-    machine was. Here the window is changed explicitly to force expiry.
+    machine was. Here the clock is moved forward explicitly to force expiry.
     """
     import asyncio
+    import time
 
     from starlette.datastructures import Headers
 
@@ -273,9 +274,18 @@ def test_expired_rate_limit_buckets_are_reclaimed(monkeypatch):
             await main.enforce_rate_limit(request_from(f"10.0.{i // 256}.{i % 256}"))
         populated = len(main._rate_buckets)
 
-        # Now treat every existing entry as expired and make one more call,
-        # which is above the soft cap and therefore triggers the sweep.
-        monkeypatch.setattr(main, "RATE_LIMIT_WINDOW_S", 0)
+        # Age every existing entry out by jumping the clock a full window
+        # forward, then make one more call — which is above the soft cap and
+        # therefore triggers the sweep.
+        #
+        # Not by setting the window to 0: that puts the cutoff exactly on `now`,
+        # and the sweep's `stale[0] < cutoff` is strict, so every bucket stamped
+        # in the same clock tick as the final call survives. time.monotonic()
+        # ticks at ~15.6ms on Windows, which covered the last few hundred of the
+        # loop above and left them behind.
+        monkeypatch.setattr(
+            main.time, "monotonic", lambda base=time.monotonic(): base + 2 * 3600
+        )
         await main.enforce_rate_limit(request_from("10.9.9.9"))
         return populated, len(main._rate_buckets)
 

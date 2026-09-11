@@ -25,6 +25,10 @@ jobs:
           pip install torch==2.3.0 torchvision==0.18.0 \
             --index-url https://download.pytorch.org/whl/cpu
           pip install -r backend/requirements.txt
+          # Training/test-only deps. test_calibration.py imports the calibration
+          # maths from model/train.py, which pulls in matplotlib and sklearn;
+          # without these those 8 tests error out at collection.
+          pip install -r backend/requirements-dev.txt
           pip install ruff
 
       - name: Lint
