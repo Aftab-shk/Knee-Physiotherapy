@@ -8,6 +8,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="assets/theme.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#132733">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <style>
 
     html,
@@ -285,19 +290,168 @@
       border: 3px solid rgba(255, 255, 255, .15);
       border-top-color: var(--teal);
       border-radius: 50%;
-      animation: spin .8s linear infinite;
+      animation: spin .8s linear infinite;  /* keyframes: assets/theme.css */
       margin-bottom: 18px;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
     }
 
     .model-loading-text {
       color: rgba(255, 255, 255, .6);
       font-size: 14px;
+    }
+
+    /* ── Phone ────────────────────────────────────────────────────────
+       A propped phone is the realistic way to do this: nobody performs floor
+       exercises in front of a laptop. The camera switcher matters because the
+       two cameras solve different problems — the front one lets the patient see
+       the setup guidance while they position themselves, the rear one is
+       sharper once the phone is propped and they have stepped away. */
+    .cam-switch {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      z-index: 33;
+      display: none;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 15px;
+      border: 1px solid rgba(255, 255, 255, .2);
+      border-radius: 100px;
+      background: rgba(0, 0, 0, .55);
+      font-family: var(--body);
+      font-size: 12.5px;
+      color: rgba(255, 255, 255, .85);
+      cursor: pointer;
+    }
+
+    .cam-switch.visible { display: flex; }
+
+    .cam-switch:focus-visible {
+      outline: 2px solid var(--teal-light);
+      outline-offset: 2px;
+    }
+
+    /* Below this the HUD cards and the rest overlay need to shrink or they
+       cover the person the camera is looking at. */
+    @media (max-width: 520px), (max-height: 480px) {
+      .form-tip { bottom: 108px; font-size: 12.5px; padding: 9px 13px; }
+      .rest-count { font-size: 56px; }
+      .cam-switch { bottom: 14px; left: 14px; padding: 7px 12px; font-size: 11.5px; }
+      .voice-toggle { padding: 5px 10px; font-size: 11px; }
+      .setup-hint { font-size: 13px; }
+      .setup-status { font-size: 12px; padding: 10px 14px; }
+    }
+
+    /* ── Form coaching ────────────────────────────────────────────────
+       Amber, not red: this is a correction, not the safety alarm. Confusing the
+       two would either make people ignore the alarm or panic at a posture note.
+       Sits low, out of the way of the angle readout. */
+    .form-tip {
+      position: absolute;
+      left: 50%;
+      bottom: 132px;
+      transform: translateX(-50%);
+      z-index: 32;
+      display: none;
+      align-items: flex-start;
+      gap: 10px;
+      max-width: min(90vw, 430px);
+      padding: 11px 17px;
+      border-radius: 11px;
+      background: rgba(251, 191, 36, .95);
+      color: #3a2c05;
+      font-size: 13.5px;
+      font-weight: 600;
+      line-height: 1.45;
+      text-align: left;
+      box-shadow: 0 6px 22px rgba(0, 0, 0, .35);
+      pointer-events: none;
+    }
+
+    .form-tip.visible { display: flex; }
+
+    /* ── Rest between sets ────────────────────────────────────────────
+       There was no gap before: the counter reset and the next set began
+       whenever the patient happened to move. A rest is part of the
+       prescription, and it is also the only natural moment to say anything. */
+    .rest-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(var(--navy-rgb),.93);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 43;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .rest-overlay.visible { display: flex; }
+
+    .rest-label {
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--teal-light);
+      margin-bottom: 14px;
+    }
+
+    .rest-count {
+      font-family: var(--display);
+      font-size: 76px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--white);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .rest-next {
+      margin-top: 14px;
+      font-size: 14px;
+      color: rgba(255, 255, 255, .6);
+    }
+
+    .rest-actions { display: flex; gap: 10px; margin-top: 26px; }
+
+    .btn-rest {
+      padding: 11px 24px;
+      border: 1.5px solid rgba(255, 255, 255, .25);
+      border-radius: 10px;
+      background: transparent;
+      font-family: var(--display);
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, .85);
+      cursor: pointer;
+    }
+
+    .btn-rest.primary {
+      background: var(--teal);
+      border-color: var(--teal);
+      color: var(--white);
+    }
+
+    /* ── Voice toggle ─────────────────────────────────────────────────── */
+    .voice-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 13px;
+      border: 1px solid rgba(255, 255, 255, .2);
+      border-radius: 100px;
+      background: rgba(0, 0, 0, .3);
+      font-family: var(--body);
+      font-size: 12px;
+      color: rgba(255, 255, 255, .75);
+      cursor: pointer;
+    }
+
+    .voice-toggle[aria-pressed="false"] { color: rgba(255, 255, 255, .4); }
+
+    .voice-toggle:focus-visible {
+      outline: 2px solid var(--teal-light);
+      outline-offset: 2px;
     }
 
     /* ── Camera setup gate ───────────────────────────────────────────── */
@@ -858,6 +1012,10 @@
       <span class="exercise-title" id="exercise-title-text">Loading exercise…</span>
     </div>
     <div class="topbar-right">
+      <button class="voice-toggle" type="button" id="voice-toggle" aria-pressed="true">
+        <span id="voice-icon" aria-hidden="true">🔊</span>
+        <span id="voice-label">Voice on</span>
+      </button>
       <span class="phase-chip" id="phase-chip-text">—</span>
     </div>
   </div>
@@ -977,6 +1135,29 @@
       </div>
     </div>
 
+    <!-- Only shown when the device actually has more than one camera. -->
+    <button class="cam-switch" type="button" id="cam-switch">
+      <span aria-hidden="true">🔄</span>
+      <span id="cam-switch-label">Switch camera</span>
+    </button>
+
+    <!-- Form coaching. Amber, and never in place of the safety alarm. -->
+    <div class="form-tip" id="form-tip">
+      <span aria-hidden="true">👀</span>
+      <span id="form-tip-text"></span>
+    </div>
+
+    <!-- Rest between sets -->
+    <div class="rest-overlay" id="rest-overlay">
+      <div class="rest-label">Rest</div>
+      <div class="rest-count" id="rest-count">45</div>
+      <div class="rest-next" id="rest-next"></div>
+      <div class="rest-actions">
+        <button class="btn-rest" type="button" id="rest-add">+15s</button>
+        <button class="btn-rest primary" type="button" id="rest-skip">Skip rest →</button>
+      </div>
+    </div>
+
     <!-- Completion panel -->
     <div class="complete-panel" id="complete-panel">
       <span class="complete-icon">✅</span>
@@ -1023,6 +1204,7 @@
        already there by the time the module below executes. -->
   <script src="assets/config.js"></script>
   <script src="assets/api.js"></script>
+  <script src="assets/voice.js"></script>
 
   <!-- MediaPipe Tasks Vision (Pose Landmarker) — loaded from CDN -->
   <script type="module">
@@ -1042,6 +1224,10 @@
       calcKneeAngle,
       calcAnkleAngle,
     } from "./assets/pose-gate.js";
+
+    // Whether the movement is coming from the right place, as opposed to how far
+    // it went. See the module header for why knee valgus is not in here.
+    import { assessForm, captureBaseline, createFormMonitor } from "./assets/form-check.js";
 
     // ── Load exercise data passed from upload.html ─────────────────────────
     const exerciseData = JSON.parse(sessionStorage.getItem('physioai_current_exercise') || 'null');
@@ -1348,6 +1534,72 @@
 
     const AUTO_PAUSE_MS = 500;
 
+    // ── Form ─────────────────────────────────────────────────────────────────
+    // Everything form-check measures is relative to how the patient was
+    // positioned to begin with, so the baseline is taken at the end of
+    // calibration — when they are set up, still, and about to start.
+    let formBaseline = null;
+    const formMonitor = createFormMonitor();
+    let formTipTimer = null;
+
+    function showFormTip(text) {
+      const tip = document.getElementById('form-tip');
+      document.getElementById('form-tip-text').textContent = text;
+      tip.classList.add('visible');
+      clearTimeout(formTipTimer);
+      // Cleared on a timer rather than when the fault stops: a correction the
+      // patient is in the middle of acting on should not vanish as they do it.
+      formTipTimer = setTimeout(() => tip.classList.remove('visible'), 5000);
+    }
+
+    function hideFormTip() {
+      clearTimeout(formTipTimer);
+      document.getElementById('form-tip').classList.remove('visible');
+    }
+
+    // ── Spoken cues ──────────────────────────────────────────────────────────
+    // What to say is decided in assets/voice.js; this only remembers what has
+    // already been said. Without that, a rep counter that flickers would make
+    // the coach stutter, and a breach lasting four seconds would repeat "ease
+    // off" at frame rate.
+    const spokenThisSet = new Set();
+
+    function say(cue) {
+      if (!cue || !window.PhysioVoice) return;
+      if (spokenThisSet.has(cue.key)) return;
+      spokenThisSet.add(cue.key);
+      PhysioVoice.speak(cue.text, { interrupt: Boolean(cue.interrupt) });
+    }
+
+    /** A new set, or a resumed one: everything is worth saying again. */
+    function resetSpeech() {
+      spokenThisSet.clear();
+    }
+
+    const voiceToggle = document.getElementById('voice-toggle');
+
+    function paintVoiceToggle() {
+      const on = window.PhysioVoice ? PhysioVoice.isEnabled() : false;
+      voiceToggle.setAttribute('aria-pressed', String(on));
+      document.getElementById('voice-icon').textContent = on ? '🔊' : '🔇';
+      document.getElementById('voice-label').textContent = on ? 'Voice on' : 'Voice off';
+    }
+
+    voiceToggle.addEventListener('click', () => {
+      if (!window.PhysioVoice) return;
+      PhysioVoice.setEnabled(!PhysioVoice.isEnabled());
+      paintVoiceToggle();
+      // Confirm out loud when switching on, so the patient knows it worked
+      // without having to look at the button they just pressed.
+      if (PhysioVoice.isEnabled()) PhysioVoice.speak('Voice on.');
+    });
+
+    if (window.PhysioVoice && !PhysioVoice.supported()) {
+      // Nothing to toggle if the browser cannot speak.
+      voiceToggle.style.display = 'none';
+    }
+    paintVoiceToggle();
+
     // ── Web Audio API — programmatic beep, no audio files needed ───────────
     function startAlarm() {
       if (alarmInterval) return;
@@ -1401,21 +1653,124 @@
     let rafId = null;
     let trackingStopped = false;
 
+    // Which camera. The front one lets the patient read the setup guidance
+    // while they position themselves; the rear one is usually sharper once the
+    // phone is propped and they have stepped back. Remembered, because whichever
+    // works in someone's front room will work there again tomorrow.
+    let facingMode = 'user';
+    try {
+      facingMode = localStorage.getItem('physioai_camera') || 'user';
+    } catch { /* storage unavailable; the default is fine */ }
+
     async function startCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 960, height: 720, facingMode: 'user' },
+          // `ideal`, not `exact`: a laptop has no environment-facing camera, and
+          // an exact constraint would fail outright rather than falling back.
+          video: { width: { ideal: 960 }, height: { ideal: 720 }, facingMode: { ideal: facingMode } },
           audio: false,
         });
         cameraStream = stream;
         video.srcObject = stream;
         await new Promise(resolve => { video.onloadedmetadata = resolve; });
         video.play();
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        syncCanvasToVideo();
+        await offerCameraSwitch();
+        requestWakeLock();
       } catch (err) {
         alert('Camera access is required for exercise tracking. Please allow camera access and reload the page.');
         throw err;
+      }
+    }
+
+    /**
+     * Match the overlay canvas to the video.
+     *
+     * Called again on rotation: the track's dimensions change when a phone turns,
+     * and a canvas still sized for portrait draws the skeleton in the wrong place
+     * — which is the overlay a patient uses to check they are framed correctly.
+     */
+    function syncCanvasToVideo() {
+      if (!video.videoWidth || !video.videoHeight) return;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+    }
+
+    let orientationTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(orientationTimer);
+      // Debounced: a rotation fires resize repeatedly, and the track's new
+      // dimensions are not available on the first of them.
+      orientationTimer = setTimeout(syncCanvasToVideo, 250);
+    });
+
+    /** Show the switcher only if there is something to switch to. */
+    async function offerCameraSwitch() {
+      const button = document.getElementById('cam-switch');
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cameras = devices.filter(d => d.kind === 'videoinput');
+        if (cameras.length > 1) button.classList.add('visible');
+      } catch { /* no permission to enumerate; leave it hidden */ }
+    }
+
+    document.getElementById('cam-switch').addEventListener('click', async () => {
+      facingMode = facingMode === 'user' ? 'environment' : 'user';
+      try { localStorage.setItem('physioai_camera', facingMode); } catch { /* not remembered */ }
+
+      // Release the old track before asking for another: some phones will not
+      // hand out the second camera while the first is still open.
+      if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 960 }, height: { ideal: 720 }, facingMode: { ideal: facingMode } },
+          audio: false,
+        });
+        cameraStream = stream;
+        video.srcObject = stream;
+        await new Promise(resolve => { video.onloadedmetadata = resolve; });
+        video.play();
+        syncCanvasToVideo();
+      } catch {
+        showFormTip('Could not switch camera. Carrying on with the current one.');
+      }
+
+      // A different camera is a different viewpoint, so everything measured
+      // against the old one has to be taken again.
+      formBaseline = null;
+      formMonitor.reset();
+      resetAngleBuffers();
+      if (trackerState === 'TRACKING') {
+        // Back through the gate: the new camera may not be side-on at all.
+        trackerState = 'CALIBRATING';
+        sessionActive = false;
+        goodFrames = 0;
+        calibrationStartedAt = performance.now();
+        setupOverlay.classList.remove('hidden');
+        hud.classList.add('hidden');
+      }
+    });
+
+    // Keeping the screen on. A phone that sleeps mid-set stops the camera, and
+    // the patient finds out when they get up to look at it.
+    let wakeLock = null;
+
+    async function requestWakeLock() {
+      if (!('wakeLock' in navigator)) return;
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+      } catch { /* denied or unsupported; the session still runs */ }
+    }
+
+    // The lock is dropped whenever the tab is hidden, so it has to be retaken.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && !trackingStopped) requestWakeLock();
+    });
+
+    function releaseWakeLock() {
+      if (wakeLock) {
+        wakeLock.release().catch(() => {});
+        wakeLock = null;
       }
     }
 
@@ -1426,6 +1781,11 @@
     // every frame until the tab closed.
     function releaseCamera() {
       trackingStopped = true;
+      // A countdown still ticking, or a queued utterance, would outlive the page
+      // the patient has already left.
+      clearInterval(restTimer);
+      restTimer = null;
+      if (window.PhysioVoice) PhysioVoice.cancel();
       if (rafId !== null) {
         cancelAnimationFrame(rafId);
         rafId = null;
@@ -1434,6 +1794,8 @@
         cameraStream.getTracks().forEach(track => track.stop());
         cameraStream = null;
       }
+      releaseWakeLock();
+      document.getElementById('cam-switch').classList.remove('visible');
       video.srcObject = null;
       if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
@@ -1486,10 +1848,21 @@
       goodFrames = 0;
       badFrames = 0;
       resetAngleBuffers();
+      resetSpeech();
+      formMonitor.reset();
       if (!setMetrics) startSetMetrics();
       setupOverlay.classList.add('hidden');
       hud.classList.remove('hidden');
       viewWarn.classList.toggle('visible', !viewVerified);
+
+      // Said once the view is verified rather than on the button press: this is
+      // the moment the patient can actually start, and they are already looking
+      // away from the screen by now.
+      if (window.PhysioVoice) {
+        PhysioVoice.speak(isHoldMode
+          ? `Hold for ${exercise.hold_seconds} seconds when you are ready.`
+          : `Ready. ${exercise.target_reps} reps, ${exercise.target_sets} sets.`);
+      }
     }
 
     function suspendForView(view) {
@@ -1512,6 +1885,11 @@
       // Blank rather than freeze the readout — a stale number looks live.
       angleReadout.textContent = '—';
       angleReadout.className = 'angle-value';
+      // Tracking has stopped: a posture note from the last good frame would be
+      // advice about a position nobody can see any more.
+      hideFormTip();
+      formMonitor.reset();
+      formBaseline = null;
 
       setupIcon.textContent = '⏸';
       setupTitle.textContent = 'Tracking paused';
@@ -1569,6 +1947,9 @@
           safetyOverlay.classList.add('active');
           startAlarm();
           alertCount++;
+          // The reason this feature exists. A red screen behind someone looking
+          // at their own knee is an alarm that has already failed.
+          say(PhysioVoice ? PhysioVoice.cueForBreach(exercise.angle_limit) : null);
         }
         safetyAngleReadout.textContent = Math.round(angle) + '°';
 
@@ -1583,6 +1964,11 @@
         // Cleared — reset immediately, no lag
         breachStartTime = null;
         if (!isPaused) {
+          if (safetyOverlay.classList.contains('active')) {
+            spokenThisSet.delete('breach');
+            say(PhysioVoice ? PhysioVoice.cueForBreachCleared() : null);
+            spokenThisSet.delete('breach-clear');
+          }
           safetyOverlay.classList.remove('active');
           stopAlarm();
         }
@@ -1593,6 +1979,8 @@
       isPaused = false;
       sessionActive = true;
       breachStartTime = null;
+      // The breach warning is worth hearing again if it happens again.
+      resetSpeech();
       // Start the movement cycle cleanly: the patient stopped mid-rep, so
       // leaving repStage where it was can complete a rep they never finished,
       // and the smoothing buffers still hold pre-breach angles.
@@ -1613,6 +2001,7 @@
     function countRep() {
       currentRep++;
       document.getElementById('rep-current').textContent = currentRep;
+      say(PhysioVoice ? PhysioVoice.cueForRep(currentRep, exercise.target_reps) : null);
       if (currentRep >= exercise.target_reps) {
         completeSet();
       }
@@ -1658,12 +2047,93 @@
       }
     }
 
+    // ── Rest between sets ────────────────────────────────────────────────────
+    // There was no gap before: the counter reset and the next set began whenever
+    // the patient happened to move, so the reps after a hard set were performed
+    // tired and recorded as though they were not. A rest is part of the
+    // prescription.
+    //
+    // Forty-five seconds is a conventional default for the low-load rehab work
+    // these protocols describe. It can be extended or skipped in one tap —
+    // insisting on it would only teach people to close the tab.
+    const REST_SECONDS = 45;
+
+    let restRemaining = 0;
+    let restTimer = null;
+
+    const restOverlay = document.getElementById('rest-overlay');
+    const restCount = document.getElementById('rest-count');
+    const restNext = document.getElementById('rest-next');
+
+    function paintRest() {
+      restCount.textContent = String(Math.max(0, Math.ceil(restRemaining)));
+      const left = exercise.target_sets - currentSet;
+      restNext.textContent = left === 1
+        ? 'One set left after this'
+        : `${left} sets left after this`;
+    }
+
+    function startRest() {
+      // A correction about the set just finished is not useful during the rest.
+      hideFormTip();
+      restRemaining = REST_SECONDS;
+      paintRest();
+      restOverlay.classList.add('visible');
+      // Counting reps or timing a hold while the patient is deliberately still
+      // would record a set they are not performing.
+      sessionActive = false;
+
+      clearInterval(restTimer);
+      restTimer = setInterval(() => {
+        restRemaining -= 1;
+        paintRest();
+        say(window.PhysioVoice
+          ? PhysioVoice.cueForRest(restRemaining, exercise.target_sets - currentSet)
+          : null);
+        if (restRemaining <= 0) endRest();
+      }, 1000);
+    }
+
+    function endRest() {
+      clearInterval(restTimer);
+      restTimer = null;
+      restOverlay.classList.remove('visible');
+
+      // Everything a fresh set needs: clean angle buffers, a rep stage that has
+      // not half-completed, and a clean slate for what has been said.
+      resetAngleBuffers();
+      resetSpeech();
+      formMonitor.reset();
+      // The patient may have shifted during the rest, so the reference they are
+      // measured against has to be taken again rather than assumed.
+      formBaseline = null;
+      sessionActive = trackerState === 'TRACKING';
+    }
+
+    document.getElementById('rest-skip').addEventListener('click', () => {
+      restRemaining = 0;
+      endRest();
+    });
+
+    document.getElementById('rest-add').addEventListener('click', () => {
+      restRemaining += 15;
+      paintRest();
+      // The countdown cues for the seconds just passed become sayable again.
+      for (const key of [...spokenThisSet]) {
+        if (key.startsWith('rest-')) spokenThisSet.delete(key);
+      }
+    });
+
     function completeSet() {
       recordSet(currentSet, currentRep);
 
       const dots = document.querySelectorAll('#set-progress .set-dot');
       if (dots[currentSet - 1]) dots[currentSet - 1].classList.add('done');
       if (dots[currentSet - 1]) dots[currentSet - 1].classList.remove('current');
+
+      say(window.PhysioVoice
+        ? PhysioVoice.cueForSetComplete(currentSet, exercise.target_sets, REST_SECONDS)
+        : null);
 
       if (currentSet >= exercise.target_sets) {
         finishExercise();
@@ -1674,6 +2144,8 @@
       document.getElementById('rep-current').textContent = 0;
       document.getElementById('set-current').textContent = currentSet;
       if (dots[currentSet - 1]) dots[currentSet - 1].classList.add('current');
+
+      startRest();
     }
 
     // ── Hold timer (isometric exercises) ────────────────────────────────────
@@ -1701,6 +2173,10 @@
         const progress = Math.min(1, elapsed / exercise.hold_seconds);
         holdRingFg.style.strokeDashoffset = RING_CIRC * (1 - progress);
 
+        say(window.PhysioVoice
+          ? PhysioVoice.cueForHold(remaining, exercise.hold_seconds)
+          : null);
+
         if (remaining <= 0) {
           if (setMetrics) setMetrics.holdSecondsAchieved = exercise.hold_seconds;
           recordSet(holdSetComplete + 1, 0);
@@ -1709,8 +2185,16 @@
           holdRingFg.style.strokeDashoffset = RING_CIRC;
           document.getElementById('hold-set-current').textContent = Math.min(holdSetComplete + 1, exercise.target_sets);
 
+          say(window.PhysioVoice
+            ? PhysioVoice.cueForSetComplete(holdSetComplete, exercise.target_sets, REST_SECONDS)
+            : null);
+
           if (holdSetComplete >= exercise.target_sets) {
             finishExercise();
+          } else {
+            // A hold counts its sets differently, but it earns the same rest.
+            currentSet = holdSetComplete;
+            startRest();
           }
         }
       } else {
@@ -1724,7 +2208,12 @@
     // ── Finish ────────────────────────────────────────────────────────────────
     function finishExercise() {
       sessionActive = false;
+      hideFormTip();
+      clearInterval(restTimer);
+      restTimer = null;
+      restOverlay.classList.remove('visible');
       stopAlarm();
+      if (window.PhysioVoice) PhysioVoice.cancel();
       releaseCamera();
       document.getElementById('complete-reps').textContent =
         isHoldMode ? `${holdSetComplete} sets` : `${(currentSet - 1) * exercise.target_reps + currentRep}`;
@@ -1868,6 +2357,22 @@
 
       handleSafetyCheck(kneeAngle);
 
+      // Form is assessed after safety, and never instead of it. A posture note
+      // must not compete with "you are past your limit" — which is why the two
+      // look different and only one of them speaks over the other.
+      if (formBaseline === null) formBaseline = captureBaseline(lm);
+      if (formBaseline && !isPaused) {
+        const { faults } = assessForm(lm, formBaseline, {
+          holdTarget,
+          kneeAngle,
+          exerciseName: exercise.name,
+        });
+        for (const fault of formMonitor.update(faults)) {
+          showFormTip(fault.message);
+          say({ key: `form-${fault.code}`, text: fault.message });
+        }
+      }
+
       if (isHoldMode) {
         updateHoldTimer(countAngle);
       } else {
@@ -1907,6 +2412,18 @@
       }
     });
 
+  </script>
+  <script>
+    // Installable, and able to open without a connection. The worker caches the
+    // app shell only — never an API response, because a cached prescription is
+    // a cached movement ceiling. See sw.js.
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {
+          // An app that works is more important than one that works offline.
+        });
+      });
+    }
   </script>
 </body>
 

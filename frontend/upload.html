@@ -8,6 +8,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="assets/theme.css">
+  <!-- Sets .js-motion before first paint; see the file header for why it is not deferred. -->
+  <script src="assets/motion.js"></script>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#132733">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <style>
 
     html {
@@ -242,6 +249,241 @@
       cursor: pointer;
       width: 100%;
       height: 100%;
+    }
+
+    /* ── The second knee ──────────────────────────────────────────────
+       One film cannot answer for two joints, so choosing "both" asks for the
+       other one rather than quietly grading the same image twice. */
+    .drop-zone.secondary { margin-top: 14px; }
+    .drop-zone.hidden { display: none; }
+
+    .drop-side-label {
+      display: inline-block;
+      margin-bottom: 8px;
+      padding: 3px 10px;
+      border-radius: 100px;
+      background: rgba(var(--teal-rgb), .12);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: var(--teal);
+    }
+
+    /* ── Per-knee results ─────────────────────────────────────────────
+       Two knees routinely differ by two grades — 90 degrees down to 45 — so
+       each gets its own heading, its own ceiling and its own exercise list. */
+    .side-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 18px;
+      padding: 4px;
+      border-radius: 10px;
+      background: rgba(var(--navy-rgb), .05);
+    }
+
+    .side-tabs.hidden { display: none; }
+
+    .side-tab {
+      flex: 1;
+      padding: 9px 12px;
+      border: none;
+      border-radius: 7px;
+      background: transparent;
+      font-family: var(--body);
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--slate);
+      cursor: pointer;
+      transition: background .18s, color .18s;
+    }
+
+    .side-tab[aria-selected="true"] { background: var(--white); color: var(--text); }
+
+    .side-tab:focus-visible {
+      outline: 2px solid var(--teal);
+      outline-offset: 1px;
+    }
+
+    .side-tab-limit {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--slate);
+      margin-top: 2px;
+    }
+
+    /* ── How sure it was, grade by grade ─────────────────────────────
+       A single confidence figure describes the model as less useful than it is
+       and hides the cases where it is genuinely torn. The bars show where the
+       probability actually sits; the chosen grade is marked, and its neighbours
+       are drawn in the same family because an ordinal model putting mass next
+       door is saying "nearby", not "wrong". */
+    .dist {
+      margin-bottom: 26px;
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--white);
+    }
+
+    .dist.hidden { display: none; }
+
+    .dist-title {
+      font-family: var(--display);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .dist-sub {
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: var(--slate);
+      margin-bottom: 16px;
+      max-width: 60ch;
+    }
+
+    .dist-rows { display: flex; flex-direction: column; gap: 7px; }
+
+    .dist-row {
+      display: grid;
+      grid-template-columns: 76px 1fr 52px;
+      align-items: center;
+      gap: 10px;
+      font-size: 12.5px;
+    }
+
+    .dist-label { color: var(--slate); }
+    .dist-row.chosen .dist-label { color: var(--text); font-weight: 600; }
+
+    .dist-track {
+      height: 12px;
+      border-radius: 6px;
+      background: rgba(var(--navy-rgb), .07);
+      overflow: hidden;
+    }
+
+    .dist-fill {
+      height: 100%;
+      border-radius: 6px;
+      background: rgba(var(--teal-rgb), .3);
+      transition: width .3s;
+    }
+
+    .dist-row.chosen .dist-fill { background: var(--teal); }
+    .dist-row.neighbour .dist-fill { background: rgba(var(--teal-rgb), .55); }
+
+    .dist-value {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--slate);
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .dist-row.chosen .dist-value { color: var(--text); font-weight: 600; }
+
+    .dist-foot {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: var(--slate);
+    }
+
+    .dist-foot strong { color: var(--text); }
+
+    /* ── Where the model looked ───────────────────────────────────────
+       Shown beside the grade, because a number that restricts how far someone
+       bends a healing knee should be checkable. The overlay sits on the X-ray
+       at the same box and can be faded out, so the radiograph underneath is
+       always readable. */
+    .looked {
+      margin-bottom: 26px;
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--white);
+    }
+
+    .looked.hidden { display: none; }
+
+    .looked-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+
+    .looked-title {
+      font-family: var(--display);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .looked-sub {
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: var(--slate);
+      margin-bottom: 14px;
+      max-width: 58ch;
+    }
+
+    .looked-stage {
+      position: relative;
+      width: 100%;
+      max-width: 340px;
+      margin: 0 auto;
+      aspect-ratio: 1 / 1;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #0b1116;
+    }
+
+    .looked-stage img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .looked-heat { transition: opacity .18s; }
+
+    .looked-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      max-width: 340px;
+      margin: 12px auto 0;
+      font-size: 12px;
+      color: var(--slate);
+    }
+
+    .looked-controls input[type="range"] { flex: 1; accent-color: var(--teal); }
+
+    .looked-scale {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 340px;
+      margin: 10px auto 0;
+      font-size: 11px;
+      color: var(--slate);
+    }
+
+    .looked-bar {
+      flex: 1;
+      height: 8px;
+      border-radius: 4px;
+      background: linear-gradient(to right, #00008c, #006ec8, #00bea0, #f0c828, #e65a1e, #be0014);
     }
 
     .drop-preview {
@@ -505,20 +747,10 @@
       display: block;
     }
 
+    /* The disc itself is .spinner in assets/theme.css; this only adds the
+       gap to the title beneath it. */
     .loading-spinner {
-      width: 48px;
-      height: 48px;
-      border: 3px solid var(--border);
-      border-top-color: var(--teal);
-      border-radius: 50%;
-      animation: spin .8s linear infinite;
-      margin: 0 auto 20px;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
+      margin-bottom: 20px;
     }
 
     .loading-title {
@@ -904,8 +1136,21 @@
       border-top: 1px solid var(--border);
     }
 
+    /* Opening a row used to snap. Height still jumps — display cannot be
+       transitioned, and restructuring an accordion whose body is built
+       from a template string is not worth the risk — but fading the
+       content in over that jump is enough to read as an expansion rather
+       than a redraw. */
     .exercise-card.open .exercise-body {
       display: block;
+      animation: accordion-open var(--t-base) var(--ease-out);
+    }
+
+    @keyframes accordion-open {
+      from {
+        opacity: 0;
+        transform: translateY(-6px);
+      }
     }
 
     .exercise-body-grid {
@@ -1253,7 +1498,7 @@
       </div>
     </div>
     <div class="nav-right">
-      <a href="progress.html" class="nav-home hidden" id="progress-link">Your progress</a>
+      <a href="progress.html" class="nav-home hidden" id="progress-link">Your dashboard</a>
       <a href="index.html" class="nav-home">← Home</a>
     </div>
   </nav>
@@ -1291,6 +1536,25 @@
               <div class="drop-preview-name" id="preview-name">—</div>
               <div class="drop-preview-size" id="preview-size">—</div>
               <div class="drop-preview-change" onclick="clearFile()">Change file</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- The other knee. Hidden unless "both" is chosen: one film cannot
+             be graded for two joints, and grading it twice would be a lie. -->
+        <div class="drop-zone secondary hidden" id="drop-zone-right">
+          <input type="file" class="drop-input" id="file-input-right" accept="image/jpeg,image/png,image/jpg">
+          <div id="drop-idle-right">
+            <span class="drop-side-label">Right knee</span>
+            <div class="drop-title">Drop your right knee X-ray here</div>
+            <p class="drop-sub">The one above is your left. Each knee is graded on its own.</p>
+          </div>
+          <div class="drop-preview" id="drop-preview-right">
+            <img class="drop-preview-img" id="preview-img-right" src="" alt="Right knee X-ray preview">
+            <div class="drop-preview-info">
+              <div class="drop-preview-name" id="preview-name-right">—</div>
+              <div class="drop-preview-size" id="preview-size-right">—</div>
+              <div class="drop-preview-change" onclick="clearFileRight()">Change file</div>
             </div>
           </div>
         </div>
@@ -1390,7 +1654,7 @@
 
     <!-- Loading panel (replaces upload panel during analysis) -->
     <div class="loading-panel" id="loading-panel">
-      <div class="loading-spinner"></div>
+      <div class="spinner loading-spinner"></div>
       <div class="loading-title">Analysing your X-ray…</div>
       <div class="loading-sub">This usually takes 2–4 seconds.</div>
       <div class="loading-steps">
@@ -1413,6 +1677,8 @@
     <div class="results" id="results">
 
       <!-- Summary cards -->
+      <div class="side-tabs hidden" id="side-tabs" role="tablist" aria-label="Which knee"></div>
+
       <div class="summary-grid" id="summary-grid"></div>
 
       <!-- Confidence caveats: low band / OOD image / uncalibrated model -->
@@ -1420,6 +1686,40 @@
 
       <!-- Phase + rationale -->
       <div class="rationale-box" id="rationale-box"></div>
+
+      <div class="dist hidden" id="dist">
+        <div class="dist-title">How sure the model was</div>
+        <p class="dist-sub" id="dist-sub"></p>
+        <div class="dist-rows" id="dist-rows"></div>
+        <div class="dist-foot" id="dist-foot"></div>
+      </div>
+
+      <div class="looked hidden" id="looked">
+        <div class="looked-head">
+          <div class="looked-title">Where the model looked</div>
+        </div>
+        <p class="looked-sub">
+          The warm areas are what pushed the grade. This does not explain the decision —
+          it shows which part of the image drove it. If the heat sits on the joint, the
+          reading is at least looking at the right thing; if it sits on a label or the
+          edge of the film, treat the grade with suspicion and say so to your
+          physiotherapist.
+        </p>
+        <div class="looked-stage">
+          <img id="looked-xray" alt="Your uploaded X-ray">
+          <img class="looked-heat" id="looked-heat" alt="Heat map of the regions that most influenced the grade">
+        </div>
+        <div class="looked-controls">
+          <label for="looked-opacity">Overlay</label>
+          <input type="range" id="looked-opacity" min="0" max="100" value="70"
+            aria-label="Overlay strength">
+        </div>
+        <div class="looked-scale">
+          <span>less influence</span>
+          <span class="looked-bar" aria-hidden="true"></span>
+          <span>more</span>
+        </div>
+      </div>
 
       <!-- Exercises -->
       <div class="exercises-header">
@@ -1519,6 +1819,68 @@
       reader.readAsDataURL(file);
       validateForm();
     }
+
+    // ── The second knee ────────────────────────────────────────────────────
+    let selectedFileRight = null;
+    const dropZoneRight = document.getElementById('drop-zone-right');
+    const fileInputRight = document.getElementById('file-input-right');
+
+    function setFileRight(file) {
+      if (!file) return;
+      if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+        showError('Invalid file type', 'Please upload a JPEG or PNG image.');
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        showError('File too large', 'Please upload an image under 10 MB.');
+        return;
+      }
+      selectedFileRight = file;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        document.getElementById('preview-img-right').src = e.target.result;
+        document.getElementById('preview-name-right').textContent = file.name;
+        document.getElementById('preview-size-right').textContent = formatBytes(file.size);
+        document.getElementById('drop-idle-right').style.display = 'none';
+        document.getElementById('drop-preview-right').classList.add('visible');
+        dropZoneRight.classList.add('has-file');
+      };
+      reader.readAsDataURL(file);
+      validateForm();
+    }
+
+    function clearFileRight() {
+      selectedFileRight = null;
+      fileInputRight.value = '';
+      document.getElementById('drop-idle-right').style.display = 'block';
+      document.getElementById('drop-preview-right').classList.remove('visible');
+      dropZoneRight.classList.remove('has-file');
+      validateForm();
+    }
+
+    fileInputRight.addEventListener('change', (e) => setFileRight(e.target.files[0]));
+    dropZoneRight.addEventListener('dragover', (e) => {
+      e.preventDefault(); dropZoneRight.classList.add('drag-over');
+    });
+    dropZoneRight.addEventListener('dragleave', () => dropZoneRight.classList.remove('drag-over'));
+    dropZoneRight.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZoneRight.classList.remove('drag-over');
+      setFileRight(e.dataTransfer.files[0]);
+    });
+
+    /** Show or hide the second drop zone as the knee choice changes. */
+    function syncBilateral() {
+      const both = document.querySelector('input[name="knee_side"]:checked')?.value === 'both';
+      dropZoneRight.classList.toggle('hidden', !both);
+      document.getElementById('drop-idle').querySelector('.drop-title').textContent =
+        both ? 'Drop your left knee X-ray here' : 'Drop your knee X-ray here';
+      if (!both) clearFileRight();
+      validateForm();
+    }
+
+    document.querySelectorAll('input[name="knee_side"]')
+      .forEach(r => r.addEventListener('change', syncBilateral));
 
     function clearFile() {
       selectedFile = null;
@@ -1663,9 +2025,12 @@
 
     // ── Form validation ────────────────────────────────────────────────────
     function validateForm() {
-      const hasFile = !!selectedFile;
+      const side = document.querySelector('input[name="knee_side"]:checked')?.value;
+      // Both knees means both films. The server refuses otherwise, and finding
+      // that out after the upload would be a poor way to learn it.
+      const hasFile = !!selectedFile && (side !== 'both' || !!selectedFileRight);
       const hasSurgery = !!surgeryEl.value;
-      const kneeChecked = !!document.querySelector('input[name="knee_side"]:checked');
+      const kneeChecked = !!side;
       const weeksOk = surgeryEl.value === 'none' || surgeryEl.value === '' ||
         (weeksEl.value !== '' && parseInt(weeksEl.value) >= 0);
       submitBtn.disabled = !(hasFile && hasSurgery && kneeChecked && weeksOk);
@@ -1696,6 +2061,10 @@
           kneeSide: kneeSide,
           surgeryType: surgeryType,
           weeksPostOp: weeksVal,
+          imageRight: kneeSide === 'both' ? selectedFileRight : null,
+          // Worth the extra second here: this is the one screen where someone
+          // is deciding whether to believe the grade.
+          explain: true,
         });
 
         hideLoading();
@@ -1723,8 +2092,74 @@
     }
 
     // ── Render results ─────────────────────────────────────────────────────
+    // The analysis as returned, and which knee is currently on screen. For a
+    // bilateral result the two knees have different grades, different ceilings
+    // and different exercise limits, so "the results" is genuinely two answers.
+    let lastAnalysis = null;
+    let shownSide = null;
+
+    /**
+     * Merge one side's readings over the flat response.
+     *
+     * The flat fields carry the more restricted knee, so rendering them for the
+     * better knee would understate what it is allowed to do. Everything not
+     * specific to a side — the phase, the rationale, the disclaimer — is shared.
+     */
+    function viewForSide(data, side) {
+      if (!data.bilateral || !side) return data;
+      const chosen = data.sides.find(s => s.knee_side === side);
+      return chosen ? { ...data, ...chosen } : data;
+    }
+
+    function renderSideTabs(data) {
+      const tabs = document.getElementById('side-tabs');
+      tabs.innerHTML = '';
+
+      if (!data.bilateral) {
+        tabs.classList.add('hidden');
+        return;
+      }
+
+      for (const side of data.sides) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'side-tab';
+        btn.setAttribute('role', 'tab');
+        btn.setAttribute('aria-selected', String(side.knee_side === shownSide));
+
+        const name = document.createElement('span');
+        name.textContent = side.knee_side === 'left' ? 'Left knee' : 'Right knee';
+
+        // The number that differs is the one worth showing on the tab itself.
+        const limit = document.createElement('span');
+        limit.className = 'side-tab-limit';
+        limit.textContent = `grade ${side.kl_grade} · safe to ${side.max_angle}°`;
+
+        btn.append(name, limit);
+        btn.addEventListener('click', () => {
+          shownSide = side.knee_side;
+          renderResults(lastAnalysis);
+        });
+        tabs.appendChild(btn);
+      }
+      tabs.classList.remove('hidden');
+    }
+
     function renderResults(data) {
+      lastAnalysis = data;
       currentPrescriptionId = data.prescription_id || null;
+
+      // Default to the more restricted knee — the same one the flat fields
+      // describe, so nothing changes meaning between first paint and a tap.
+      if (data.bilateral && !data.sides.some(s => s.knee_side === shownSide)) {
+        shownSide = data.sides.reduce((a, b) => (a.max_angle <= b.max_angle ? a : b)).knee_side;
+      }
+
+      renderSideTabs(data);
+      data = viewForSide(data, shownSide);
+
+      renderDistribution(data);
+      renderExplanation(data);
 
       // Update nav steps
       document.getElementById('step1-indicator').className = 'nav-step done';
@@ -1864,6 +2299,116 @@
     // above, and they are not interchangeable: the model can be unsure (low
     // band), the number itself can be unvalidated (uncalibrated), or the image
     // can be outside what the model was trained on (OOD).
+    /**
+     * Show the Grad-CAM overlay, if one came back.
+     *
+     * Absent in demo mode, and absent whenever the overlay could not be
+     * produced — the analysis is the point and the picture is a courtesy, so a
+     * missing one is simply not mentioned rather than explained away.
+     */
+    function renderExplanation(data) {
+      const panel = document.getElementById('looked');
+      if (!data.explanation || !selectedFile) {
+        panel.classList.add('hidden');
+        return;
+      }
+
+      const xray = document.getElementById('looked-xray');
+      // The same object URL the drop preview uses; revoked when the form resets.
+      xray.src = URL.createObjectURL(selectedFile);
+
+      const heat = document.getElementById('looked-heat');
+      heat.src = data.explanation;
+
+      const slider = document.getElementById('looked-opacity');
+      const apply = () => { heat.style.opacity = String(slider.value / 100); };
+      slider.oninput = apply;
+      apply();
+
+      panel.classList.remove('hidden');
+    }
+
+    const GRADE_NAMES = ['Normal', 'Doubtful', 'Minimal', 'Moderate', 'Severe'];
+
+    /**
+     * Draw the probability the model assigned to every grade.
+     *
+     * A single confidence number collapses this to its largest bar. That hides
+     * the two cases worth seeing: a model that is torn between adjacent grades
+     * (common, and mostly harmless — the answer is nearby) and one whose mass is
+     * scattered across the scale (rare, and a reason to distrust the reading).
+     */
+    function renderDistribution(data) {
+      const panel = document.getElementById('dist');
+      const probs = data.grade_probabilities || [];
+
+      // Nothing to draw is not an error — an older stored analysis has no
+      // distribution, and a bar chart of zeroes would be a lie.
+      if (probs.length !== 5 || probs.every(p => !p)) {
+        panel.classList.add('hidden');
+        return;
+      }
+
+      const chosen = data.kl_grade;
+      const peak = Math.max(...probs);
+      const rows = document.getElementById('dist-rows');
+      rows.innerHTML = '';
+
+      probs.forEach((p, grade) => {
+        const row = document.createElement('div');
+        row.className = 'dist-row'
+          + (grade === chosen ? ' chosen' : '')
+          + (Math.abs(grade - chosen) === 1 ? ' neighbour' : '');
+
+        const label = document.createElement('div');
+        label.className = 'dist-label';
+        label.textContent = `Grade ${grade} · ${GRADE_NAMES[grade]}`;
+
+        const track = document.createElement('div');
+        track.className = 'dist-track';
+        const fill = document.createElement('div');
+        fill.className = 'dist-fill';
+        // Scaled to the tallest bar, not to 1.0: at 30% top confidence every
+        // bar would otherwise be a stub and the shape would be unreadable.
+        fill.style.width = `${peak > 0 ? (p / peak) * 100 : 0}%`;
+        track.appendChild(fill);
+
+        const value = document.createElement('div');
+        value.className = 'dist-value';
+        value.textContent = `${(p * 100).toFixed(0)}%`;
+
+        row.append(label, track, value);
+        rows.appendChild(row);
+      });
+
+      const near = Math.round((data.within_one_grade || 0) * 100);
+      const runnerUp = probs
+        .map((p, g) => ({ p, g }))
+        .filter(x => x.g !== chosen)
+        .sort((a, b) => b.p - a.p)[0];
+
+      document.getElementById('dist-sub').textContent =
+        `The model settled on grade ${chosen}, but it considered all five. `
+        + (runnerUp && runnerUp.p > 0.15
+          ? `Grade ${runnerUp.g} was its next best answer, at ${(runnerUp.p * 100).toFixed(0)}%.`
+          : 'The rest carried little weight.');
+
+      // The number that describes the reading at the scale the ceiling moves:
+      // adjacent grades are 15-30° apart, distant ones are a different plan.
+      const foot = document.getElementById('dist-foot');
+      foot.innerHTML = '';
+      const strong = document.createElement('strong');
+      strong.textContent = `${near}% within one grade. `;
+      foot.appendChild(strong);
+      foot.appendChild(document.createTextNode(
+        near >= 85
+          ? 'Even if the exact grade is off by one, the safe ceiling would barely move.'
+          : 'The model is spread across the scale here — worth having a physiotherapist confirm the ceiling before relying on it.'
+      ));
+
+      panel.classList.remove('hidden');
+    }
+
     function renderConfidenceNote(data) {
       const box = document.getElementById('confidence-note');
       const notes = [];
@@ -1953,6 +2498,10 @@
     let currentPrescriptionId = null;
 
     function launchTracker(exercise, kneeSide, phaseLabel) {
+      // 'both' is not a leg. The tracker picks landmarks from one side, so it
+      // gets the knee whose limits are being shown — which is also the knee
+      // whose angle_limit is on this exercise.
+      if (kneeSide === 'both') kneeSide = shownSide || 'right';
       sessionStorage.setItem('physioai_current_exercise', JSON.stringify(exercise));
       sessionStorage.setItem('physioai_knee_side', kneeSide);
       sessionStorage.setItem('physioai_phase_label', phaseLabel);
@@ -2047,6 +2596,8 @@
     }
 
     function resetForm() {
+      shownSide = null;
+      lastAnalysis = null;
       // Reset all UI
       clearFile();
       surgeryEl.value = '';
@@ -2064,6 +2615,18 @@
       document.getElementById('step2-indicator').className = 'nav-step';
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  </script>
+  <script>
+    // Installable, and able to open without a connection. The worker caches the
+    // app shell only — never an API response, because a cached prescription is
+    // a cached movement ceiling. See sw.js.
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {
+          // An app that works is more important than one that works offline.
+        });
+      });
     }
   </script>
 </body>

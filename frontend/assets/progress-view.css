@@ -119,6 +119,22 @@
     .range-btn[aria-pressed="true"] { background: var(--white); color: var(--navy); box-shadow: 0 1px 2px rgba(19, 39, 51, .1); }
     .range-btn:focus-visible { outline: 2px solid var(--data); outline-offset: 2px; }
 
+    /* progress.html only: the range group sits beside the summary download.
+       A .range-btn is transparent by design — it is a segment inside the grey
+       .ranges track — so one standing on its own has to bring its own surface. */
+    .head-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    .head-actions > .range-btn {
+      padding: 10px 15px;
+      border: 1px solid #d3dde3;
+      border-radius: 9px;
+      background: var(--white);
+      color: var(--navy);
+    }
+
+    .head-actions > .range-btn:hover:not(:disabled) { background: #f2f6f8; }
+    .head-actions > .range-btn:disabled { opacity: .6; cursor: progress; }
+
     /* ── Cards ───────────────────────────────────────────────────────── */
     .card {
       background: var(--white);
@@ -137,7 +153,15 @@
     .card-sub { font-size: 13px; color: var(--slate); margin-bottom: 18px; }
 
     /* ── KPI row ─────────────────────────────────────────────────────── */
-    .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+    /* auto-fit rather than a fixed four: the questionnaire tile only appears
+       once there is a score to put in it, so the row has to lay out at both
+       four tiles and five without leaving one stranded on its own line. */
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
 
     .kpi {
       background: var(--white);
@@ -317,9 +341,9 @@
 
     .btn:hover { background: var(--teal-light); }
 
-    .skeleton { height: 200px; border-radius: 12px; background: linear-gradient(100deg, #eef2f5 30%, #f6f9fa 50%, #eef2f5 70%); background-size: 200% 100%; animation: shimmer 1.3s linear infinite; }
-
-    @keyframes shimmer { to { background-position: -200% 0; } }
+    /* Shimmer comes from assets/theme.css; this only reserves the height a
+       chart will occupy, so its arrival does not shift the page. */
+    .skeleton { height: 200px; }
 
     .hidden { display: none !important; }
 
@@ -334,10 +358,6 @@
       clip-path: inset(50%);
       white-space: nowrap;
       border: 0;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      * { animation: none !important; transition: none !important; }
     }
 
     @media (max-width: 720px) {
@@ -430,3 +450,252 @@
 }
 
 .share-empty { padding-top: 10px; font-size: 12.5px; color: var(--slate); }
+
+/* ── The KOOS-JR questionnaire ──────────────────────────────────────────────
+ *
+ * Patient-side only. share.html loads this stylesheet for the charts above and
+ * simply never renders a form — a clinician reads the score, they do not answer
+ * it on somebody's behalf.
+ *
+ * Sized for a phone held one-handed on the floor between sets, which is where
+ * this actually gets filled in. The five options are a horizontal scale on a
+ * wide screen and stack into full-width rows below 560px, because five taps
+ * across a 375px viewport is how you get mis-taps in a clinical record.
+ */
+
+/* ── The profile card ───────────────────────────────────────────────────────
+ *
+ * Patient-side only; share.html loads this stylesheet for the charts and never
+ * renders the card. Sits at the top of the dashboard, so it is the first thing
+ * a returning patient reads — which is why the surgery date and the safe limit
+ * are given as much weight as the name.
+ */
+
+.profile-card { margin-bottom: 22px; }
+
+.profile-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.profile-name {
+  font-family: var(--display);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.profile-email {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--slate);
+  margin-top: 3px;
+}
+
+.profile-cta { white-space: nowrap; }
+
+/* auto-fit so three facts spread and five wrap cleanly, rather than a fixed
+   column count that strands the last one on a row of its own. */
+.profile-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 14px 18px;
+  align-items: end;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.profile-fact-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--slate);
+  margin-bottom: 5px;
+}
+
+.profile-fact-value {
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--navy);
+  font-variant-numeric: tabular-nums;
+}
+
+.profile-fact-note { font-size: 11.5px; color: var(--slate); margin-top: 3px; }
+
+.profile-change {
+  justify-self: start;
+  align-self: end;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--body);
+  font-size: 12.5px;
+  color: var(--teal);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.profile-change:focus-visible { outline: 2px solid var(--data); outline-offset: 2px; }
+
+.profile-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.profile-edit.hidden { display: none; }
+
+.profile-edit-label { font-size: 12.5px; color: var(--slate); }
+
+@media (max-width: 560px) {
+  .profile-cta { width: 100%; text-align: center; }
+  .profile-edit .share-input { flex: 1 1 100%; }
+}
+
+.om-prompt-card { margin-bottom: 22px; }
+
+.om-prompt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.om-form { margin-top: 4px; }
+
+.om-group {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0;
+  padding: 16px 0 4px;
+}
+
+.om-group:first-of-type { border-top: none; padding-top: 4px; }
+
+.om-lead {
+  padding: 0;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.om-item { margin-bottom: 16px; }
+
+.om-prompt {
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.om-scale { display: flex; gap: 6px; }
+
+/* The input is the accessible control — keyboard, screen reader, arrow keys
+   within the group. It is only visually replaced by its label, never removed
+   from the accessibility tree. */
+.om-radio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.om-option {
+  flex: 1;
+  padding: 9px 4px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--white);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--slate);
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.om-option:hover { border-color: var(--data); color: var(--navy); }
+
+.om-radio:checked + .om-option {
+  background: var(--data);
+  border-color: var(--data);
+  color: var(--white);
+}
+
+/* Focus has to survive the visually-hidden input: without this, keyboard
+   users get no indication of where they are on the scale at all. */
+.om-radio:focus-visible + .om-option {
+  outline: 2px solid var(--data);
+  outline-offset: 2px;
+}
+
+.om-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  margin-top: 8px;
+}
+
+.om-status { font-size: 12.5px; color: var(--slate); }
+
+.om-actions { display: flex; align-items: center; gap: 14px; }
+
+.om-cancel {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--body);
+  font-size: 13px;
+  color: var(--slate);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.om-error {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid #f3bcbc;
+  border-radius: 9px;
+  background: #fdeaea;
+  font-size: 13px;
+  color: #8c1d1d;
+}
+
+.om-error.hidden { display: none; }
+
+.om-done { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+
+.om-done-score {
+  font-family: var(--display);
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--navy);
+  font-variant-numeric: tabular-nums;
+}
+
+.om-done-band { font-size: 13.5px; color: var(--slate); }
+
+@media (max-width: 560px) {
+  .om-scale { flex-direction: column; gap: 5px; }
+  .om-option { text-align: left; padding: 11px 14px; }
+}

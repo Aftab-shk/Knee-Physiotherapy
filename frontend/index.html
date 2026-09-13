@@ -8,6 +8,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="assets/theme.css">
+  <!-- Sets .js-motion before first paint; see the file header for why it is not deferred. -->
+  <script src="assets/motion.js"></script>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#132733">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <style>
 
     html {
@@ -445,12 +452,6 @@
       text-align: center;
       position: relative;
       z-index: 1;
-      transition: transform .2s, box-shadow .2s;
-    }
-
-    .step:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 40px rgba(var(--navy-rgb), .08);
     }
 
     .step-num {
@@ -469,10 +470,16 @@
       border: 4px solid var(--off-white);
     }
 
+    /* Inline SVG rather than an emoji. An emoji is drawn by whatever font
+       the reader's OS supplies — 🩻 is a purple blob on one platform and a
+       flat glyph on another — and it cannot take a brand colour. These take
+       --teal and one stroke weight, so the row reads as one set. */
     .step-icon {
-      font-size: 28px;
-      margin-bottom: 12px;
+      width: 30px;
+      height: 30px;
+      margin: 0 auto 12px;
       display: block;
+      color: var(--teal);
     }
 
     .step-title {
@@ -502,9 +509,11 @@
     }
 
     .safety-icon {
-      font-size: 48px;
-      margin-bottom: 24px;
+      width: 46px;
+      height: 46px;
+      margin: 0 auto 24px;
       display: block;
+      color: var(--red);
     }
 
     .safety-title {
@@ -574,12 +583,6 @@
       border: 1px solid var(--border);
       border-radius: 14px;
       padding: 28px;
-      transition: border-color .2s, box-shadow .2s;
-    }
-
-    .feature-card:hover {
-      border-color: var(--teal);
-      box-shadow: 0 4px 24px rgba(var(--teal-rgb), .08);
     }
 
     .feature-icon {
@@ -763,18 +766,6 @@
 
     .footer-col a:hover {
       color: var(--white);
-    }
-
-    /* ── Scroll reveal ───────────────────────────────────────────────── */
-    .reveal {
-      opacity: 0;
-      transform: translateY(24px);
-      transition: opacity .6s ease, transform .6s ease;
-    }
-
-    .reveal.visible {
-      opacity: 1;
-      transform: translateY(0);
     }
 
     /* ── Responsive ──────────────────────────────────────────────────── */
@@ -976,28 +967,28 @@
     <div class="steps">
       <div class="step reveal">
         <div class="step-num">1</div>
-        <span class="step-icon">🩻</span>
+        <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/><path d="M9 9h.01"/><path d="M15 15h.01"/></svg>
         <div class="step-title">Upload your X-ray</div>
         <p class="step-desc">Photograph or scan your knee X-ray and upload it. Tell us which knee — left, right, or
           both.</p>
       </div>
       <div class="step reveal">
         <div class="step-num">2</div>
-        <span class="step-icon">📋</span>
+        <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
         <div class="step-title">Enter your surgery details</div>
         <p class="step-desc">Select your procedure type — ACL reconstruction, TKR, meniscus repair, arthroscopy, or OA
           management — and how many weeks it's been.</p>
       </div>
       <div class="step reveal">
         <div class="step-num">3</div>
-        <span class="step-icon">🎯</span>
+        <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4"/></svg>
         <div class="step-title">Get your personalised plan</div>
         <p class="step-desc">AI grades your X-ray (KL Grade 0–4) and combines it with your recovery stage to prescribe
           the right exercises — with safe angle limits for each.</p>
       </div>
       <div class="step reveal">
         <div class="step-num">4</div>
-        <span class="step-icon">📹</span>
+        <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 8-5 4 5 4V8Z"/><rect width="15" height="12" x="2" y="6" rx="2"/></svg>
         <div class="step-title">Exercise with live oversight</div>
         <p class="step-desc">The webcam tracks your knee angle in real time. Go past your limit and the screen turns red
           with an audible alarm — instantly.</p>
@@ -1008,7 +999,7 @@
   <!-- ── Safety callout ────────────────────────────────────────────────────── -->
   <section class="safety-callout" id="safety">
     <div class="safety-callout-inner reveal">
-      <span class="safety-icon">🔴</span>
+      <svg class="safety-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
       <h2 class="safety-title">
         The moment you exceed the safe limit —<br>
         your screen turns <span class="red-word">red</span> and the alarm sounds.
@@ -1048,22 +1039,6 @@
       nav.classList.toggle('solid', window.scrollY > 60);
     });
 
-    // Scroll reveal with IntersectionObserver
-    const reveals = document.querySelectorAll('.reveal');
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry, i) => {
-        if (entry.isIntersecting) {
-          // Stagger delay for siblings
-          const siblings = Array.from(entry.target.parentElement.querySelectorAll('.reveal'));
-          const idx = siblings.indexOf(entry.target);
-          entry.target.style.transitionDelay = `${idx * 80}ms`;
-          entry.target.classList.add('visible');
-          observer.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.12 });
-    reveals.forEach(el => observer.observe(el));
-
     // Animate gauge reading number to match needle
     const gaugeNum = document.getElementById('gauge-num');
     let angle = 0;
@@ -1092,6 +1067,18 @@
       requestAnimationFrame(step);
     }
     animateGauge();
+  </script>
+  <script>
+    // Installable, and able to open without a connection. The worker caches the
+    // app shell only — never an API response, because a cached prescription is
+    // a cached movement ceiling. See sw.js.
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {
+          // An app that works is more important than one that works offline.
+        });
+      });
+    }
   </script>
 </body>
 

@@ -54,4 +54,112 @@
   --mono:    'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
   --display: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
   --body:    'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+
+  /* ── Motion ────────────────────────────────────────────────────────────
+     One rhythm for the whole product. Before these existed each page timed
+     its own hovers, so a card on upload.html settled at a different speed
+     than the same card on progress.html. Durations are paired with an
+     easing: things arriving decelerate, things leaving accelerate and run
+     shorter, which is what makes a dismissal feel responsive rather than
+     sluggish. */
+  --ease-out:    cubic-bezier(.22, .61, .36, 1);    /* arriving  */
+  --ease-in:     cubic-bezier(.55, .06, .68, .19);  /* leaving   */
+  --ease-spring: cubic-bezier(.34, 1.4, .64, 1);    /* press/pop */
+  --t-fast:  140ms;  /* press feedback, colour change   */
+  --t-base:  240ms;  /* hover, card lift                */
+  --t-slow:  420ms;  /* scroll reveal, panel enter      */
+
+  /* Skeleton greys. Same two values the progress charts have always used —
+     named here so the shimmer can be shared instead of re-declared. */
+  --skeleton-base:  #eef2f5;
+  --skeleton-sheen: #f6f9fa;
+}
+
+/* ── Scroll reveal ───────────────────────────────────────────────────────
+   Hidden only once assets/motion.js has confirmed it can bring the element
+   back: the .js-motion gate means a JS failure, or a reader who asked for
+   reduced motion, leaves every section plainly visible instead of blank.
+   The 16px offset keeps this reading as a fade rather than a slide. */
+.js-motion .reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity var(--t-slow) var(--ease-out),
+              transform var(--t-slow) var(--ease-out);
+  will-change: opacity, transform;
+}
+
+.js-motion .reveal.visible {
+  opacity: 1;
+  transform: none;
+  will-change: auto;
+}
+
+/* ── Card transition ─────────────────────────────────────────────────────
+   Lift on hover, settle on press. Both are transform/opacity only, so a
+   hovered card never reflows the grid around it. */
+.card-lift {
+  transition: transform var(--t-base) var(--ease-out),
+              box-shadow var(--t-base) var(--ease-out),
+              border-color var(--t-base) var(--ease-out);
+}
+
+.card-lift:hover {
+  transform: translateY(-4px);
+  border-color: var(--teal);
+  box-shadow: 0 12px 32px rgba(var(--navy-rgb), .10);
+}
+
+.card-lift:active {
+  transform: translateY(-1px) scale(.995);
+  transition-duration: var(--t-fast);
+}
+
+/* ── Loading ─────────────────────────────────────────────────────────────
+   share.html asked for a .spinner that no stylesheet defined, so its
+   loading state rendered an empty div. Defined once here, it serves that
+   page and the upload wizard. */
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border);
+  border-top-color: var(--teal);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* A skeleton reserves the height its content will take, so the page does
+   not jump when the real thing arrives. */
+.skeleton {
+  border-radius: 12px;
+  background: linear-gradient(100deg,
+              var(--skeleton-base)  30%,
+              var(--skeleton-sheen) 50%,
+              var(--skeleton-base)  70%);
+  background-size: 200% 100%;
+  animation: shimmer 1.3s linear infinite;
+}
+
+@keyframes shimmer {
+  to { background-position: -200% 0; }
+}
+
+/* ── Reduced motion ──────────────────────────────────────────────────────
+   Honoured product-wide. motion.js additionally skips the reveal gate, so
+   content here is not merely un-animated but never hidden in the first
+   place. Kept to one frame rather than zero so anything that waits on
+   transitionend still fires. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -8,6 +8,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="assets/theme.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#132733">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <style>
     /* Dark-surface overrides. login.html sits on the navy ground, so the
        light --border from assets/theme.css would be invisible on it. */
@@ -307,9 +312,23 @@
       transform: translateY(0);
     }
 
+    /* The button is already a centred flex row with an 8px gap, so the
+       spinner can simply be another flex child — it sits to the left of
+       "Logging in…" instead of over it, and the label stays readable. */
     .btn-login.loading {
       opacity: .7;
       pointer-events: none;
+    }
+
+    .btn-login.loading::before {
+      content: '';
+      width: 15px;
+      height: 15px;
+      border: 2px solid rgba(255, 255, 255, .35);
+      border-top-color: var(--white);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;  /* keyframes: assets/theme.css */
+      flex: none;
     }
 
     .divider {
@@ -677,7 +696,13 @@
 
         // Navigate immediately. A "redirecting…" toast that delays the redirect
         // creates the wait it announces — the destination page is the feedback.
-        window.location.href = 'upload.html';
+        //
+        // Signing in lands on the dashboard, not straight into an upload. A
+        // returning patient opens this app to see how the knee is doing far more
+        // often than to grade a new X-ray, and the dashboard carries the upload
+        // button anyway. The guest route below still goes direct — a guest has no
+        // account, so the dashboard would only bounce them back here.
+        window.location.href = 'progress.html';
 
       } catch (err) {
         loginBtn.classList.remove('loading');
@@ -712,6 +737,18 @@
         showToast(`Signed in as ${patient.display_name || patient.email}`, 3500);
       }
     }).catch(() => { /* backend unreachable; the form still works */ });
+  </script>
+  <script>
+    // Installable, and able to open without a connection. The worker caches the
+    // app shell only — never an API response, because a cached prescription is
+    // a cached movement ceiling. See sw.js.
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {
+          // An app that works is more important than one that works offline.
+        });
+      });
+    }
   </script>
 </body>
 
