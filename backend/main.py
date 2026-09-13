@@ -31,13 +31,15 @@ from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from datetime import date, timedelta, timezone
 from itertools import pairwise
+from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 from urllib.parse import quote
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse, Response
+from fastapi.responses import FileResponse, RedirectResponse, Response
+from fastapi.staticfiles import StaticFiles
 from model.image_checks import validate_image
 from model.prosthesis import detect_hardware
 from sqlalchemy import select
@@ -146,6 +148,35 @@ if TYPE_CHECKING:  # pragma: no cover - typing only
 classifier: "Optional[KneeClassifier]" = None
 
 
+def refuse_unsafe_production() -> None:
+    """
+    Two states that are worse than not starting at all, once ENV=production.
+
+    A generated JWT_SECRET signs every user out on each restart — and each
+    worker in the same container signs its tokens with a different key, so
+    logins fail at random rather than consistently. Demo mode returns
+    deterministic mock KL grades through the same fields, with the same shape,
+    as a real reading: nobody looking at the app can tell the difference.
+
+    Both are warnings in development, where they are the point. In production
+    they are a refusal — the failure is silent otherwise, and the thing being
+    got wrong is a clinical number.
+    """
+    if os.getenv("ENV", "").lower() not in ("production", "prod"):
+        return
+    problems = []
+    if auth.JWT_SECRET_IS_EPHEMERAL:
+        problems.append("JWT_SECRET is not set")
+    if classifier is None:
+        problems.append("no classifier — torch is not installed")
+    elif classifier.demo_mode:
+        problems.append(
+            "no usable checkpoint: demo mode returns mock grades that look like readings"
+        )
+    if problems:
+        raise RuntimeError("Refusing to start with ENV=production — " + "; ".join(problems))
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global classifier
@@ -168,6 +199,7 @@ async def lifespan(app: FastAPI):
             "Install it with: pip install torch torchvision "
             "--index-url https://download.pytorch.org/whl/cpu"
         )
+        refuse_unsafe_production()
         yield
         logger.info("Shutting down AI Knee Physiotherapy backend.")
         return
@@ -191,6 +223,7 @@ async def lifespan(app: FastAPI):
             classifier.calibration["calibrated"],
             classifier.calibration["reject_threshold"] is not None,
         )
+    refuse_unsafe_production()
     yield
     logger.info("Shutting down AI Knee Physiotherapy backend.")
 
@@ -220,6 +253,17 @@ if "null" in CORS_ORIGINS or "*" in CORS_ORIGINS:
         "sandboxed iframe or file:// page to call this API.",
         "null" if "null" in CORS_ORIGINS else "*",
     )
+
+# Where the frontend lives, when this process is the thing serving it.
+#
+# Serving the pages from the API makes them same-origin, which removes three
+# separate deployment failures at once: a CORS allow-list that has to be kept in
+# step with the site's hostname, config.js guessing at an API port from the
+# page's hostname, and the browser blocking that guess as mixed content when the
+# page is https and the guess was http. Unset (or pointed elsewhere) in
+# development, where a separate static server holds the pages.
+_frontend_dir = Path(os.getenv("FRONTEND_DIR", Path(__file__).resolve().parent.parent / "frontend"))
+FRONTEND_DIR = _frontend_dir if (_frontend_dir / "index.html").is_file() else None
 
 # Request-size ceiling, enforced while streaming rather than after buffering.
 MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", str(10 * 1024 * 1024)))
@@ -2668,7 +2712,9 @@ def clinician_summary_pdf(
 
 @app.get("/", include_in_schema=False)
 async def root():
-    """Redirect root to interactive API docs."""
+    """The app when its pages are bundled here, the API docs when they are not."""
+    if FRONTEND_DIR is not None:
+        return FileResponse(FRONTEND_DIR / "index.html")
     return RedirectResponse(url="/docs")
 
 
@@ -3063,6 +3109,18 @@ def _save_prescription(db: Session, patient: Patient, prescription: dict) -> Opt
         logger.exception("Could not save the prescription for patient %s", patient.id)
         db.rollback()
         return None
+
+
+# ---------------------------------------------------------------------------
+# The frontend
+# ---------------------------------------------------------------------------
+
+# Registered last, deliberately: a mount at "/" matches by prefix and would
+# shadow every route declared after it. Everything above wins, and only what no
+# endpoint claimed falls through to a file on disk.
+if FRONTEND_DIR is not None:
+    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+    logger.info("Serving the frontend from %s", FRONTEND_DIR)
 
 
 # ---------------------------------------------------------------------------

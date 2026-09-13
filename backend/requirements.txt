@@ -17,6 +17,10 @@ python-dotenv==1.0.1
 # >=2.0.43: earlier releases crash resolving `Mapped[str | None]` on
 # Python 3.13+, which is what a current dev machine will have.
 SQLAlchemy==2.0.52
+# The Postgres driver for the DATABASE_URL a deployment actually uses
+# (postgresql+psycopg://…). SQLAlchemy does not ship one, so without this the
+# app starts fine on SQLite in development and dies at import in production.
+psycopg[binary]==3.2.3
 PyJWT==2.10.1
 argon2-cffi==23.1.0
 email-validator==2.2.0

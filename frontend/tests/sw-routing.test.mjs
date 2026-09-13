@@ -57,8 +57,24 @@ test("a same-origin API call is never served from cache", () => {
     "/clinician/patients",
     "/share/sometoken",
     "/health",
+    "/outcome-measures/koos-ps",
+    "/docs",
+    "/openapi.json",
   ]) {
     assert.equal(route(ORIGIN + path), "network-only", path);
+  }
+});
+
+test("every prefix the backend routes is in the network-only list", () => {
+  // The API serves these pages itself now, so same-origin is the normal case
+  // and the origin check no longer catches anything. A route added to main.py
+  // and forgotten here would be cached like a stylesheet — which for
+  // /me/prescriptions means a superseded movement ceiling, served offline with
+  // nothing to say it is out of date.
+  const main = readFileSync(new URL("../../backend/main.py", import.meta.url), "utf8");
+  const prefixes = new Set([...main.matchAll(/"\/([a-z0-9-]+)/g)].map((m) => m[1]));
+  for (const prefix of prefixes) {
+    assert.equal(route(ORIGIN + "/" + prefix), "network-only", "/" + prefix);
   }
 });
 

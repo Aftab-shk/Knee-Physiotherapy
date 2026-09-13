@@ -48,7 +48,7 @@ Open `http://localhost:8000/docs` for the interactive Swagger UI.
 
 ```bash
 # Build
-docker build -t physio-backend .
+docker build -t physio-backend ..   # context is the repo root: the image serves frontend/ too
 
 # Run (demo mode — no weights)
 docker run -p 8000:8000 physio-backend

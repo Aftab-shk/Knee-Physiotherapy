@@ -58,6 +58,11 @@ def _load_secret() -> str:
 
 JWT_SECRET = _load_secret()
 
+# True when the key above was generated rather than configured. main.py refuses
+# to start with ENV=production in that state — a warning in a log nobody reads
+# is not enough when the symptom is everyone being signed out on each deploy.
+JWT_SECRET_IS_EPHEMERAL = not os.getenv("JWT_SECRET", "").strip()
+
 
 # ---------------------------------------------------------------------------
 # Passwords

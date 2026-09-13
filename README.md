@@ -59,10 +59,9 @@ knee-physiotherapy/
 │   ├── kl_constants.py            KL grade tables — single source of truth, torch-free
 │   ├── tests/                     pytest — clinical logic, tracker, calibration, API
 │   ├── requirements.txt
-│   ├── Dockerfile
-│   ├── .dockerignore
 │   └── README.md                  Backend-specific docs
 │
+├── Dockerfile                     one image: API + pages, built from this directory
 ├── .github/workflows/ci.yml       lint + tests + large-file guard
 ├── ruff.toml                      lint config
 │
@@ -129,6 +128,9 @@ for local development:
 | `MAX_UPLOAD_BYTES` | `10485760` | Upload ceiling, enforced while streaming |
 | `RATE_LIMIT_REQUESTS` / `RATE_LIMIT_WINDOW_S` | `20` / `60` | Per-IP sliding window |
 | `SUMMARY_PDF_FONT` | *unset — Helvetica* | TTF for the summary PDF. Set it to serve names outside Latin-1 |
+| `ENV` | *unset* | Set to `production` and the server refuses to start without `JWT_SECRET` and real weights |
+| `FRONTEND_DIR` | `frontend/` beside `backend/` | Pages served by the API itself, same-origin. Unset it to serve them elsewhere |
+| `TRUST_PROXY` | *unset* | Take the client IP from `X-Forwarded-For`. Set it only behind a proxy you control |
 
 The database file is created on first start and is git-ignored — it holds real
 patient rows and password hashes.

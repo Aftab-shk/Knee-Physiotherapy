@@ -20,7 +20,7 @@
 
 // Bump on every deploy. Old caches are deleted on activate, which is what makes
 // a stale build impossible rather than merely unlikely.
-const CACHE = 'physioai-shell-v2';
+const CACHE = 'physioai-shell-v3';
 
 const SHELL = [
   './',
@@ -84,9 +84,11 @@ function routeFor(request, selfOrigin) {
   // change; the CDN because a wasm model is not ours to version.
   if (url.origin !== selfOrigin) return 'network-only';
 
-  // A same-origin API call (the backend deployed behind the same host) must not
-  // be cached either. Matching on the paths the backend actually serves.
-  if (/^\/(analyse-xray|exercises|sessions|share|auth|me|clinician|health)\b/.test(url.pathname)) {
+  // A same-origin API call must not be cached either — and since the API now
+  // serves these pages itself, same-origin is the normal case rather than the
+  // exception. This list is every prefix main.py routes; a new one added there
+  // and forgotten here becomes a cached clinical value.
+  if (/^\/(analyse-xray|exercises|outcome-measures|sessions|share|auth|me|clinician|health|docs|openapi\.json)\b/.test(url.pathname)) {
     return 'network-only';
   }
 
