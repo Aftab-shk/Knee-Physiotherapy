@@ -349,30 +349,42 @@
 
     /* Needle animation */
     @keyframes sweep {
+      /* One flexion rep, told in the dial's own units. The needle rests
+         pointing right, which is 0° here, so rotate(-X°) reads X°. Keeping
+         the keyframes in real angles is what lets the readout be derived
+         from them instead of re-declared alongside them. */
       0% {
-        transform: rotate(-90deg);
+        transform: rotate(-5deg);
       }
 
-      40% {
-        transform: rotate(-15deg);
+      /* bending */
+      28% {
+        transform: rotate(-58deg);
       }
 
-      55% {
-        transform: rotate(-15deg);
+      /* approaching the ceiling */
+      44% {
+        transform: rotate(-80deg);
       }
 
-      65% {
-        transform: rotate(5deg);
+      /* past it — this is the moment the product exists to catch */
+      56% {
+        transform: rotate(-97deg);
       }
 
-      /* slightly past limit — triggers "alert" */
-      75% {
-        transform: rotate(-15deg);
+      /* held long enough to actually be read */
+      68% {
+        transform: rotate(-97deg);
       }
 
-      /* corrects */
+      /* corrected back under the limit */
+      82% {
+        transform: rotate(-68deg);
+      }
+
+      /* returns to the start so the loop is seamless */
       100% {
-        transform: rotate(-15deg);
+        transform: rotate(-5deg);
       }
     }
 
@@ -902,7 +914,7 @@
       <div class="gauge-card">
         <div class="gauge-label">Live Angle Monitor</div>
 
-        <svg class="gauge-svg" viewBox="0 0 300 175" xmlns="http://www.w3.org/2000/svg">
+        <svg class="gauge-svg" viewBox="0 0 300 186" xmlns="http://www.w3.org/2000/svg">
           <!-- Background arc -->
           <path d="M 20 160 A 130 130 0 0 1 280 160" fill="none" stroke="var(--navy-mid)" stroke-width="22"
             stroke-linecap="round" />
@@ -922,10 +934,10 @@
           <text x="20" y="178" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11"
             fill="rgba(255,255,255,0.4)">180°</text>
           <text x="150" y="52" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11"
-            fill="rgba(var(--teal-rgb),0.8)">90°</text>
+            fill="rgba(255,255,255,0.75)" font-weight="600">90°</text>
           <!-- Needle (animated) -->
           <g class="needle-group">
-            <line x1="150" y1="160" x2="268" y2="116" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+            <line x1="150" y1="160" x2="268" y2="160" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
             <circle cx="150" cy="160" r="7" fill="#ffffff" />
             <circle cx="150" cy="160" r="4" fill="var(--teal)" />
           </g>
@@ -1039,34 +1051,43 @@
       nav.classList.toggle('solid', window.scrollY > 60);
     });
 
-    // Animate gauge reading number to match needle
+    // The needle is the single source of truth for the reading.
+    //
+    // This was previously two independent animations: a CSS keyframe sweep on
+    // the needle, and a JS timeline that re-declared the same numbers and
+    // claimed in a comment to mirror it. They did not. Measured across one
+    // cycle they disagreed by up to 61°, moved in opposite directions for part
+    // of it, and at 3.5s the needle sat at 100° — past the limit marker, in
+    // the red band — while the readout said 67° in white. On the page whose
+    // job is to demonstrate the limit, the graphic contradicted the feature.
+    //
+    // The number is now read back off the needle's own transform each frame,
+    // so the two cannot drift: there is one animation, and the readout only
+    // describes it. The keyframes can be re-timed freely without touching this.
     const gaugeNum = document.getElementById('gauge-num');
-    let angle = 0;
-    const targets = [67, 67, 67, 88, 92, 67, 67]; // mirrors the CSS animation keyframes
-    const durations = [0, 1600, 2200, 2600, 3000, 3400, 4000];
-    function animateGauge() {
-      const totalDur = 4000;
-      let start = null;
-      function step(ts) {
-        if (!start) start = ts;
-        const elapsed = (ts - start) % totalDur;
-        let currentAngle = 67;
-        for (let i = durations.length - 1; i >= 0; i--) {
-          if (elapsed >= durations[i]) {
-            const nextIdx = Math.min(i + 1, targets.length - 1);
-            const progress = (elapsed - durations[i]) / Math.max(1, durations[nextIdx] - durations[i]);
-            currentAngle = Math.round(targets[i] + (targets[nextIdx] - targets[i]) * Math.min(progress, 1));
-            break;
-          }
+    const needleEl = document.querySelector('.needle-group');
+    const GAUGE_LIMIT = 90;   // matches the X-RAY LIMIT tick and the badge
+
+    if (gaugeNum && needleEl) {
+      let shown = null;
+      const readNeedle = () => {
+        const t = getComputedStyle(needleEl).transform;
+        // Identity until the animation's first frame lands, and under a
+        // reduced-motion override that collapses it.
+        const m = (t && t !== 'none') ? new DOMMatrix(t) : new DOMMatrix();
+        // The needle rests pointing right — 0° on this dial — so a
+        // counter-clockwise (negative) rotation is the angle itself.
+        const deg = Math.max(0, Math.round(-Math.atan2(m.b, m.a) * 180 / Math.PI));
+
+        if (deg !== shown) {
+          shown = deg;
+          gaugeNum.textContent = deg + '°';
+          gaugeNum.style.color = deg >= GAUGE_LIMIT ? '#fca5a5' : '#ffffff';
         }
-        gaugeNum.textContent = currentAngle + '°';
-        // Change color if over limit
-        gaugeNum.style.color = currentAngle >= 90 ? '#fca5a5' : '#ffffff';
-        requestAnimationFrame(step);
-      }
-      requestAnimationFrame(step);
+        requestAnimationFrame(readNeedle);
+      };
+      requestAnimationFrame(readNeedle);
     }
-    animateGauge();
   </script>
   <script>
     // Installable, and able to open without a connection. The worker caches the
