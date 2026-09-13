@@ -56,3 +56,14 @@ desktop.ini
 
 # ── Docker ────────────────────────────────────────────────────────────────
 *.log
+# Playwright CLI output (may contain credentials)
+.playwright-cli/
+# Local browser-driver config (fake camera device for testing tracker.html).
+.playwright/
+
+# ── Agent skills ─────────────────────────────────────────────────────────
+# Vendored third-party skill packs (ui-ux-pro-max, apple-design and friends):
+# ~257 files of someone else's reference material, re-installable on demand and
+# not this project's source. Only skills/ is ignored — if project-level Claude
+# settings or commands are added later they belong in the repo, shared.
+.claude/skills/

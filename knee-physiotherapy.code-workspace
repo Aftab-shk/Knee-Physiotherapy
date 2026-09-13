@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../models/best_model"
+		}
+	],
+	"settings": {}
+}
