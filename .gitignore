@@ -67,3 +67,11 @@ desktop.ini
 # not this project's source. Only skills/ is ignored — if project-level Claude
 # settings or commands are added later they belong in the repo, shared.
 .claude/skills/
+
+# The skills CLI (`npx skills add ...`) unpacks the real files here and
+# symlinks .claude/skills/ at them. Same call as above: vendored content, not
+# our source. skills-lock.json is deliberately NOT ignored - it pins each
+# skill's origin and content hash, so `npx skills install` reproduces this set
+# from a clean clone. Lockfile tracked, payload ignored, as with any other
+# dependency.
+.agents/skills/
