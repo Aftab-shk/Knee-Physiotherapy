@@ -63,6 +63,32 @@ class ConfidenceBand(str, Enum):
     high     = "high"
 
 
+class SidePrescription(BaseModel):
+    """
+    One knee's own reading and its own exercise limits.
+
+    Present only for a bilateral analysis. Two knees can differ by two KL grades
+    and 45° of permitted flexion, and holding one to the other's limit is either
+    unsafe or pointlessly restrictive depending on which way round it is.
+    """
+
+    knee_side:           KneeSide
+    kl_grade:            int
+    health_score:        int
+    max_angle:           int
+    confidence:          float
+    confidence_band:     ConfidenceBand
+    calibrated:          bool = False
+    grade_probabilities: List[float] = Field(default_factory=lambda: [0.0] * 5)
+    within_one_grade:    float = 0.0
+    kl_applicable:       bool = True
+    hardware_suspected:  bool = False
+    ood_suspected:       bool = False
+    explanation:         Optional[str] = None
+    exercise_list:       List[Exercise] = Field(default_factory=list)
+    excluded_exercises:  List[ExcludedExercise] = Field(default_factory=list)
+
+
 class AnalyseXrayResponse(BaseModel):
     kl_grade:          int            = Field(..., ge=0, le=4,     description="KL Grade 0–4")
     health_score:      int            = Field(..., ge=0, le=100,   description="Joint health score 0–100")
@@ -86,6 +112,62 @@ class AnalyseXrayResponse(BaseModel):
     disclaimer:        str            = Field(..., description="Clinical disclaimer")
     model_version:     str
     demo_mode:         bool           = False
+    bilateral:         bool           = Field(
+        False,
+        description="True when two X-rays were assessed. See `sides` for each knee.",
+    )
+    sides:             List[SidePrescription] = Field(
+        default_factory=list,
+        description=(
+            "One entry per knee, each with its own grade and ceiling. Empty for a "
+            "single-knee analysis. The flat fields above carry the MORE RESTRICTIVE "
+            "side, so a client that ignores this still gets a safe answer."
+        ),
+    )
+    grade_probabilities: List[float] = Field(
+        default_factory=lambda: [0.0] * 5,
+        description=(
+            "Calibrated probability for each KL grade 0-4, in order. The model was trained "
+            "with an ordinal loss, so mass beside the winner is the model saying the answer "
+            "is nearby rather than noise — and the difference between grade 2 and grade 3 is "
+            "30° of permitted flexion."
+        ),
+    )
+    within_one_grade:  float          = Field(
+        0.0,
+        ge=0.0, le=1.0,
+        description=(
+            "Probability mass at the chosen grade or either neighbour. The checkpoint scores "
+            "70.3% exact and 95.3% within one grade, so this is the figure that describes the "
+            "reading at the scale the ceiling actually moves."
+        ),
+    )
+    explanation:       Optional[str]  = Field(
+        None,
+        description=(
+            "Grad-CAM overlay as a data: URI, when `explain` was requested and a real "
+            "model produced one. Shows where the model was looking — not why it decided, "
+            "but enough to see whether it was reading the joint or the corner of the film. "
+            "Null in demo mode, or if the overlay could not be produced."
+        ),
+    )
+    kl_applicable:     bool           = Field(
+        True,
+        description=(
+            "False when the joint has been replaced. The KL grade is still reported — it is "
+            "what the model said — but it set nothing: a grade measures wear on a native "
+            "joint surface, and a resurfaced one no longer has that. The limits come from "
+            "the surgical protocol instead."
+        ),
+    )
+    hardware_suspected: bool          = Field(
+        False,
+        description=(
+            "The image looks like it may contain a joint replacement that was not declared. "
+            "A heuristic, not a classifier: it warns and never loosens a restriction."
+        ),
+    )
+    hardware_note:     Optional[str]  = None
     status:            str            = Field(
         "draft",
         description=(
@@ -336,6 +418,165 @@ class SessionHistory(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Patient-reported outcome measures
+# ---------------------------------------------------------------------------
+#
+# The scoring, the item wording and every threshold live in outcome_measures.py.
+# These are only the shapes they travel in.
+
+
+class OutcomeInstrumentName(str, Enum):
+    koos_jr = "koos_jr"
+
+
+class OutcomeOption(BaseModel):
+    value: int
+    label: str
+
+
+class OutcomeItem(BaseModel):
+    code:    str = Field(..., description="The item's identifier in the full KOOS, e.g. 'P5'")
+    section: str = Field(..., description="Pain, Stiffness or Function")
+    lead_in: str = Field(..., description="The question stem, which several items share")
+    prompt:  str = Field(..., description="The activity being rated")
+
+
+class OutcomeInstrument(BaseModel):
+    """
+    The questionnaire itself, served so the form has one source of truth.
+
+    A frontend that hard-codes its own copy of the items is a frontend that
+    drifts, and a KOOS-JR whose wording has been edited is not a KOOS-JR — it is
+    a bespoke survey whose scores only look comparable to everyone else's.
+    """
+
+    instrument:       OutcomeInstrumentName
+    name:             str
+    full_name:        str
+    citation:         str
+    recall_period:    str
+    min_score:        int
+    max_score:        int
+    higher_is_better: bool
+    score_meaning:    str
+    mcid:             float = Field(..., description="Change a patient would notice, in points")
+    mdc:              float = Field(..., description="Smallest change the instrument can reliably detect")
+    min_interval_days: int
+    due_after_days:    int
+    response_options: List[OutcomeOption]
+    items:            List[OutcomeItem]
+    caveat: Optional[str] = Field(
+        None,
+        description=(
+            "Set when the instrument is a poor fit for this patient's operation — "
+            "KOOS-JR asks nothing about sport or pivoting, so it misses most of what "
+            "matters after an ACL reconstruction."
+        ),
+    )
+
+
+class OutcomeScoreCreate(BaseModel):
+    """
+    One completed questionnaire.
+
+    All seven answers or none. KOOS-JR has no published rule for a missing item,
+    and averaging the six that were answered produces a number indistinguishable
+    from a real score that is not one.
+    """
+
+    instrument: OutcomeInstrumentName = OutcomeInstrumentName.koos_jr
+    knee_side:  KneeSide = KneeSide.right
+    responses:  List[int] = Field(
+        ...,
+        min_length=7, max_length=7,
+        description="The seven answers in item order, each 0 (none) to 4 (extreme).",
+    )
+
+
+class OutcomeChange(BaseModel):
+    """
+    The move from the previous score to this one — the part that carries meaning.
+
+    A patient at 58 who was at 41 a month ago and a patient at 58 who was at 72
+    are in opposite situations, and only one of them needs a phone call.
+    """
+
+    delta:      Optional[float] = None
+    direction:  str = Field(..., description="'first' | 'improved' | 'declined' | 'unchanged'")
+    meaningful: bool = Field(
+        ..., description="True when the change is at least the MCID — large enough to be felt"
+    )
+    summary:    str
+
+
+class OutcomeScoreOut(BaseModel):
+    id:             str
+    instrument:     OutcomeInstrumentName
+    knee_side:      str
+    recorded_at:    datetime
+    weeks_post_op:  Optional[int] = None
+    raw_sum:        int = Field(..., description="Sum of the seven answers, 0-28, where higher is worse")
+    interval_score: float = Field(
+        ..., description="The Rasch-calibrated 0-100 score, where higher is better"
+    )
+    band:           str
+    band_text:      str
+    responses:      List[int] = Field(default_factory=list)
+    # Against the previous score for the SAME knee. Absent on a bare list where
+    # no comparison was computed.
+    change:         Optional[OutcomeChange] = None
+
+
+class OutcomeSchedule(BaseModel):
+    """Whether it is worth asking again, and when it next will be."""
+
+    due:         bool
+    can_record:  bool = Field(
+        ..., description="False inside the minimum interval, when another answer would only add noise"
+    )
+    next_due_at: datetime
+    days_since:  Optional[int] = None
+    reason:      str
+
+
+class OutcomePoint(BaseModel):
+    date:           date
+    interval_score: float
+    raw_sum:        int
+    weeks_post_op:  Optional[int] = None
+
+
+class OutcomeSeries(BaseModel):
+    """
+    One knee's scores over time.
+
+    Per side for the same reason range of motion is per exercise: KOOS-JR asks
+    about "your knee", singular, and someone with two bad knees has two different
+    answers. Averaging them hides exactly the difference worth seeing.
+    """
+
+    instrument:    OutcomeInstrumentName
+    knee_side:     str
+    count:         int
+    baseline:      float = Field(..., description="The first score recorded for this knee")
+    latest:        float
+    best:          float
+    latest_at:     datetime
+    band:          str
+    band_text:     str
+    change_from_previous: OutcomeChange
+    change_from_baseline: OutcomeChange
+    points:        List[OutcomePoint]
+
+
+class OutcomeHistory(BaseModel):
+    instrument: OutcomeInstrumentName
+    schedule:   OutcomeSchedule
+    count:      int
+    scores:     List[OutcomeScoreOut]
+
+
+# ---------------------------------------------------------------------------
 # Progress
 # ---------------------------------------------------------------------------
 
@@ -368,6 +609,14 @@ class ProgressSummary(BaseModel):
             "square-on to the camera reads far lower than it really is."
         ),
     )
+    # The patient's own verdict, which is the one figure here that nothing else
+    # on the page can substitute for. Taken from the knee with the most recent
+    # questionnaire; `outcome_measures` below carries each side in full.
+    latest_outcome_score: Optional[float] = Field(
+        None, description="Most recent KOOS-JR interval score, 0-100, where higher is better"
+    )
+    outcome_band:         Optional[str]   = None
+    outcome_recorded_at:  Optional[datetime] = None
 
 
 class RomPoint(BaseModel):
@@ -443,6 +692,11 @@ class ProgressResponse(BaseModel):
     pain_trend:      List[PainPoint]
     adherence:       List[AdherenceDay]
     by_exercise:     List[ExerciseBreakdown]
+    # One entry per knee assessed. Deliberately NOT clipped to `range_days`: a
+    # questionnaire answered monthly has three or four points in ninety days, and
+    # the baseline it is all measured against is usually older than the window.
+    # A trend that dropped its own starting point would be worse than no trend.
+    outcome_measures: List[OutcomeSeries] = Field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -644,6 +898,16 @@ class CaseloadEntry(BaseModel):
     latest_flexion_deg:  Optional[float] = None
     latest_pain_after:   Optional[int] = None
     breaches_last_7_days: int = 0
+
+    # The patient's own verdict on the knee, and which way it has moved. On the
+    # caseload rather than one click in, because a score that has fallen since
+    # last month is the single best reason to open a record — and it is invisible
+    # in adherence, which often looks fine right up until someone gives up.
+    latest_outcome_score: Optional[float] = None
+    outcome_recorded_at:  Optional[datetime] = None
+    outcome_change:       Optional[float] = Field(
+        None, description="Points moved since the previous questionnaire; negative is worse"
+    )
 
     # Why this patient might need looking at, worst first. Carried on the
     # caseload so a clinician can sort by it rather than opening thirty records

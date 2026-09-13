@@ -97,8 +97,34 @@ def test_credentials_are_disabled():
 
 def test_methods_and_headers_are_not_wildcarded():
     cors = next(m for m in main.app.user_middleware if "CORS" in str(m))
-    assert cors.kwargs["allow_methods"] == ["GET", "POST", "OPTIONS"]
+    assert "*" not in cors.kwargs["allow_methods"]
     assert "*" not in cors.kwargs["allow_headers"]
+
+
+def test_every_routed_method_survives_a_preflight():
+    """
+    Derived from the routing table rather than written out by hand.
+
+    The hand-written list is what went wrong before: it said GET, POST, OPTIONS
+    while the app routed PATCH and DELETE too, so recording a surgery date,
+    revoking a share link and withdrawing a clinician's access all failed the
+    browser's preflight — and every one of them still passed from curl, which is
+    how it survived a full test suite. Deriving the expectation means the next
+    PATCH or PUT endpoint fails here until CORS is told about it.
+    """
+    cors = next(m for m in main.app.user_middleware if "CORS" in str(m))
+    allowed = {m.upper() for m in cors.kwargs["allow_methods"]}
+
+    routed = {
+        method.upper()
+        for route in main.app.routes
+        for method in getattr(route, "methods", None) or ()
+        # HEAD rides along with GET, and Starlette never asks CORS about it.
+        if method.upper() != "HEAD"
+    }
+
+    missing = routed - allowed
+    assert not missing, f"routed but blocked by CORS preflight: {sorted(missing)}"
 
 
 def test_allowed_origin_gets_cors_header(client):

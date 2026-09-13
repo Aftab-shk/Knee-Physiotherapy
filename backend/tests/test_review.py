@@ -359,6 +359,27 @@ def test_the_patients_history_says_whether_it_was_reviewed(client, linked, presc
     assert row["reviewed_at"] is not None
 
 
+def test_the_patients_history_carries_the_ceiling_they_must_follow(client, linked, prescription):
+    """
+    The stored column is what the model read off the X-ray. Once a clinician has
+    lowered it, that is the number the patient is held to — and this list is what
+    their own screens read, so it must not still be quoting the model.
+    """
+    pat, clin = linked
+    lowered = prescription["max_angle"] - 25
+    review(client, clin, prescription["prescription_id"], ceiling=lowered)
+
+    row = client.get("/me/prescriptions", headers=bearer(pat)).json()["prescriptions"][0]
+    assert row["max_angle"] == lowered, "the patient's history must show the approved ceiling"
+
+
+def test_an_unreviewed_history_row_still_shows_the_models_ceiling(client, linked, prescription):
+    """Nobody has changed it, so the model's number is the one in force."""
+    pat, _ = linked
+    row = client.get("/me/prescriptions", headers=bearer(pat)).json()["prescriptions"][0]
+    assert row["max_angle"] == prescription["max_angle"]
+
+
 def test_the_original_draft_is_never_rewritten(client, linked, prescription):
     """The point of an audit trail is that the original is still there."""
     _, clin = linked

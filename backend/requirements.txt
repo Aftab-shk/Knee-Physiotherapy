@@ -25,5 +25,13 @@ email-validator==2.2.0
 # and deployment take the same path and cannot drift. See backend/migrations/.
 alembic==1.14.0
 
+# The appointment summary PDF. Pure Python, no system libraries — which is why
+# it is here and not WeasyPrint, whose Cairo/Pango stack would roughly double
+# the image for one endpoint.
+reportlab==5.0.1
+
 # dev only — `python -m pytest backend/tests -q`
 pytest==8.2.0
+# Reads the generated PDF back as text, so the summary tests assert what a
+# reader sees rather than what the drawing code was asked to draw.
+pypdf==6.17.0

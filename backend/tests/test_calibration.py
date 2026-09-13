@@ -249,7 +249,10 @@ def test_model_version_is_derived_from_the_checkpoint():
 def _prescription(**kw):
     base = {
         "kl_grade": 2, "health_score": 60, "max_angle": 90, "confidence": 0.82,
-        "demo_mode": False, "knee_side": "left", "surgery_type": "tkr",
+        # ACL, not TKR: these tests are about how confidence in the KL grade is
+        # worded, and a replaced joint does not use the grade at all — its
+        # rationale says so instead. See test_prosthesis_gate.py.
+        "demo_mode": False, "knee_side": "left", "surgery_type": "acl",
         "weeks_post_op": 3, "model_version": "test",
     }
     base.update(kw)

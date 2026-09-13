@@ -249,6 +249,27 @@ class KneeClassifier:
         kl_grade = self.idx_to_grade[pred_idx]
         confidence = float(probs[pred_idx])
 
+        # The whole distribution, keyed by KL grade rather than model index —
+        # the two are not the same, and a checkpoint is free to order its classes
+        # however it was trained.
+        #
+        # Worth surfacing because the model was trained with an ordinal loss: the
+        # mass next to the winner is not noise, it is the model saying the answer
+        # is nearby. "Probably 2, possibly 3" is both truer and more useful than
+        # "Grade 2, moderate confidence", especially where the difference between
+        # 2 and 3 is a 30-degree difference in what someone is allowed to bend to.
+        by_grade = {self.idx_to_grade[i]: float(probs[i]) for i in range(len(probs))}
+        grade_probabilities = [round(by_grade.get(g, 0.0), 4) for g in range(5)]
+
+        # How much probability sits within one grade of the winner. The
+        # checkpoint reports 95.3% within-one-grade accuracy against 70.3%
+        # exact, so this is the number that actually describes how confident the
+        # reading is at the scale the ceiling changes.
+        neighbourhood = sum(
+            grade_probabilities[g] for g in (kl_grade - 1, kl_grade, kl_grade + 1)
+            if 0 <= g <= 4
+        )
+
         warn_t = self.calibration["warn_threshold"]
         reject_t = self.calibration["reject_threshold"]
 
@@ -258,6 +279,8 @@ class KneeClassifier:
             "max_angle":         KL_MAX_ANGLE[kl_grade],
             "confidence":        round(confidence, 3),
             "confidence_band":   confidence_band(confidence),
+            "grade_probabilities": grade_probabilities,
+            "within_one_grade":  round(neighbourhood, 3),
             "calibrated":        self.calibration["calibrated"],
             "energy":            round(energy, 3),
             "ood_suspected":     warn_t is not None and energy > warn_t,
@@ -282,12 +305,31 @@ class KneeClassifier:
         # Confidence varies 0.62–0.88 based on digest
         confidence = 0.62 + (digest % 27) / 100.0
 
+        # A distribution shaped like a real one — mass on the winner, the rest
+        # spilling onto its neighbours as an ordinal model's would — so the
+        # frontend has something correctly shaped to draw. It is arithmetic on a
+        # hash, not a probability, which is why `calibrated` stays false and the
+        # UI leads with the demo banner.
+        remainder = 1.0 - confidence
+        weights = [1.0 / (1 + 2 * abs(g - kl_grade)) if g != kl_grade else 0.0 for g in range(5)]
+        total = sum(weights) or 1.0
+        grade_probabilities = [
+            round(confidence if g == kl_grade else remainder * weights[g] / total, 4)
+            for g in range(5)
+        ]
+        neighbourhood = sum(
+            grade_probabilities[g] for g in (kl_grade - 1, kl_grade, kl_grade + 1)
+            if 0 <= g <= 4
+        )
+
         return {
             "kl_grade":        kl_grade,
             "health_score":    KL_HEALTH_SCORE[kl_grade],
             "max_angle":       KL_MAX_ANGLE[kl_grade],
             "confidence":      round(confidence, 3),
             "confidence_band": confidence_band(confidence),
+            "grade_probabilities": grade_probabilities,
+            "within_one_grade":  round(neighbourhood, 3),
             # Demo confidence is a hash, not a probability. Never claim it is
             # calibrated, and never claim an OOD screen ran.
             "calibrated":      False,

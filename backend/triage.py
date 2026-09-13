@@ -25,6 +25,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+import outcome_measures
+
 # ---------------------------------------------------------------------------
 # Thresholds
 # ---------------------------------------------------------------------------
@@ -54,6 +56,12 @@ LAPSE_PRIOR_SESSIONS = 3     # …after having been this active beforehand
 
 # A draft nobody has looked at.
 UNREVIEWED_DAYS = 3
+
+# The patient's own verdict going backwards, in KOOS-JR points. Not a number
+# chosen here: it is the instrument's published MCID, the fall a patient can
+# actually feel, aliased so the two cannot drift apart.
+OUTCOME_DROP_POINTS = outcome_measures.MCID
+OUTCOME_MIN_SCORES = 2   # a baseline and something to compare it against
 
 
 URGENT = "urgent"
@@ -87,10 +95,10 @@ def _peak(session) -> Optional[float]:
     return max((s.peak_flexion_deg for s in session.sets), default=None)
 
 
-def evaluate(sessions, prescriptions=(), now: Optional[datetime] = None) -> list[Flag]:
+def evaluate(sessions, prescriptions=(), outcome_scores=(), now: Optional[datetime] = None) -> list[Flag]:
     """
-    Assess one patient. `sessions` and `prescriptions` are ORM rows or anything
-    with the same attributes; nothing here touches a database.
+    Assess one patient. The three sequences are ORM rows or anything with the
+    same attributes; nothing here touches a database.
 
     Returned worst-first, so a caseload can sort on the head of the list.
     """
@@ -171,6 +179,51 @@ def evaluate(sessions, prescriptions=(), now: Optional[datetime] = None) -> list
                 "ask your physiotherapist to review it rather than working through the alarm."
             ),
             evidence={"breach_count": breach_count, "breach_seconds": round(breach_seconds, 1)},
+        ))
+
+    # ── The patient's own verdict going backwards ────────────────────────────
+    # This one does not come from anything the app measured. A knee can be
+    # bending further every week, every set finished, and still be getting worse
+    # to live with — and that is precisely the case nothing else here can see.
+    #
+    # Measured against the best score so far rather than the previous one. A
+    # slide of nine points per questionnaire never trips a previous-to-latest
+    # comparison, and someone who has gone 71 → 62 → 53 is the patient this rule
+    # exists for. Per knee, because KOOS-JR asks about one.
+    by_side: dict = {}
+    for row in sorted(outcome_scores, key=lambda s: _utc(s.recorded_at)):
+        by_side.setdefault(row.knee_side, []).append(row)
+
+    for side, scores in by_side.items():
+        if len(scores) < OUTCOME_MIN_SCORES:
+            continue
+        latest = scores[-1]
+        best = max(scores[:-1], key=lambda s: s.interval_score)
+        drop = best.interval_score - latest.interval_score
+        if drop < OUTCOME_DROP_POINTS:
+            continue
+
+        weeks = max(1, (_utc(latest.recorded_at) - _utc(best.recorded_at)).days // 7)
+        which = "" if len(by_side) == 1 else f"{side} knee: "
+        flags.append(Flag(
+            code="outcome_declining", severity=WARNING,
+            summary=(
+                f"{which}KOOS-JR down {drop:.0f} points "
+                f"({best.interval_score:.0f} → {latest.interval_score:.0f}) over {weeks} "
+                f"week{'s' if weeks != 1 else ''}."
+            ),
+            patient_message=(
+                "Your answers about how the knee feels day to day have got worse since you "
+                "last filled the questionnaire in. That is worth mentioning at your next "
+                "appointment, even if the exercises themselves are going well."
+            ),
+            evidence={
+                "knee_side":    side,
+                "best_score":   round(best.interval_score, 1),
+                "latest_score": round(latest.interval_score, 1),
+                "drop_points":  round(drop, 1),
+                "weeks_apart":  weeks,
+            },
         ))
 
     # ── Stopped ──────────────────────────────────────────────────────────────

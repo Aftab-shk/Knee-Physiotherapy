@@ -83,5 +83,6 @@ ignore = [
 [lint.isort]
 known-first-party = [
     "auth", "clinical_logic", "db", "exercise_protocols",
-    "kl_constants", "main", "models", "schemas", "triage",
+    "kl_constants", "main", "models", "outcome_measures", "schemas",
+    "summary_pdf", "triage",
 ]

@@ -17,31 +17,38 @@ Environment variables:
 """
 
 import asyncio
+import base64
 import hashlib
 import json
 import logging
 import os
+import re
 import secrets
 import time
+import unicodedata
 import uuid
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from datetime import date, timedelta, timezone
 from itertools import pairwise
 from typing import TYPE_CHECKING, Optional
+from urllib.parse import quote
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from model.image_checks import validate_image
+from model.prosthesis import detect_hardware
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import auth
+import outcome_measures
+import summary_pdf
 import triage
-from clinical_logic import build_prescription, get_exercises_only
+from clinical_logic import build_prescription, get_exercises_only, merge_bilateral
 from db import get_db, init_db
 from exercise_protocols import all_exercises
 from models import (
@@ -49,6 +56,7 @@ from models import (
     Clinician,
     ExerciseSession,
     ExerciseSet,
+    OutcomeScore,
     Patient,
     Prescription,
     PrescriptionAudit,
@@ -75,6 +83,14 @@ from schemas import (
     InviteOut,
     KneeSide,
     LoginRequest,
+    OutcomeChange,
+    OutcomeHistory,
+    OutcomeInstrument,
+    OutcomePoint,
+    OutcomeSchedule,
+    OutcomeScoreCreate,
+    OutcomeScoreOut,
+    OutcomeSeries,
     PainPoint,
     PatientFlag,
     PatientFlags,
@@ -83,6 +99,7 @@ from schemas import (
     PrescriptionDetail,
     PrescriptionEffective,
     PrescriptionHistory,
+    PrescriptionSummary,
     PrescriptionSummaryForClinician,
     ProgressResponse,
     ProgressSummary,
@@ -235,7 +252,12 @@ app.add_middleware(
     # credentials off means a stolen origin cannot ride a browser session, and
     # it removes the "null" origin footgun entirely.
     allow_credentials = False,
-    allow_methods     = ["GET", "POST", "OPTIONS"],
+    # PATCH and DELETE are not optional extras here: without them the browser
+    # refuses the preflight, and recording a surgery date, revoking a share link,
+    # withdrawing a clinician's access and discharging a patient all fail from
+    # the frontend while working perfectly from curl. Every method this API
+    # actually routes has to appear, or the endpoint may as well not exist.
+    allow_methods     = ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     # Authorization carries the bearer token from POST /auth/login. It is not
     # a "credential" in the CORS sense — no cookie rides along — so
     # allow_credentials stays off and the "null" origin footgun stays shut.
@@ -601,7 +623,33 @@ def my_prescriptions(
         .order_by(Prescription.created_at.desc())
         .limit(limit)
     ).all()
-    return PrescriptionHistory(count=len(rows), prescriptions=list(rows))
+    # Built field by field rather than validated straight off the ORM row, for
+    # one reason: `max_angle` on the row is what the MODEL read off the X-ray,
+    # and a clinician who lowered it afterwards is the number the patient must
+    # actually follow. That override lives in the payload, so reading the column
+    # would show this patient a ceiling nobody approved — the same mistake the
+    # service worker refuses to make by never caching an API response.
+    return PrescriptionHistory(
+        count = len(rows),
+        prescriptions = [
+            PrescriptionSummary(
+                id            = r.id,
+                created_at    = r.created_at,
+                kl_grade      = r.kl_grade,
+                health_score  = r.health_score,
+                max_angle     = json.loads(r.effective_payload).get("max_angle", r.max_angle),
+                knee_side     = r.knee_side,
+                surgery_type  = r.surgery_type,
+                weeks_post_op = r.weeks_post_op,
+                rehab_phase   = r.rehab_phase,
+                model_version = r.model_version,
+                demo_mode     = r.demo_mode,
+                status        = r.status,
+                reviewed_at   = r.reviewed_at,
+            )
+            for r in rows
+        ],
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -779,6 +827,252 @@ def my_sessions(
         .limit(limit)
     ).all()
     return SessionHistory(count=len(rows), sessions=list(rows))
+
+
+# ---------------------------------------------------------------------------
+# Patient-reported outcome measures
+# ---------------------------------------------------------------------------
+#
+# Every other number in this API is something the app measured. This is the one
+# the patient supplies, and it is the only one that answers the question they
+# came with — whether the knee is actually getting better to live with. A joint
+# that flexes to 120° and hurts on every stair is not a success, and no amount of
+# goniometry says so.
+#
+# Two rules, both of which the endpoints below enforce rather than assume:
+#
+# 1. It changes nothing clinical on its own. A score never moves an exercise
+#    ceiling. That number comes from the radiograph and the surgical protocol,
+#    and a questionnaire is not evidence about what a joint can withstand. What a
+#    falling score does is put a patient in front of a human — see triage.py.
+#
+# 2. It is never a gate. Nothing is withheld from someone who does not want to
+#    answer seven questions, and there is no reminder that cannot be ignored.
+
+def _score_out(row: OutcomeScore, previous: Optional[float] = None) -> OutcomeScoreOut:
+    label, text = outcome_measures.band(row.interval_score)
+    return OutcomeScoreOut(
+        id             = row.id,
+        instrument     = row.instrument,
+        knee_side      = row.knee_side,
+        recorded_at    = row.recorded_at,
+        weeks_post_op  = row.weeks_post_op,
+        raw_sum        = row.raw_sum,
+        interval_score = row.interval_score,
+        band           = label,
+        band_text      = text,
+        responses      = json.loads(row.responses),
+        change         = OutcomeChange(**outcome_measures.change(row.interval_score, previous)),
+    )
+
+
+def _outcome_rows(db: Session, patient: Patient) -> list[OutcomeScore]:
+    """
+    Every questionnaire this patient has completed, oldest first.
+
+    Not clipped to a date range, unlike the session queries. A questionnaire
+    answered monthly produces three or four points in ninety days, and the
+    baseline they are all read against is usually older than the window — a
+    trend that dropped its own starting point would be worse than no trend. The
+    table is a few rows per patient per year; there is nothing to save here.
+    """
+    return list(db.scalars(
+        select(OutcomeScore)
+        .where(OutcomeScore.patient_id == patient.id)
+        .order_by(OutcomeScore.recorded_at)
+    ).all())
+
+
+def _outcome_series(rows: list[OutcomeScore], tz_offset_minutes: int) -> list[OutcomeSeries]:
+    """
+    One series per knee.
+
+    Per side for the same reason range of motion is per exercise: KOOS-JR asks
+    about "your knee", singular. Someone with two bad knees has two different
+    answers, and averaging them hides the difference worth seeing.
+    """
+    by_side: dict = defaultdict(list)
+    for row in rows:
+        by_side[row.knee_side].append(row)
+
+    series = []
+    for side, side_rows in by_side.items():
+        latest = side_rows[-1]
+        baseline = side_rows[0]
+        label, text = outcome_measures.band(latest.interval_score)
+
+        series.append(OutcomeSeries(
+            instrument = latest.instrument,
+            knee_side  = side,
+            count      = len(side_rows),
+            baseline   = round(baseline.interval_score, 1),
+            latest     = round(latest.interval_score, 1),
+            best       = round(max(r.interval_score for r in side_rows), 1),
+            latest_at  = latest.recorded_at,
+            band       = label,
+            band_text  = text,
+            change_from_previous = OutcomeChange(**outcome_measures.change(
+                latest.interval_score,
+                side_rows[-2].interval_score if len(side_rows) > 1 else None,
+            )),
+            # With one score, baseline and latest are the same row, so this
+            # reports "first" rather than a change of zero — which would read as
+            # "no progress" for someone who has only just started.
+            change_from_baseline = OutcomeChange(**outcome_measures.change(
+                latest.interval_score,
+                baseline.interval_score if len(side_rows) > 1 else None,
+            )),
+            points = [
+                OutcomePoint(
+                    date           = _local_date(r.recorded_at, tz_offset_minutes),
+                    interval_score = round(r.interval_score, 1),
+                    raw_sum        = r.raw_sum,
+                    weeks_post_op  = r.weeks_post_op,
+                )
+                for r in side_rows
+            ],
+        ))
+
+    # Most-answered first, matching how the range-of-motion series are ordered:
+    # the one with the most history is the one worth charting by default.
+    series.sort(key=lambda s: (-s.count, s.knee_side))
+    return series
+
+
+@app.get(
+    "/outcome-measures",
+    response_model = OutcomeInstrument,
+    summary        = "The KOOS-JR questionnaire, as it should be asked",
+    tags           = ["outcomes"],
+)
+def outcome_instrument(
+    patient: Optional[Patient] = Depends(auth.optional_patient),
+) -> OutcomeInstrument:
+    """
+    Serves the item wording, so the form has one source of truth.
+
+    A frontend holding its own copy of the questions is a frontend that drifts,
+    and a KOOS-JR whose items have been reworded is not a KOOS-JR — it is a
+    bespoke survey whose scores only look comparable to everyone else's.
+
+    Open without a token: the questionnaire is not private, and login.html has a
+    guest route. Signing in only adds the applicability caveat, which needs to
+    know what operation the patient had.
+    """
+    return OutcomeInstrument(**outcome_measures.definition(
+        surgery_type = patient.surgery_type if patient else None,
+    ))
+
+
+@app.post(
+    "/me/outcome-scores",
+    response_model = OutcomeScoreOut,
+    status_code    = status.HTTP_201_CREATED,
+    summary        = "Record a completed questionnaire",
+    tags           = ["outcomes"],
+)
+def record_outcome_score(
+    body: OutcomeScoreCreate,
+    patient: Patient = Depends(auth.current_patient),
+    db: Session = Depends(get_db),
+) -> OutcomeScoreOut:
+    """
+    Score the seven answers and keep both them and the result.
+
+    The minimum interval is enforced here rather than left to the UI. Answered
+    weekly, KOOS-JR becomes a mood reading — genuine week-to-week movement is
+    smaller than the instrument can detect — and a chart of that noise would
+    invite exactly the conclusions it cannot support.
+    """
+    try:
+        scored = outcome_measures.score(body.responses, body.instrument.value)
+    except ValueError as err:
+        # The schema already bounds the list length and the integer range, so
+        # this is the belt-and-braces path: outcome_measures is the authority on
+        # what a valid response set is, and it says so in its own words.
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(err))
+
+    # Same knee only. Two knees are two questionnaires, and one answered today
+    # must not suppress the other.
+    previous = db.scalar(
+        select(OutcomeScore)
+        .where(
+            OutcomeScore.patient_id == patient.id,
+            OutcomeScore.instrument == body.instrument.value,
+            OutcomeScore.knee_side == body.knee_side.value,
+        )
+        .order_by(OutcomeScore.recorded_at.desc())
+    )
+
+    plan = outcome_measures.schedule(previous.recorded_at if previous else None)
+    if not plan["can_record"]:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=plan["reason"])
+
+    row = OutcomeScore(
+        patient_id     = patient.id,
+        instrument     = scored["instrument"],
+        knee_side      = body.knee_side.value,
+        responses      = json.dumps(list(body.responses)),
+        raw_sum        = scored["raw_sum"],
+        interval_score = scored["interval_score"],
+        # Frozen, not derived on read: a patient who corrects their surgery date
+        # a year from now must not retroactively move every questionnaire they
+        # have answered to a different point in their recovery.
+        weeks_post_op  = patient.weeks_post_op,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+
+    logger.info(
+        "Outcome score | patient=%s instrument=%s side=%s raw=%d score=%.1f (%s)",
+        patient.id, row.instrument, row.knee_side, row.raw_sum, row.interval_score, scored["band"],
+    )
+    return _score_out(row, previous.interval_score if previous else None)
+
+
+@app.get(
+    "/me/outcome-scores",
+    response_model = OutcomeHistory,
+    summary        = "Your questionnaire scores, and whether another is due",
+    tags           = ["outcomes"],
+)
+def my_outcome_scores(
+    knee_side: Optional[KneeSide] = Query(
+        None, description="Limit to one knee. Omit for every score on record."
+    ),
+    patient: Patient = Depends(auth.current_patient),
+    db: Session = Depends(get_db),
+) -> OutcomeHistory:
+    """
+    Newest first, each carrying the change from the one before it.
+
+    `schedule` is the part the UI acts on: it says whether to offer the
+    questionnaire, and if not, why not in words a patient can read.
+    """
+    rows = _outcome_rows(db, patient)
+    if knee_side is not None:
+        rows = [r for r in rows if r.knee_side == knee_side.value]
+
+    # Against the previous score for the SAME knee — a right-knee questionnaire
+    # says nothing about the left.
+    previous_by_side: dict = {}
+    with_change: list[OutcomeScoreOut] = []
+    for row in rows:
+        with_change.append(_score_out(row, previous_by_side.get(row.knee_side)))
+        previous_by_side[row.knee_side] = row.interval_score
+
+    return OutcomeHistory(
+        instrument = outcome_measures.KOOS_JR,
+        # Follows whatever was asked for: filtered to one knee it is that knee's
+        # schedule, unfiltered it is the most recent answer for any of them. The
+        # POST is per knee, so a bilateral patient asks per knee here too.
+        schedule   = OutcomeSchedule(**outcome_measures.schedule(
+            rows[-1].recorded_at if rows else None
+        )),
+        count      = len(with_change),
+        scores     = list(reversed(with_change)),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -971,6 +1265,13 @@ def build_progress(
     rom_by_exercise.sort(key=lambda r: (-r.days_measured, r.exercise_name))
     primary = rom_by_exercise[0] if rom_by_exercise else None
 
+    # What the patient says, alongside what the app measured. Deliberately whole
+    # history rather than the selected range — see _outcome_rows.
+    outcomes = _outcome_series(_outcome_rows(db, patient), tz_offset_minutes)
+    # The headline figure follows the most recently answered knee, not the
+    # longest series: "how is it now" is a question about the latest answer.
+    newest_outcome = max(outcomes, key=lambda s: s.latest_at) if outcomes else None
+
     return ProgressResponse(
         range_days        = days,
         tz_offset_minutes = tz_offset_minutes,
@@ -989,6 +1290,9 @@ def build_progress(
             mean_pain_change    = round(sum(pain_changes) / len(pain_changes), 1) if pain_changes else None,
             sessions_with_pain  = sum(v["sessions"] for v in pain_by_day.values()),
             unverified_sessions = unverified,
+            latest_outcome_score = newest_outcome.latest if newest_outcome else None,
+            outcome_band         = newest_outcome.band if newest_outcome else None,
+            outcome_recorded_at  = newest_outcome.latest_at if newest_outcome else None,
         ),
         pain_trend = pain_trend,
         rom_by_exercise = rom_by_exercise,
@@ -1009,6 +1313,7 @@ def build_progress(
             # Most-practised first: that is the order a clinician scans.
             for name, v in sorted(by_exercise.items(), key=lambda kv: (-kv[1]["sessions"], kv[0]))
         ],
+        outcome_measures = outcomes,
     )
 
 
@@ -1560,6 +1865,44 @@ def caseload(
             if peak is not None:
                 entry["flexion"] = round(peak, 1)
 
+    # The patient's own verdict, and which way it has moved. One query for the
+    # whole caseload rather than one per patient, for the same reason the
+    # sessions above are fetched in one go.
+    outcome_rows = db.scalars(
+        select(OutcomeScore)
+        .where(OutcomeScore.patient_id.in_(patient_ids))
+        .order_by(OutcomeScore.recorded_at)
+    ).all()
+
+    # Grouped by knee so a right-knee score is only ever compared against the
+    # previous right-knee score. Rows arrive oldest-first, so each list's last
+    # entry is that knee's latest.
+    outcome_by_patient: dict = defaultdict(lambda: defaultdict(list))
+    for row in outcome_rows:
+        outcome_by_patient[row.patient_id][row.knee_side].append(row)
+
+    def outcome_columns(patient_id: str) -> dict:
+        """
+        The caseload's three outcome fields for one patient.
+
+        Reports the knee answered most recently rather than the longest series:
+        on a list a clinician is scanning, "how is it now" is a question about
+        the latest answer, whichever side it came from.
+        """
+        by_side = outcome_by_patient.get(patient_id)
+        if not by_side:
+            return {"latest_outcome_score": None, "outcome_recorded_at": None, "outcome_change": None}
+
+        rows = max(by_side.values(), key=lambda r: _as_utc(r[-1].recorded_at))
+        return {
+            "latest_outcome_score": round(rows[-1].interval_score, 1),
+            "outcome_recorded_at":  rows[-1].recorded_at,
+            "outcome_change": (
+                round(rows[-1].interval_score - rows[-2].interval_score, 1)
+                if len(rows) > 1 else None
+            ),
+        }
+
     # Assessed per patient rather than in one pass: the rules need each
     # patient's whole recent history, and a caseload is tens of people, not
     # thousands.
@@ -1583,6 +1926,7 @@ def caseload(
                 latest_flexion_deg   = by_patient[link.patient_id]["flexion"],
                 latest_pain_after    = by_patient[link.patient_id]["pain"],
                 breaches_last_7_days = by_patient[link.patient_id]["breaches"],
+                **outcome_columns(link.patient_id),
                 flags = [
                     FlagOut(code=f.code, severity=f.severity, summary=f.summary, evidence=f.evidence)
                     for f in flags_by_patient[link.patient_id]
@@ -1616,7 +1960,10 @@ def _evaluate_patient(db: Session, patient: Patient) -> list:
             Prescription.created_at >= since,
         )
     ).all()
-    return triage.evaluate(sessions, prescriptions)
+    # Outcome scores are exempt from the window on purpose. They are answered
+    # every few weeks, so a 29-day slice would routinely hold one — and a rule
+    # comparing a score against the best one before it needs both of them.
+    return triage.evaluate(sessions, prescriptions, _outcome_rows(db, patient))
 
 
 def _linked_patient(db: Session, clinician: Clinician, patient_id: str) -> Patient:
@@ -1788,6 +2135,44 @@ def patient_flags(
         flags = [FlagOut(code=f.code, severity=f.severity, summary=f.summary, evidence=f.evidence)
                  for f in flags],
         worst = triage.worst_severity(flags),
+    )
+
+
+@app.get(
+    "/clinician/patients/{patient_id}/outcome-scores",
+    response_model = OutcomeHistory,
+    summary        = "A patient's questionnaire scores",
+    tags           = ["review"],
+)
+def patient_outcome_scores(
+    patient_id: str,
+    clinician: Clinician = Depends(auth.current_clinician),
+    db: Session = Depends(get_db),
+) -> OutcomeHistory:
+    """
+    Read-only, exactly like every other clinician view of a patient's record.
+
+    A clinician cannot answer the questionnaire on the patient's behalf. The
+    whole value of a PROM is whose report it is, and a score filled in by
+    somebody else is not a patient-reported outcome — it is an opinion wearing
+    a registry-comparable number.
+    """
+    patient = _linked_patient(db, clinician, patient_id)
+    rows = _outcome_rows(db, patient)
+
+    previous_by_side: dict = {}
+    with_change: list[OutcomeScoreOut] = []
+    for row in rows:
+        with_change.append(_score_out(row, previous_by_side.get(row.knee_side)))
+        previous_by_side[row.knee_side] = row.interval_score
+
+    return OutcomeHistory(
+        instrument = outcome_measures.KOOS_JR,
+        schedule   = OutcomeSchedule(**outcome_measures.schedule(
+            rows[-1].recorded_at if rows else None
+        )),
+        count      = len(with_change),
+        scores     = list(reversed(with_change)),
     )
 
 
@@ -2010,6 +2395,274 @@ def review_prescription(
 
 
 # ---------------------------------------------------------------------------
+# Appointment summary PDF
+# ---------------------------------------------------------------------------
+#
+# The offline half of the share link. A link works when the physiotherapist has
+# a screen and a spare hand; a great many appointments have neither, and the
+# patient arrives with a phone on 4% and no signal. This is the sheet they print
+# the night before.
+#
+# Everything on it already exists — build_progress, the triage rules, the
+# prescription in force. The only new decisions are what to leave out, since it
+# has to fit on one page, and who is allowed to see a name.
+#
+# Which flags to print is the one judgement worth writing down. The patient's own
+# list is used, not the clinician's: the two differ only in that the clinician's
+# includes workflow findings like "this draft has been sitting unread for three
+# days", and an unreviewed plan is already stated at the foot of the page,
+# straight from the prescription rather than from a rule with a timeout in it.
+
+# Deliberately ASCII-only by construction. A display name is user input on its
+# way into a response header, and a header is exactly where a stray newline
+# stops being cosmetic.
+_FILENAME_STRIP = re.compile(r"[^A-Za-z0-9]+")
+
+
+def _summary_filename(name: Optional[str], when: date) -> str:
+    ascii_name = (
+        unicodedata.normalize("NFKD", name or "").encode("ascii", "ignore").decode("ascii")
+    )
+    slug = _FILENAME_STRIP.sub("-", ascii_name).strip("-").lower()[:40].strip("-")
+    return f"physio-summary-{slug}-{when:%Y-%m-%d}.pdf" if slug else f"physio-summary-{when:%Y-%m-%d}.pdf"
+
+
+def _pdf_response(pdf: bytes, name: Optional[str], when: date) -> Response:
+    """
+    Attach the PDF under a filename that says whose it is and when it was made.
+
+    Two filenames, per RFC 6266: an ASCII one every client understands, and a
+    percent-encoded UTF-8 one for those that do. The second is worth the four
+    lines — it is the only part of this feature that can carry a name the
+    embedded font has no glyphs for.
+    """
+    filename = _summary_filename(name, when)
+    disposition = f'attachment; filename="{filename}"'
+    if name:
+        # Percent-encoding already makes this inert as a header — a newline
+        # arrives as %0D%0A and stays there. Control characters are stripped
+        # anyway so that what the browser *decodes* is a sane filename rather
+        # than a smuggled header the user has to look at in a save dialog.
+        clean = "".join(ch for ch in name if ch.isprintable())
+        encoded = quote(f"physio-summary-{clean}-{when:%Y-%m-%d}.pdf", safe="")
+        disposition += f"; filename*=UTF-8''{encoded}"
+
+    return Response(
+        content    = pdf,
+        media_type = "application/pdf",
+        headers    = {
+            "Content-Disposition": disposition,
+            # It contains somebody's clinical history; it should not sit in a
+            # shared cache or a proxy on the way back.
+            "Cache-Control": "private, no-store",
+        },
+    )
+
+
+def _current_plan(db: Session, patient: Patient) -> Optional[Prescription]:
+    return db.scalar(
+        select(Prescription)
+        .where(Prescription.patient_id == patient.id)
+        .order_by(Prescription.created_at.desc())
+        .limit(1)
+    )
+
+
+def _summary_data(
+    db: Session,
+    patient: Patient,
+    progress: ProgressResponse,
+    *,
+    patient_name: Optional[str],
+) -> summary_pdf.SummaryData:
+    """
+    Assemble the sheet from what the app already knows.
+
+    `patient_name` is passed in rather than read off the patient, because who is
+    allowed to see a name differs by route: a share link discloses only what its
+    own JSON view does, and never an email address.
+    """
+    plan = _current_plan(db, patient)
+    ceiling = None
+    if plan is not None:
+        try:
+            ceiling = json.loads(plan.effective_payload).get("max_angle")
+        except (ValueError, AttributeError):
+            # A payload that will not parse is a broken row, not a reason to
+            # refuse the download; the sheet simply shows no ceiling.
+            logger.warning("Prescription %s has an unreadable payload", plan.id)
+
+    flags = [f for f in _evaluate_patient(db, patient) if f.patient_message]
+
+    return summary_pdf.SummaryData(
+        generated_at  = progress.generated_at,
+        range_days    = progress.range_days,
+        patient_name  = patient_name,
+        surgery_type  = patient.surgery_type,
+        surgery_date  = patient.surgery_date,
+        weeks_post_op = patient.weeks_post_op,
+        knee_side     = plan.knee_side if plan else None,
+
+        ceiling_deg   = ceiling,
+        has_plan      = plan is not None,
+        plan_reviewed = bool(plan and plan.reviewed_at),
+        reviewed_by   = (plan.reviewed_by.display_name or plan.reviewed_by.email)
+                        if plan and plan.reviewed_by else None,
+        reviewed_at   = plan.reviewed_at if plan else None,
+        demo_mode     = bool(plan and plan.demo_mode),
+
+        sessions            = progress.summary.sessions,
+        active_days         = progress.summary.active_days,
+        current_streak_days = progress.summary.current_streak_days,
+        longest_streak_days = progress.summary.longest_streak_days,
+        unverified_sessions = progress.summary.unverified_sessions,
+
+        latest_pain_after = progress.summary.latest_pain_after,
+        mean_pain_change  = progress.summary.mean_pain_change,
+
+        rom = [
+            summary_pdf.RomRow(
+                exercise      = series.exercise_name,
+                best_deg      = series.best_deg,
+                latest_deg    = series.latest_deg,
+                angle_limit   = series.angle_limit,
+                days_measured = series.days_measured,
+                points        = [(p.date, p.peak_flexion_deg, p.angle_limit) for p in series.points],
+            )
+            for series in progress.rom_by_exercise
+        ],
+        flags = [summary_pdf.FlagRow(severity=f.severity, summary=f.summary) for f in flags],
+        outcomes = [
+            summary_pdf.OutcomeRow(
+                instrument  = outcome_measures.display_name(series.instrument),
+                knee_side   = series.knee_side,
+                latest      = series.latest,
+                baseline    = series.baseline,
+                band        = series.band_text,
+                change_note = series.change_from_baseline.summary,
+                recorded_on = series.points[-1].date,
+            )
+            for series in progress.outcome_measures
+        ],
+        # KOOS-JR was validated in osteoarthritis and joint replacement. Printing
+        # a score from it after an ACL reconstruction without saying what it does
+        # not ask about would be the sheet overstating its own evidence.
+        outcome_caveat = outcome_measures.applicability_caveat(patient.surgery_type),
+    )
+
+
+def _render_summary(
+    db: Session,
+    patient: Patient,
+    days: int,
+    tz_offset_minutes: int,
+    patient_name: Optional[str],
+) -> Response:
+    progress = build_progress(db, patient, days, tz_offset_minutes)
+    data = _summary_data(db, patient, progress, patient_name=patient_name)
+    return _pdf_response(summary_pdf.render(data), patient_name, progress.generated_at.date())
+
+
+@app.get(
+    "/me/summary.pdf",
+    summary        = "One-page summary to bring to an appointment",
+    tags           = ["sessions"],
+    response_class = Response,
+    responses      = {200: {"content": {"application/pdf": {}}, "description": "The summary"}},
+)
+def my_summary_pdf(
+    days: int = Query(90, ge=1, le=365),
+    tz_offset_minutes: int = Query(0, ge=-840, le=840),
+    patient: Patient = Depends(auth.current_patient),
+    db: Session = Depends(get_db),
+) -> Response:
+    """
+    The patient's own copy.
+
+    Falls back to the email address when no display name is set: this route is
+    reachable only by the account holder, it is their own document, and a summary
+    sheet with nobody's name on it is no use in a waiting room.
+    """
+    return _render_summary(
+        db, patient, days, tz_offset_minutes,
+        patient.display_name or patient.email,
+    )
+
+
+@app.get(
+    "/share/{token}/summary.pdf",
+    summary        = "Download a shared summary (no account needed)",
+    tags           = ["sharing"],
+    response_class = Response,
+    responses      = {200: {"content": {"application/pdf": {}}, "description": "The summary"}},
+)
+def shared_summary_pdf(
+    token: str,
+    days: int = Query(90, ge=1, le=365),
+    tz_offset_minutes: int = Query(0, ge=-840, le=840),
+    db: Session = Depends(get_db),
+    _rate_limited: None = Depends(enforce_rate_limit),
+) -> Response:
+    """
+    The same sheet, for whoever holds the link — so a clinician who opened it can
+    put a copy in the patient's file.
+
+    Discloses exactly what the shared JSON view does, which is a display name or
+    nothing at all. Never the email address: the link is a bearer token, and
+    handing an account identifier to anyone who finds it is how a read-only link
+    turns into the start of an attack on the account.
+
+    The same flat 404 as the JSON view, for the same reason.
+    """
+    link = db.scalar(select(ShareLink).where(ShareLink.token_hash == _hash_share_token(token)))
+    if link is None or not link.is_active:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail      = "This link is not valid. It may have expired or been withdrawn.",
+        )
+
+    link.access_count += 1
+    link.last_accessed_at = models_utcnow()
+    db.commit()
+
+    return _render_summary(db, link.patient, days, tz_offset_minutes, link.patient.display_name)
+
+
+@app.get(
+    "/clinician/patients/{patient_id}/summary.pdf",
+    summary        = "A patient's one-page summary",
+    tags           = ["clinicians"],
+    response_class = Response,
+    responses      = {200: {"content": {"application/pdf": {}}, "description": "The summary"}},
+)
+def clinician_summary_pdf(
+    patient_id: str,
+    days: int = Query(90, ge=1, le=365),
+    tz_offset_minutes: int = Query(0, ge=-840, le=840),
+    clinician: Clinician = Depends(auth.current_clinician),
+    db: Session = Depends(get_db),
+) -> Response:
+    """
+    For the paper file, or to hand back at the end of the appointment.
+
+    Names the patient the way the caseload does — display name, else the label
+    this clinician gave them — and not by email, which the caseload deliberately
+    withholds.
+    """
+    patient = _linked_patient(db, clinician, patient_id)
+    link = db.scalar(
+        select(CareLink).where(
+            CareLink.clinician_id == clinician.id,
+            CareLink.patient_id == patient.id,
+        )
+    )
+    return _render_summary(
+        db, patient, days, tz_offset_minutes,
+        patient.display_name or (link.patient_label if link else None),
+    )
+
+
+# ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
 
@@ -2017,6 +2670,20 @@ def review_prescription(
 async def root():
     """Redirect root to interactive API docs."""
     return RedirectResponse(url="/docs")
+
+
+def gradcam_explain(classifier, image_bytes: bytes):
+    """
+    Grad-CAM, imported at call time.
+
+    Same reason the classifier is: model.gradcam imports torch, and this module
+    has to stay importable without it (see the note on `classifier` above).
+    """
+    try:
+        from model.gradcam import explain
+    except ImportError:
+        return None
+    return explain(classifier, image_bytes)
 
 
 def _fallback_model_version() -> str:
@@ -2114,7 +2781,17 @@ async def analyse_xray(
     db: Session = Depends(get_db),
     image: UploadFile = File(
         ...,
-        description = "Knee X-ray image — JPEG or PNG, ≤ 10 MB.",
+        description = (
+            "Knee X-ray image — JPEG or PNG, ≤ 10 MB. When knee_side is 'both', this is "
+            "the LEFT knee and image_right carries the other."
+        ),
+    ),
+    image_right: Optional[UploadFile] = File(
+        None,
+        description = (
+            "The right knee's X-ray. Required when knee_side is 'both', ignored otherwise. "
+            "Two knees are graded independently — one film cannot answer for both."
+        ),
     ),
     knee_side: KneeSide = Form(
         ...,
@@ -2129,6 +2806,14 @@ async def analyse_xray(
         ge          = 0,
         le          = 520,
         description = "Weeks since surgery. Required if surgery_type is not 'none'.",
+    ),
+    explain: bool = Form(
+        False,
+        description = (
+            "Return a Grad-CAM overlay showing where the model was looking. Off by "
+            "default because it costs a backward pass — roughly doubling inference "
+            "time — and nothing should pay that by accident."
+        ),
     ),
 ) -> AnalyseXrayResponse:
 
@@ -2161,14 +2846,15 @@ async def analyse_xray(
             detail      = f"Request exceeds {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.",
         )
 
-    image_bytes = await read_capped(image, MAX_UPLOAD_BYTES)
-
-    # ── 4. Image quality check ───────────────────────────────────────────────
-    ok, quality_msg = validate_image(image_bytes)
-    if not ok:
+    # ── 4. Input logic validation ────────────────────────────────────────────
+    if knee_side == KneeSide.both and image_right is None:
         raise HTTPException(
             status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail      = quality_msg,
+            detail      = (
+                "Assessing both knees needs two X-rays: send the left knee as 'image' and "
+                "the right as 'image_right'. One film cannot be graded for both — two knees "
+                "routinely differ by two grades and 45° of permitted flexion."
+            ),
         )
 
     # ── 5. Input logic validation ────────────────────────────────────────────
@@ -2191,57 +2877,32 @@ async def analyse_xray(
     if surgery_type == SurgeryType.none:
         weeks_post_op = None
 
-    # ── 6. Model inference ───────────────────────────────────────────────────
-    try:
-        result = classifier.predict(image_bytes)
-    except Exception:
-        logger.exception("Inference failed for an uploaded image")
-        raise HTTPException(
-            status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail      = "Inference failed. Please try a different image.",
+    # ── 6. Grade each knee ───────────────────────────────────────────────────
+    # Once for one knee, twice for two. Each film is read, screened and
+    # prescribed for on its own: two knees routinely differ by two grades, and
+    # holding one to the other's ceiling is either unsafe or pointlessly
+    # restrictive depending on which way round it is.
+    if knee_side == KneeSide.both:
+        left = await _grade_one_side(
+            image, KneeSide.left, surgery_type, weeks_post_op, explain, label="Left X-ray",
         )
-
-    # ── 6b. Out-of-distribution guard ────────────────────────────────────────
-    # The classifier has five outputs and no "not a knee" class, so nothing else
-    # stops a chest X-ray or a photo of a wall returning a confident grade that
-    # then sets a movement ceiling. Inert until the checkpoint carries an energy
-    # reference (see model/inference.load_calibration).
-    if result.get("ood_reject"):
-        logger.warning(
-            "OOD reject | energy=%s exceeds the reference for this checkpoint",
-            result.get("energy"),
+        right = await _grade_one_side(
+            image_right, KneeSide.right, surgery_type, weeks_post_op, explain, label="Right X-ray",
         )
-        raise HTTPException(
-            status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail      = (
-                "This image does not look like a knee X-ray to the model, so it has not "
-                "been graded. Please check you uploaded the right file — a plain "
-                "anteroposterior (front-on) knee radiograph works best."
-            ),
+        prescription = merge_bilateral(left, right)
+    else:
+        prescription = await _grade_one_side(
+            image, knee_side, surgery_type, weeks_post_op, explain,
         )
-
-    # ── 7. Build prescription ────────────────────────────────────────────────
-    prescription = build_prescription(
-        kl_grade        = result["kl_grade"],
-        health_score    = result["health_score"],
-        max_angle       = result["max_angle"],
-        confidence      = result["confidence"],
-        confidence_band = result["confidence_band"],
-        calibrated      = result["calibrated"],
-        ood_suspected   = result["ood_suspected"],
-        demo_mode       = result["demo_mode"],
-        knee_side       = knee_side.value,
-        surgery_type    = surgery_type.value,
-        weeks_post_op   = weeks_post_op,
-        model_version   = classifier.model_version,
-    )
 
     logger.info(
-        "Prescription | knee=%s surgery=%s weeks=%s%s kl=%d angle=%d° phase=%s demo=%s patient=%s",
+        "Prescription | knee=%s surgery=%s weeks=%s%s kl=%d%s angle=%d° phase=%s demo=%s patient=%s",
         knee_side.value, surgery_type.value, weeks_post_op,
         " (from surgery date)" if derived_weeks else "",
-        result["kl_grade"], result["max_angle"],
-        prescription["rehab_phase"], result["demo_mode"],
+        prescription["kl_grade"],
+        "" if prescription["kl_applicable"] else " (not applied — replaced joint)",
+        prescription["max_angle"],
+        prescription["rehab_phase"], prescription["demo_mode"],
         patient.id if patient else "guest",
     )
 
@@ -2255,6 +2916,104 @@ async def analyse_xray(
         )
 
     return AnalyseXrayResponse(**prescription)
+
+
+async def _grade_one_side(
+    upload: UploadFile,
+    knee_side: KneeSide,
+    surgery_type: SurgeryType,
+    weeks_post_op: Optional[int],
+    explain: bool,
+    label: str = "",
+) -> dict:
+    """
+    Read one X-ray and turn it into a prescription for that knee.
+
+    Everything from the quality check to the exercise list, for a single film.
+    Split out of the endpoint so a bilateral request runs it twice rather than
+    duplicating it — and so `label` can say which film a complaint is about,
+    since "image contrast is too low" is not much help when two were sent.
+    """
+    prefix = f"{label}: " if label else ""
+
+    image_bytes = await read_capped(upload, MAX_UPLOAD_BYTES)
+
+    ok, quality_msg = validate_image(image_bytes)
+    if not ok:
+        raise HTTPException(
+            status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail      = prefix + quality_msg,
+        )
+
+    try:
+        result = classifier.predict(image_bytes)
+    except Exception:
+        logger.exception("Inference failed for an uploaded image")
+        raise HTTPException(
+            status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail      = "Inference failed. Please try a different image.",
+        )
+
+    # The classifier has five outputs and no "not a knee" class, so nothing else
+    # stops a chest X-ray or a photo of a wall returning a confident grade that
+    # then sets a movement ceiling. Inert until the checkpoint carries an energy
+    # reference (see model/inference.load_calibration).
+    if result.get("ood_reject"):
+        logger.warning(
+            "OOD reject | energy=%s exceeds the reference for this checkpoint",
+            result.get("energy"),
+        )
+        raise HTTPException(
+            status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail      = prefix + (
+                "This image does not look like a knee X-ray to the model, so it has not "
+                "been graded. Please check you uploaded the right file — a plain "
+                "anteroposterior (front-on) knee radiograph works best."
+            ),
+        )
+
+    # A declared TKR already tells us the joint is replaced; this is the backstop
+    # for one nobody declared. Advisory only — see model/prosthesis.py.
+    hardware = detect_hardware(image_bytes)
+    if hardware["suspected"] and surgery_type != SurgeryType.tkr:
+        logger.warning(
+            "Possible undeclared joint replacement | knee=%s surgery=%s saturated=%.3f solidity=%.2f",
+            knee_side.value, surgery_type.value,
+            hardware["saturated_fraction"], hardware["solidity"],
+        )
+
+    # Opt-in, and never load-bearing: an overlay that fails must not cost the
+    # patient the reading they waited for. gradcam.explain returns None rather
+    # than raising, and the response simply carries no picture.
+    explanation_uri = None
+    if explain:
+        overlay = await run_in_threadpool(gradcam_explain, classifier, image_bytes)
+        if overlay is not None:
+            explanation_uri = (
+                "data:image/png;base64,"
+                + base64.b64encode(overlay["overlay_png"]).decode("ascii")
+            )
+
+    prescription = build_prescription(
+        kl_grade        = result["kl_grade"],
+        health_score    = result["health_score"],
+        max_angle       = result["max_angle"],
+        confidence      = result["confidence"],
+        confidence_band = result["confidence_band"],
+        calibrated      = result["calibrated"],
+        ood_suspected   = result["ood_suspected"],
+        demo_mode       = result["demo_mode"],
+        grade_probabilities = result.get("grade_probabilities"),
+        within_one_grade    = result.get("within_one_grade", 0.0),
+        hardware_suspected = hardware["suspected"],
+        hardware_reason    = hardware["reason"] if hardware["suspected"] else None,
+        knee_side       = knee_side.value,
+        surgery_type    = surgery_type.value,
+        weeks_post_op   = weeks_post_op,
+        model_version   = classifier.model_version,
+    )
+    prescription["explanation"] = explanation_uri
+    return prescription
 
 
 def _save_prescription(db: Session, patient: Patient, prescription: dict) -> Optional[str]:
