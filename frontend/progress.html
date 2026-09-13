@@ -4,10 +4,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Your progress — Knee-Physiotherapy</title>
+  <title>Your dashboard — Knee-Physiotherapy</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="assets/theme.css">
+  <!-- Sets .js-motion before first paint; see the file header for why it is not deferred. -->
+  <script src="assets/motion.js"></script>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#132733">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="stylesheet" href="assets/progress-view.css">
 </head>
 
@@ -30,13 +37,52 @@
 
     <div class="head">
       <div>
-        <div class="head-title">Your progress</div>
+        <div class="head-title" id="head-title">Your dashboard</div>
         <div class="head-sub" id="head-sub">How far your knee is bending, and how often you are working it.</div>
       </div>
-      <div class="ranges" role="group" aria-label="Time range">
-        <button class="range-btn" type="button" data-days="30" aria-pressed="false">30 days</button>
-        <button class="range-btn" type="button" data-days="90" aria-pressed="true">90 days</button>
-        <button class="range-btn" type="button" data-days="365" aria-pressed="false">1 year</button>
+      <div class="head-actions">
+        <div class="ranges" role="group" aria-label="Time range">
+          <button class="range-btn" type="button" data-days="30" aria-pressed="false">30 days</button>
+          <button class="range-btn" type="button" data-days="90" aria-pressed="true">90 days</button>
+          <button class="range-btn" type="button" data-days="365" aria-pressed="false">1 year</button>
+        </div>
+        <!-- The offline half of the share link, for the appointment where
+             nobody opens a laptop. Covers whichever range is selected. -->
+        <button class="range-btn" type="button" id="summary-pdf">Summary PDF</button>
+      </div>
+    </div>
+
+    <!-- Who this is, what they are recovering from, and the one button that
+         starts everything else. First on the page because this is now where
+         signing in lands: the facts below decide which protocol the patient is
+         given, and a wrong surgery date is invisible until someone reads it
+         back to themselves. -->
+    <div class="card profile-card" id="profile-card">
+      <div class="profile-top">
+        <div class="profile-id">
+          <div class="profile-name" id="profile-name">&nbsp;</div>
+          <div class="profile-email" id="profile-email"></div>
+        </div>
+        <a href="upload.html" class="btn profile-cta" id="upload-cta">Upload an X-ray →</a>
+      </div>
+
+      <div class="profile-facts" id="profile-facts"></div>
+
+      <!-- Hidden until "Change" is pressed. The date selects the whole rehab
+           protocol, so it has to be correctable from the page the patient
+           actually opens — not only from inside a new analysis. -->
+      <div class="profile-edit hidden" id="profile-edit">
+        <label class="profile-edit-label" for="surgery-date">Date of surgery</label>
+        <input class="share-input" type="date" id="surgery-date">
+        <select class="share-input" id="surgery-type">
+          <option value="none">No surgery</option>
+          <option value="acl">ACL reconstruction</option>
+          <option value="tkr">Total knee replacement</option>
+          <option value="meniscus">Meniscus repair</option>
+          <option value="arthroscopy">Arthroscopy</option>
+        </select>
+        <button class="btn" type="button" id="surgery-save">Save</button>
+        <button class="range-btn" type="button" id="surgery-cancel">Cancel</button>
       </div>
     </div>
 
@@ -81,6 +127,11 @@
          Empty for most people, most weeks. -->
     <div id="flags"></div>
 
+    <!-- The questionnaire. Shown only when one is actually due — every four
+         weeks, not every visit — and dismissable without consequence. Nothing
+         else on this page is withheld from someone who never fills it in. -->
+    <div class="card om-prompt-card hidden" id="koos-panel"></div>
+
     <div class="notice notice-err hidden" id="error-notice">
       <span aria-hidden="true">⚠</span>
       <span id="error-text"></span>
@@ -114,6 +165,7 @@
   <script src="assets/config.js"></script>
   <script src="assets/api.js"></script>
   <script src="assets/progress-view.js"></script>
+  <script src="assets/outcome-form.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
 
@@ -160,9 +212,39 @@
       }
     }
 
-    for (const btn of document.querySelectorAll('.range-btn')) {
+    // ── The appointment summary ────────────────────────────────────────────
+    // Downloading is a fetch, not a link, because the endpoint wants the bearer
+    // token. That means no browser progress indicator, so the button has to be
+    // its own — a sheet takes a moment to draw, and a button that looks inert is
+    // one people press twice.
+    $('summary-pdf').addEventListener('click', async () => {
+      const btn = $('summary-pdf');
+      const label = btn.textContent;
+
+      btn.disabled = true;
+      btn.textContent = 'Preparing…';
+      try {
+        await PhysioAPI.downloadSummary({ days: rangeDays, tzOffsetMinutes: TZ_OFFSET });
+      } catch (err) {
+        if (err instanceof PhysioAPI.ApiError && err.status === 401) {
+          window.location.href = 'login.html';
+          return;
+        }
+        showError(await PhysioAPI.describeFailure(err));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = label;
+      }
+    });
+
+    // Scoped to .ranges, not to the class. `range-btn` is this page's small-button
+    // style and is worn by the share panel's Close button and the summary
+    // download too — neither of which carries a data-days, so an unscoped
+    // selector set the range to NaN and reloaded the page into a 422.
+    const rangeButtons = document.querySelectorAll('.ranges .range-btn');
+    for (const btn of rangeButtons) {
       btn.addEventListener('click', () => {
-        for (const b of document.querySelectorAll('.range-btn')) b.setAttribute('aria-pressed', 'false');
+        for (const b of rangeButtons) b.setAttribute('aria-pressed', 'false');
         btn.setAttribute('aria-pressed', 'true');
         rangeDays = Number(btn.dataset.days);
         load();
@@ -331,16 +413,295 @@
       }
     }
 
+    // ── The questionnaire ──────────────────────────────────────────────────
+    //
+    // KOOS-JR: seven questions, scored on the same 0-100 scale a joint registry
+    // uses. It is the only thing on this page the patient supplies rather than
+    // the app measuring, and the only one that answers whether the knee is
+    // getting better to live with — which bending further does not.
+    //
+    // Offered when one is due and never otherwise. Answered weekly it becomes a
+    // mood reading (real movement is smaller than the instrument can detect),
+    // and a card that appears every visit is a card people learn to scroll past.
+    const koosPanel = $('koos-panel');
+
+    // The knee the questionnaire is about. "Your knee" has to mean a particular
+    // one, and 'both' is not an answer KOOS-JR has — it asks about a single
+    // joint, so a bilateral patient answers it twice.
+    //
+    // Carried over from their last questionnaire, falling back to whichever knee
+    // their last X-ray was filed under. Asking someone to pick a side before
+    // they can start is a question the app can nearly always answer itself.
+    let koosSide = 'right';
+
+    function el(tag, cls, text) {
+      const node = document.createElement(tag);
+      if (cls) node.className = cls;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+
+    function showKoosPrompt(instrument) {
+      koosPanel.textContent = '';
+      koosPanel.classList.remove('hidden');
+
+      const head = el('div', 'card-head');
+      head.appendChild(el('div', 'card-title', 'How is your knee, in your own words?'));
+      koosPanel.appendChild(head);
+
+      koosPanel.appendChild(el('div', 'card-sub',
+        `Seven questions about ${instrument.recall_period}, scored the same way your surgeon's `
+        + 'registry scores them. It takes about a minute, and it measures the half of recovery '
+        + 'that bending further does not.'));
+
+      const row = el('div', 'om-prompt-row');
+      const open = el('button', 'btn', 'Answer the questions');
+      open.type = 'button';
+      open.addEventListener('click', () => showKoosForm(instrument));
+
+      const later = el('button', 'om-cancel', 'Not now');
+      later.type = 'button';
+      // Dismissal is for this page load only. Nothing is stored, because a
+      // permanent "never ask me again" is a setting, and this is a card.
+      later.addEventListener('click', () => koosPanel.classList.add('hidden'));
+
+      const actions = el('div', 'om-actions');
+      actions.append(later, open);
+      row.appendChild(actions);
+      koosPanel.appendChild(row);
+    }
+
+    function showKoosForm(instrument) {
+      koosPanel.textContent = '';
+
+      const head = el('div', 'card-head');
+      head.appendChild(el('div', 'card-title', instrument.name));
+      head.appendChild(el('div', 'card-note', `about your ${koosSide} knee`));
+      koosPanel.appendChild(head);
+
+      const host = el('div');
+      koosPanel.appendChild(host);
+
+      OutcomeForm.render(host, instrument, {
+        kneeSide: koosSide,
+        onCancel: () => koosPanel.classList.add('hidden'),
+        onSubmit: async (payload) => {
+          const saved = await PhysioAPI.recordOutcomeScore({
+            responses: payload.responses,
+            kneeSide: payload.knee_side,
+          });
+          showKoosResult(saved);
+          // The charts below now have a new point on them.
+          load();
+        },
+      });
+    }
+
+    function showKoosResult(saved) {
+      koosPanel.textContent = '';
+
+      const head = el('div', 'card-head');
+      head.appendChild(el('div', 'card-title', 'Answers saved'));
+      koosPanel.appendChild(head);
+
+      const done = el('div', 'om-done');
+      done.appendChild(el('div', 'om-done-score', `${Math.round(saved.interval_score)} / 100`));
+      done.appendChild(el('div', 'om-done-band', saved.band_text));
+      koosPanel.appendChild(done);
+
+      // What the number means relative to the last one is the whole point. On a
+      // first answer the server says so rather than inventing a change.
+      koosPanel.appendChild(el('div', 'card-sub', saved.change.summary));
+    }
+
+    async function loadKoos() {
+      let instrument, history;
+      try {
+        [instrument, history] = await Promise.all([
+          PhysioAPI.getOutcomeInstrument(),
+          PhysioAPI.myOutcomeScores(),
+        ]);
+      } catch {
+        // The charts below are the page. A questionnaire that could not load is
+        // not worth an error message of its own.
+        return;
+      }
+
+      if (history.scores.length) {
+        koosSide = history.scores[0].knee_side;
+      } else {
+        // First time: take the side from their most recent analysis. A failure
+        // here just leaves the default — not worth blocking the card over.
+        const past = await PhysioAPI.myPrescriptions({ limit: 1 }).catch(() => null);
+        const side = past && past.prescriptions[0] && past.prescriptions[0].knee_side;
+        if (side === 'left' || side === 'right') koosSide = side;
+      }
+
+      if (history.schedule.due) showKoosPrompt(instrument);
+    }
+
+    // ── Who you are, and what you are recovering from ──────────────────────
+    //
+    // Everything here is read back to the patient rather than assumed, because
+    // two of these facts — the surgery date and the safe limit — decide what the
+    // app asks their knee to do. A wrong date is indistinguishable from a right
+    // one until somebody sees it written down.
+
+    const SURGERY_LABELS = {
+      acl: 'ACL reconstruction', tkr: 'Total knee replacement',
+      meniscus: 'Meniscus repair', arthroscopy: 'Arthroscopy', none: 'No surgery',
+    };
+
+    let latestPrescription = null;
+
+    /**
+     * Run something whose failure must not take the page down with it.
+     *
+     * Used for the profile card. Nothing in it is load-bearing — the charts,
+     * the triage flags and the questionnaire all stand on their own — so a bad
+     * date, an unexpected surgery type or a missing element should cost the
+     * patient a card, not the whole dashboard.
+     */
+    function safely(fn) {
+      try {
+        fn();
+      } catch (err) {
+        console.error('Profile card failed to render; the rest of the page is unaffected.', err);
+      }
+    }
+
+    // ProgressView.longDate splits an ISO date on "-", so a full timestamp
+    // ("2026-09-12T10:33:00Z") would hand it "12T10:33:00Z" and render NaN.
+    // surgery_date is a plain date and created_at is a datetime, so both arrive
+    // here — trimming to the day makes one helper serve both.
+    const dayOf = (value) => longDate(String(value).slice(0, 10));
+
+    function fact(label, value, note) {
+      const box = el('div', 'profile-fact');
+      box.appendChild(el('div', 'profile-fact-label', label));
+      box.appendChild(el('div', 'profile-fact-value', value));
+      if (note) box.appendChild(el('div', 'profile-fact-note', note));
+      return box;
+    }
+
+    function renderProfile(patient, latest) {
+      $('profile-name').textContent = patient.display_name || 'Your account';
+      $('profile-email').textContent = patient.email;
+
+      const facts = $('profile-facts');
+      facts.textContent = '';
+
+      if (patient.surgery_date) {
+        facts.appendChild(fact(
+          'Operation',
+          SURGERY_LABELS[patient.surgery_type] || patient.surgery_type || 'Recorded',
+          dayOf(patient.surgery_date),
+        ));
+        facts.appendChild(fact(
+          'Recovery week',
+          patient.weeks_post_op === null || patient.weeks_post_op === undefined
+            ? '—'
+            : `Week ${patient.weeks_post_op}`,
+          'sets which exercises you get',
+        ));
+      } else {
+        facts.appendChild(fact('Operation', 'Not recorded', 'add it to get the right phase'));
+      }
+
+      // The safe limit is the one number here that can hurt someone, so it comes
+      // from the history endpoint — which reports the ceiling a clinician
+      // approved, not whatever the model originally read off the film.
+      if (latest) {
+        facts.appendChild(fact('Latest reading', `KL grade ${latest.kl_grade}`, dayOf(latest.created_at)));
+        facts.appendChild(fact(
+          'Safe limit', `${latest.max_angle}°`,
+          latest.status === 'draft' ? 'not yet reviewed' : 'approved by your physiotherapist',
+        ));
+      } else {
+        facts.appendChild(fact('Latest reading', 'No X-ray yet', 'upload one to get a plan'));
+      }
+
+      const changed = el('button', 'profile-change', patient.surgery_date ? 'Change' : 'Add surgery date');
+      changed.type = 'button';
+      changed.addEventListener('click', () => {
+        $('surgery-date').value = patient.surgery_date || '';
+        $('surgery-type').value = patient.surgery_type || 'none';
+        $('profile-edit').classList.remove('hidden');
+        $('surgery-date').focus();
+      });
+      facts.appendChild(changed);
+    }
+
+    $('surgery-cancel').addEventListener('click', () => $('profile-edit').classList.add('hidden'));
+
+    $('surgery-save').addEventListener('click', async () => {
+      const btn = $('surgery-save');
+      btn.disabled = true;
+      try {
+        const type = $('surgery-type').value;
+        const updated = await PhysioAPI.setSurgery({
+          // "No surgery" clears the date too — a date with no operation attached
+          // would still be feeding a week number into the protocol selector.
+          surgeryDate: type === 'none' ? null : ($('surgery-date').value || null),
+          surgeryType: type,
+        });
+        $('profile-edit').classList.add('hidden');
+        renderProfile(updated, latestPrescription);
+      } catch (err) {
+        showError(await PhysioAPI.describeFailure(err));
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
     (async function start() {
       const patient = await PhysioAPI.me().catch(() => null);
       if (!patient) {
         window.location.href = 'login.html';
         return;
       }
-      $('nav-who').textContent = patient.display_name || patient.email;
+      // The charts go first and are never gated behind the card. A throw while
+      // rendering the profile used to mean load() was never reached, which left
+      // the skeleton spinning forever — the page looked hung when in fact only
+      // the top card had failed. The card is the decoration here; the progress
+      // is the page.
       load();
       loadFlags();
+      loadKoos();
+
+      $('nav-who').textContent = patient.display_name || patient.email;
+      // .split on a name is safe only once it is known to be a string — a
+      // display_name of "" is falsy and handled, but any other shape is not
+      // worth trusting on a page that has already started rendering.
+      const firstName = typeof patient.display_name === 'string'
+        ? patient.display_name.trim().split(/\s+/)[0]
+        : '';
+      $('head-title').textContent = firstName ? `Welcome back, ${firstName}` : 'Your dashboard';
+
+      // The card renders twice on purpose: once immediately from /auth/me so the
+      // page is not empty while the second request is in flight, then again once
+      // the latest reading arrives. A failed history call leaves the identity and
+      // surgery facts on screen rather than blanking the card.
+      safely(() => renderProfile(patient, null));
+      PhysioAPI.myPrescriptions({ limit: 1 })
+        .then((past) => {
+          latestPrescription = (past.prescriptions && past.prescriptions[0]) || null;
+          if (latestPrescription) safely(() => renderProfile(patient, latestPrescription));
+        })
+        .catch(() => { /* the identity half of the card is already up */ });
     })();
+  </script>
+  <script>
+    // Installable, and able to open without a connection. The worker caches the
+    // app shell only — never an API response, because a cached prescription is
+    // a cached movement ceiling. See sw.js.
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {
+          // An app that works is more important than one that works offline.
+        });
+      });
+    }
   </script>
 </body>
 
