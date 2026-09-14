@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="assets/theme.css">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#132733">
+  <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -110,6 +111,12 @@
       left: 0;
       width: 100%;
       height: 100%;
+      /* Must match #video exactly. The video is cover-cropped to its box; a
+         canvas left to stretch draws the skeleton through a different mapping,
+         so the joints land off the body — ankles above the feet, shoulders
+         across the upper arms — and nobody can tell by eye whether tracking is
+         actually working. */
+      object-fit: cover;
       transform: scaleX(-1);
       pointer-events: none;
     }
@@ -1239,20 +1246,43 @@
     // reads.
     const idx = landmarkIndices(kneeSide);
 
-    // Fallback demo data if page opened directly without navigating from upload.html
-    const exercise = exerciseData || {
-      name: "Mini Squat",
-      description: "Partial squat to 45–60° for safe quad loading.",
+    // Opened directly, with no prescription to work from.
+    //
+    // There used to be a "Mini Squat, 60°" fallback here so the page always had
+    // something to show. A ceiling is not a placeholder: 60° is 15° past what a
+    // KL 4 knee is allowed, and the alarm would happily sit quiet through all of
+    // it while the badge said "Demo mode". Nothing invents a limit any more —
+    // without a prescription there is no session, and ?demo=1 is the way to see
+    // the tracker work, held to the most cautious limit in the catalogue.
+    const demoRequested = new URLSearchParams(location.search).get("demo") === "1";
+    const DEMO_EXERCISE = {
+      name: "Quad Sets (Isometric)",
+      description: "Demonstration only — not a prescription. Tighten the thigh with the knee straight.",
       target_reps: 10,
       target_sets: 3,
-      angle_limit: 60,
-      hold_seconds: null,
+      angle_limit: 5,
+      hold_seconds: 10,
       tracked_joint: "knee",
-      hold_target: null,
+      hold_target: "straight",
       start_angle: null,
       hold_angle: null,
       angle_capped: false,
     };
+    const exercise = exerciseData || (demoRequested ? DEMO_EXERCISE : null);
+
+    if (!exercise) {
+      // Stop before anything reads exercise.angle_limit.
+      document.getElementById("pre-start-exercise-name").textContent = "No exercise selected";
+      document.getElementById("pre-start-desc").textContent =
+        "Your safe bending limit comes from your X-ray, so there is nothing to track yet. "
+        + "Analyse an X-ray to get your plan, then start an exercise from there.";
+      const startBtn = document.getElementById("start-cam-btn");
+      startBtn.textContent = "Analyse an X-ray →";
+      startBtn.addEventListener("click", () => { location.href = "upload.html"; });
+      document.getElementById("pre-start-limit").textContent = "—";
+      document.getElementById("exercise-title-text").textContent = "No exercise selected";
+      throw new Error("tracker opened without a prescription");
+    }
 
     // Older cached sessionStorage payloads predate these fields — default them
     // so a stale tab can't fall back to the broken "bent past 15°" behaviour.
@@ -1809,6 +1839,23 @@
       return angleHistory.reduce((a, b) => a + b, 0) / angleHistory.length;
     }
 
+    // What gets written down, as opposed to what drives the alarm.
+    //
+    // A five-frame mean is the right input for the alarm and the rep counter:
+    // it rides out landmark jitter. It is the wrong thing to *record*, because
+    // it also flattens the real thing. A knee that snapped to 120 degrees was
+    // being filed at 67, and a clinician reading that history sees a range the
+    // patient never reached. A median of three throws away a single bad frame
+    // just as well while following an actual movement, so the peak below is the
+    // peak that happened.
+    let peakHistory = [];
+    function peakAngle(newAngle) {
+      peakHistory.push(newAngle);
+      if (peakHistory.length > 3) peakHistory.shift();
+      const sorted = [...peakHistory].sort((a, b) => a - b);
+      return sorted[Math.floor(sorted.length / 2)];
+    }
+
     // Separate buffer — the counting joint may differ from the knee, and
     // mixing the two into one rolling average would corrupt both.
     let countAngleHistory = [];
@@ -1835,6 +1882,7 @@
     function resetAngleBuffers() {
       angleHistory = [];
       countAngleHistory = [];
+      peakHistory = [];
       repStage = 'EXTENDED';
       anklePhase = 'DORSI';
       holdStartTime = null;
@@ -1988,6 +2036,7 @@
       holdStartTime = null;
       angleHistory = [];
       countAngleHistory = [];
+      peakHistory = [];
       pausedPanel.classList.remove('visible');
       safetyOverlay.classList.remove('active');
       stopAlarm();
@@ -2278,7 +2327,14 @@
           ? POSE_GATE.SPREAD_RECOVER
           : POSE_GATE.SPREAD_OK;
 
-        const view = assessView(lm, world, idx, { spreadCeiling, trackedJoint });
+        // The frame's shape. MediaPipe normalises x by width and y by height,
+        // so without this every angle below is distorted by the camera rather
+        // than by the knee — see squareUp() in pose-gate.js.
+        const aspect = (video.videoWidth && video.videoHeight)
+          ? video.videoWidth / video.videoHeight
+          : 1;
+
+        const view = assessView(lm, world, idx, { spreadCeiling, trackedJoint, aspect });
 
         // A patient who overrode the gate keeps tracking regardless of the
         // side-on tests, but the visibility and framing checks still apply:
@@ -2290,7 +2346,7 @@
         if (trackerState === 'CALIBRATING') {
           runCalibration(view, passes);
         } else if (trackerState === 'TRACKING' || trackerState === 'SUSPENDED') {
-          runSession(lm, view, passes);
+          runSession(lm, view, passes, aspect);
         }
       }
 
@@ -2301,7 +2357,7 @@
       }
     }
 
-    function runSession(lm, view, passes) {
+    function runSession(lm, view, passes, aspect) {
       // A safety breach outranks the view gate. The patient has been told to
       // stop and has to acknowledge it; swapping that red screen for a camera
       // hint would let a real breach go unacknowledged.
@@ -2341,13 +2397,16 @@
 
       // Safety is ALWAYS judged at the knee — angle_limit is a knee flexion
       // ceiling even when reps are counted at another joint.
-      const kneeAngle = smoothAngle(calcKneeAngle(hip, knee, ankle));
-      maxAngleReached = Math.max(maxAngleReached, kneeAngle);
-      sampleFrame(kneeAngle, view.visibility);
+      const rawKneeAngle = calcKneeAngle(hip, knee, ankle, aspect);
+      const kneeAngle = smoothAngle(rawKneeAngle);
+      // The alarm and the counter run on kneeAngle; the record keeps the peak.
+      const recordedAngle = peakAngle(rawKneeAngle);
+      maxAngleReached = Math.max(maxAngleReached, recordedAngle);
+      sampleFrame(recordedAngle, view.visibility);
 
       // The angle that drives rep/hold counting.
       const countAngle = trackingAnkle
-        ? smoothCountAngle(calcAnkleAngle(knee, ankle, foot))
+        ? smoothCountAngle(calcAnkleAngle(knee, ankle, foot, aspect))
         : kneeAngle;
 
       angleReadout.textContent = Math.round(kneeAngle) + '\u00B0';
@@ -2417,7 +2476,11 @@
     // Installable, and able to open without a connection. The worker caches the
     // app shell only — never an API response, because a cached prescription is
     // a cached movement ceiling. See sw.js.
-    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    // localhost is a secure context too, and gating on https alone meant the
+    // entire offline path went live having never once run in development.
+    const secureEnough = location.protocol === 'https:'
+      || ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+    if ('serviceWorker' in navigator && secureEnough) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js').catch(() => {
           // An app that works is more important than one that works offline.
