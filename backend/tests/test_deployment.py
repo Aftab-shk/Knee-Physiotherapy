@@ -26,8 +26,9 @@ class RealEnoughClassifier:
 
 @pytest.fixture
 def prod(monkeypatch):
-    """ENV=production with both guards satisfied; each test breaks one."""
+    """ENV=production with every guard satisfied; each test breaks one."""
     monkeypatch.setenv("ENV", "production")
+    monkeypatch.setenv("MAIL_BACKEND", "smtp")
     monkeypatch.setattr(auth, "JWT_SECRET_IS_EPHEMERAL", False)
     monkeypatch.setattr(main, "classifier", RealEnoughClassifier())
 
@@ -89,3 +90,13 @@ def test_the_frontend_is_bundled_and_served():
         # And the mount must not have shadowed the API it sits under.
         assert client.get("/health").json()["status"] in ("ok", "degraded")
         assert client.get("/docs").status_code == 200
+
+
+def test_production_refuses_to_print_reset_links_into_the_log(prod, monkeypatch):
+    """
+    The default mail backend writes a working credential to the log. Fine on a
+    laptop, an account takeover anywhere the log is shipped or shared.
+    """
+    monkeypatch.setenv("MAIL_BACKEND", "log")
+    with pytest.raises(RuntimeError, match="MAIL_BACKEND"):
+        main.refuse_unsafe_production()

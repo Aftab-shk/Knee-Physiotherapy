@@ -35,6 +35,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 from urllib.parse import quote
 
+import mailer
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
@@ -42,7 +43,7 @@ from fastapi.responses import FileResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from model.image_checks import validate_image
 from model.prosthesis import detect_hardware
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -73,12 +74,16 @@ from schemas import (
     Caseload,
     CaseloadEntry,
     CatalogueExercise,
+    ChangePassword,
     ClinicianOut,
     ClinicianRegister,
     ClinicianToken,
+    DeleteAccount,
+    DeletionReceipt,
     ExerciseBreakdown,
     ExercisesResponse,
     FlagOut,
+    ForgotPassword,
     HealthResponse,
     InviteCreate,
     InviteCreated,
@@ -107,6 +112,7 @@ from schemas import (
     ProgressSummary,
     RedeemInvite,
     RegisterRequest,
+    ResetPassword,
     ReviewRequest,
     RomPoint,
     RomSeries,
@@ -118,6 +124,7 @@ from schemas import (
     ShareLinkCreate,
     ShareLinkCreated,
     ShareLinkOut,
+    SimpleMessage,
     SurgeryType,
     SurgeryUpdate,
     TokenResponse,
@@ -172,6 +179,15 @@ def refuse_unsafe_production() -> None:
     elif classifier.demo_mode:
         problems.append(
             "no usable checkpoint: demo mode returns mock grades that look like readings"
+        )
+    if mailer.backend() == "log":
+        # The log backend writes a working password-reset link into the
+        # application log. That is the right behaviour on a laptop and an
+        # account takeover waiting to happen anywhere a log is shipped,
+        # aggregated or read by more than one person.
+        problems.append(
+            "MAIL_BACKEND is 'log', which prints password reset links into the log; "
+            "set MAIL_BACKEND=smtp and the SMTP_* variables"
         )
     if problems:
         raise RuntimeError("Refusing to start with ENV=production — " + "; ".join(problems))
@@ -514,7 +530,7 @@ _BAD_CREDENTIALS = HTTPException(
 
 
 def _issue_token(patient: Patient) -> TokenResponse:
-    token, expires_in = auth.create_access_token(patient.id)
+    token, expires_in = auth.create_access_token(patient.id, token_version=patient.token_version)
     return TokenResponse(
         access_token = token,
         expires_in   = expires_in,
@@ -598,6 +614,268 @@ def login(
 )
 def me(patient: Patient = Depends(auth.current_patient)) -> PatientOut:
     return PatientOut.model_validate(patient)
+
+
+# ---------------------------------------------------------------------------
+# Keeping, changing and ending an account
+# ---------------------------------------------------------------------------
+#
+# A JWT is valid until it expires, so "sign out" used to mean the browser threw
+# its copy away while the token carried on working for the rest of its
+# fortnight. Everything below that ends a session does it by bumping the
+# account's token_version, which takes back every token issued before that
+# moment — on every device, which is the only granularity worth having after a
+# password change or a lost phone.
+
+
+def _revoke_and_reissue(db: Session, patient: Patient) -> TokenResponse:
+    """End every existing session, then hand this caller a fresh token."""
+    auth.revoke_tokens(patient)
+    db.commit()
+    return _issue_token(patient)
+
+
+@app.post(
+    "/auth/logout",
+    response_model = SimpleMessage,
+    summary        = "Sign out of every device",
+    tags           = ["accounts"],
+)
+def logout(
+    patient: Patient = Depends(auth.current_patient),
+    db: Session = Depends(get_db),
+) -> SimpleMessage:
+    """
+    Signs out everywhere, not just here: there is no per-device identity in the
+    token to sign out of, and after a lost phone "everywhere" is the answer
+    anyone actually wants.
+    """
+    auth.revoke_tokens(patient)
+    db.commit()
+    logger.info("Patient %s signed out of all sessions", patient.id)
+    return SimpleMessage(detail="Signed out on every device.")
+
+
+@app.post(
+    "/auth/change-password",
+    response_model = TokenResponse,
+    summary        = "Change your password",
+    tags           = ["accounts"],
+)
+def change_password(
+    body: ChangePassword,
+    patient: Patient = Depends(auth.current_patient),
+    db: Session = Depends(get_db),
+    _rate_limited: None = Depends(enforce_rate_limit),
+) -> TokenResponse:
+    """
+    The current password is required even though the caller is already signed
+    in: the case this endpoint exists for is a session someone else left open.
+    """
+    if not auth.verify_password(patient.password_hash, body.current_password):
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail      = "That is not your current password.",
+        )
+    patient.password_hash = auth.hash_password(body.new_password)
+    # Whoever knew the old password is signed out by this, which is the point.
+    logger.info("Patient %s changed their password", patient.id)
+    return _revoke_and_reissue(db, patient)
+
+
+@app.post(
+    "/auth/forgot-password",
+    response_model = SimpleMessage,
+    status_code    = status.HTTP_202_ACCEPTED,
+    summary        = "Ask for a password reset link",
+    tags           = ["accounts"],
+)
+def forgot_password(
+    body: ForgotPassword,
+    db: Session = Depends(get_db),
+    _rate_limited: None = Depends(enforce_rate_limit),
+) -> SimpleMessage:
+    """
+    Always 202, whether or not the address has an account.
+
+    The more helpful-looking alternative — "no account with that address" —
+    turns this form into a way to ask the server whether a particular person is
+    a patient here, which is exactly the fact a medical app must not confirm to
+    a stranger.
+    """
+    email = auth.normalise_email(body.email)
+    patient = auth.find_by_email(db, email)
+
+    if patient is not None:
+        token, token_hash = auth.new_reset_token()
+        patient.reset_token_hash = token_hash
+        patient.reset_requested_at = models_utcnow()
+        db.commit()
+        # Sent after the commit: a delivery that fails must not leave a live
+        # token the database never recorded.
+        mailer.send_password_reset(patient.email, token, patient.display_name)
+    else:
+        # The same shape of work, so the response time does not answer the
+        # question the status code refuses to.
+        auth.waste_time_like_a_real_verify()
+
+    return SimpleMessage(
+        detail="If that address has an account, a reset link is on its way. It expires in an hour."
+    )
+
+
+@app.post(
+    "/auth/reset-password",
+    response_model = TokenResponse,
+    summary        = "Set a new password using a reset link",
+    tags           = ["accounts"],
+)
+def reset_password(
+    body: ResetPassword,
+    db: Session = Depends(get_db),
+    _rate_limited: None = Depends(enforce_rate_limit),
+) -> TokenResponse:
+    token_hash = auth.hash_reset_token(body.token)
+    patient = db.scalar(select(Patient).where(Patient.reset_token_hash == token_hash))
+
+    if patient is None or not auth.reset_token_is_live(patient):
+        raise HTTPException(
+            status_code = status.HTTP_400_BAD_REQUEST,
+            detail      = "That reset link is no longer valid. Ask for a new one.",
+        )
+
+    patient.password_hash = auth.hash_password(body.new_password)
+    # Single use. Clearing it here is what stops the same link being replayed
+    # out of a mailbox months later.
+    patient.reset_token_hash = None
+    patient.reset_requested_at = None
+    logger.info("Patient %s completed a password reset", patient.id)
+    # Anyone still holding a session from before the reset loses it, which is
+    # the whole point when the reset was prompted by someone else having one.
+    return _revoke_and_reissue(db, patient)
+
+
+@app.get(
+    "/me/export",
+    summary = "Download everything held about you",
+    tags    = ["accounts"],
+)
+def export_my_data(
+    patient: Patient = Depends(auth.current_patient),
+    db: Session = Depends(get_db),
+) -> Response:
+    """
+    Everything this system holds about one patient, as JSON.
+
+    Built by reading each row's own columns rather than by listing fields here,
+    so a column added later is exported without anyone remembering to come back
+    and add it. The X-ray images are not in it because they were never stored —
+    only what was read off them.
+    """
+    def rows(instances) -> list:
+        out = []
+        for obj in instances:
+            record = {}
+            for column in obj.__table__.columns:
+                value = getattr(obj, column.name)
+                record[column.name] = value.isoformat() if hasattr(value, "isoformat") else value
+            out.append(record)
+        return out
+
+    prescriptions = list(patient.prescriptions)
+    sessions = db.scalars(
+        select(ExerciseSession).where(ExerciseSession.patient_id == patient.id)
+    ).all()
+
+    payload = {
+        "exported_at":        models_utcnow().isoformat(),
+        "account":            rows([patient])[0],
+        "prescriptions":      rows(prescriptions),
+        "prescription_audit": rows([a for pres in prescriptions for a in pres.audit]),
+        "exercise_sessions":  rows(sessions),
+        "exercise_sets":      rows([st for sess in sessions for st in sess.sets]),
+        "outcome_scores":     rows(list(patient.outcome_scores)),
+        "share_links":        rows(list(patient.share_links)),
+        "clinician_links":    rows(list(patient.care_links)),
+    }
+    # Credentials are not facts about the patient, and a downloaded copy of one
+    # is a liability to whoever downloaded it.
+    for secret in ("password_hash", "reset_token_hash"):
+        payload["account"].pop(secret, None)
+    for link in payload["share_links"]:
+        link.pop("token_hash", None)
+    for link in payload["clinician_links"]:
+        link.pop("invite_code_hash", None)
+
+    body = json.dumps(payload, indent=2, default=str).encode("utf-8")
+    stamp = models_utcnow().strftime("%Y-%m-%d")
+    return Response(
+        content    = body,
+        media_type = "application/json",
+        headers    = {"Content-Disposition": f'attachment; filename="physio-data-{stamp}.json"'},
+    )
+
+
+@app.post(
+    "/me/delete",
+    response_model = DeletionReceipt,
+    summary        = "Delete your account and everything in it",
+    tags           = ["accounts"],
+)
+def delete_my_account(
+    body: DeleteAccount,
+    patient: Patient = Depends(auth.current_patient),
+    db: Session = Depends(get_db),
+    _rate_limited: None = Depends(enforce_rate_limit),
+) -> DeletionReceipt:
+    """
+    Immediate and complete. No grace period, no tombstone, no anonymised
+    remainder kept for analytics.
+
+    That is a retention policy, and it is the one that matches what this app
+    already promises: the X-ray was never stored, and the readings taken off it
+    belong to the patient. Every child row goes with the account —
+    prescriptions and their audit trail, sessions, sets, outcome scores, share
+    links, and the access any clinician had. A clinician's notes live inside the
+    prescription they annotated and go too, so nothing is left pointing at
+    someone who asked to be forgotten.
+
+    Anyone deploying this where clinical records must be retained for a fixed
+    number of years has a different policy to implement, and this is the
+    function to change.
+
+    POST rather than DELETE because it carries a body, and a body on DELETE is
+    allowed by the spec but dropped by enough proxies to be a poor bet on the
+    one request that must not half-happen.
+    """
+    if not auth.verify_password(patient.password_hash, body.password):
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail      = "That is not your password.",
+        )
+
+    # Counted before the delete, so the receipt says what actually went.
+    session_count = db.scalar(
+        select(func.count()).select_from(ExerciseSession)
+        .where(ExerciseSession.patient_id == patient.id)
+    ) or 0
+    receipt = DeletionReceipt(
+        detail          = "Your account and everything in it has been deleted.",
+        prescriptions   = len(patient.prescriptions),
+        sessions        = session_count,
+        outcome_scores  = len(patient.outcome_scores),
+        share_links     = len(patient.share_links),
+        clinician_links = len(patient.care_links),
+    )
+
+    patient_id = patient.id
+    db.delete(patient)
+    db.commit()
+    logger.info(
+        "Deleted patient %s: %d prescriptions, %d sessions, %d outcome scores",
+        patient_id, receipt.prescriptions, receipt.sessions, receipt.outcome_scores,
+    )
+    return receipt
 
 
 @app.patch(
@@ -1647,12 +1925,116 @@ def _hash_invite_code(code: str) -> str:
 
 
 def _issue_clinician_token(clinician: Clinician) -> ClinicianToken:
-    token, expires_in = auth.create_access_token(clinician.id, role=auth.ROLE_CLINICIAN)
+    token, expires_in = auth.create_access_token(
+        clinician.id, role=auth.ROLE_CLINICIAN, token_version=clinician.token_version
+    )
     return ClinicianToken(
         access_token = token,
         expires_in   = expires_in,
         clinician    = ClinicianOut.model_validate(clinician),
     )
+
+
+# A clinician holds other people's records, so the same credential controls
+# apply — arguably more so. The flows are the patient ones with the other table
+# underneath; what is deliberately absent is self-deletion, because a caseload
+# is not a clinician's own data to erase. Discharging each patient first is the
+# route out, and that is already the DELETE on /clinician/patients/{link_id}.
+
+
+@app.post(
+    "/clinician/logout",
+    response_model = SimpleMessage,
+    summary        = "Sign out of every device",
+    tags           = ["clinicians"],
+)
+def clinician_logout(
+    clinician: Clinician = Depends(auth.current_clinician),
+    db: Session = Depends(get_db),
+) -> SimpleMessage:
+    auth.revoke_tokens(clinician)
+    db.commit()
+    logger.info("Clinician %s signed out of all sessions", clinician.id)
+    return SimpleMessage(detail="Signed out on every device.")
+
+
+@app.post(
+    "/clinician/change-password",
+    response_model = ClinicianToken,
+    summary        = "Change your password",
+    tags           = ["clinicians"],
+)
+def clinician_change_password(
+    body: ChangePassword,
+    clinician: Clinician = Depends(auth.current_clinician),
+    db: Session = Depends(get_db),
+    _rate_limited: None = Depends(enforce_rate_limit),
+) -> ClinicianToken:
+    if not auth.verify_password(clinician.password_hash, body.current_password):
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail      = "That is not your current password.",
+        )
+    clinician.password_hash = auth.hash_password(body.new_password)
+    auth.revoke_tokens(clinician)
+    db.commit()
+    logger.info("Clinician %s changed their password", clinician.id)
+    return _issue_clinician_token(clinician)
+
+
+@app.post(
+    "/clinician/forgot-password",
+    response_model = SimpleMessage,
+    status_code    = status.HTTP_202_ACCEPTED,
+    summary        = "Ask for a password reset link",
+    tags           = ["clinicians"],
+)
+def clinician_forgot_password(
+    body: ForgotPassword,
+    db: Session = Depends(get_db),
+    _rate_limited: None = Depends(enforce_rate_limit),
+) -> SimpleMessage:
+    clinician = auth.find_clinician_by_email(db, body.email)
+    if clinician is not None:
+        token, token_hash = auth.new_reset_token()
+        clinician.reset_token_hash = token_hash
+        clinician.reset_requested_at = models_utcnow()
+        db.commit()
+        mailer.send_password_reset(clinician.email, token, clinician.display_name)
+    else:
+        auth.waste_time_like_a_real_verify()
+    return SimpleMessage(
+        detail="If that address has an account, a reset link is on its way. It expires in an hour."
+    )
+
+
+@app.post(
+    "/clinician/reset-password",
+    response_model = ClinicianToken,
+    summary        = "Set a new password using a reset link",
+    tags           = ["clinicians"],
+)
+def clinician_reset_password(
+    body: ResetPassword,
+    db: Session = Depends(get_db),
+    _rate_limited: None = Depends(enforce_rate_limit),
+) -> ClinicianToken:
+    token_hash = auth.hash_reset_token(body.token)
+    clinician = db.scalar(select(Clinician).where(Clinician.reset_token_hash == token_hash))
+
+    if clinician is None or not auth.reset_token_is_live(clinician):
+        raise HTTPException(
+            status_code = status.HTTP_400_BAD_REQUEST,
+            detail      = "That reset link is no longer valid. Ask for a new one.",
+        )
+
+    clinician.password_hash = auth.hash_password(body.new_password)
+    clinician.reset_token_hash = None
+    clinician.reset_requested_at = None
+    auth.revoke_tokens(clinician)
+    db.commit()
+    logger.info("Clinician %s completed a password reset", clinician.id)
+    return _issue_clinician_token(clinician)
 
 
 @app.post(

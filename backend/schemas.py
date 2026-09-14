@@ -262,6 +262,59 @@ class RegisterRequest(BaseModel):
     _validate_password = field_validator("password")(_check_password)
 
 
+class ChangePassword(BaseModel):
+    """Signed in, and proving it again before the credential changes."""
+    current_password: str = Field(..., max_length=1024)
+    new_password:     str = Field(..., min_length=8, max_length=1024)
+
+    _validate_password = field_validator("new_password")(_check_password)
+
+
+class ForgotPassword(BaseModel):
+    email: EmailStr
+
+
+class ResetPassword(BaseModel):
+    # The token out of the emailed link, not anything the user composes.
+    token:        str = Field(..., min_length=16, max_length=256)
+    new_password: str = Field(..., min_length=8, max_length=1024)
+
+    _validate_password = field_validator("new_password")(_check_password)
+
+
+class DeleteAccount(BaseModel):
+    """
+    Deleting takes the clinical history with it and cannot be undone, so it asks
+    for the password again rather than trusting a token that may have been left
+    signed in on a shared machine.
+    """
+    password: str = Field(..., max_length=1024)
+    # Typed by hand in the UI. A misclick should not be able to reach this.
+    confirm:  str = Field(..., description='Must be the word "DELETE"')
+
+    @field_validator("confirm")
+    @classmethod
+    def _must_confirm(cls, v: str) -> str:
+        if v.strip().upper() != "DELETE":
+            raise ValueError('Type DELETE to confirm.')
+        return v
+
+
+class SimpleMessage(BaseModel):
+    """A plain acknowledgement for endpoints with nothing else to return."""
+    detail: str
+
+
+class DeletionReceipt(BaseModel):
+    """What was destroyed, counted, so the answer is not merely "ok"."""
+    detail:            str
+    prescriptions:     int = Field(..., description="Analyses and their audit trail")
+    sessions:          int = Field(..., description="Recorded exercise sessions")
+    outcome_scores:    int
+    share_links:       int
+    clinician_links:   int
+
+
 class LoginRequest(BaseModel):
     email:    EmailStr
     # No min_length: a short password is a failed login, not a malformed
