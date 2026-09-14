@@ -12,6 +12,7 @@
   <script src="assets/motion.js"></script>
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#132733">
+  <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -532,12 +533,23 @@
       } else {
         // First time: take the side from their most recent analysis. A failure
         // here just leaves the default — not worth blocking the card over.
-        const past = await PhysioAPI.myPrescriptions({ limit: 1 }).catch(() => null);
-        const side = past && past.prescriptions[0] && past.prescriptions[0].knee_side;
+        const past = await fetchLatestPrescription();
+        const side = past && past.prescriptions && past.prescriptions[0] && past.prescriptions[0].knee_side;
         if (side === 'left' || side === 'right') koosSide = side;
       }
 
       if (history.schedule.due) showKoosPrompt(instrument);
+    }
+
+    // Two cards want the most recent analysis: the outcome card, to know which
+    // knee to ask about, and the profile card, to show the surgery facts. They
+    // asked separately, so every dashboard load fetched the same row twice.
+    let latestPrescriptionRequest = null;
+    function fetchLatestPrescription() {
+      if (!latestPrescriptionRequest) {
+        latestPrescriptionRequest = PhysioAPI.myPrescriptions({ limit: 1 }).catch(() => null);
+      }
+      return latestPrescriptionRequest;
     }
 
     // ── Who you are, and what you are recovering from ──────────────────────
@@ -683,9 +695,9 @@
       // the latest reading arrives. A failed history call leaves the identity and
       // surgery facts on screen rather than blanking the card.
       safely(() => renderProfile(patient, null));
-      PhysioAPI.myPrescriptions({ limit: 1 })
+      fetchLatestPrescription()
         .then((past) => {
-          latestPrescription = (past.prescriptions && past.prescriptions[0]) || null;
+          latestPrescription = (past && past.prescriptions && past.prescriptions[0]) || null;
           if (latestPrescription) safely(() => renderProfile(patient, latestPrescription));
         })
         .catch(() => { /* the identity half of the card is already up */ });
@@ -695,7 +707,11 @@
     // Installable, and able to open without a connection. The worker caches the
     // app shell only — never an API response, because a cached prescription is
     // a cached movement ceiling. See sw.js.
-    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    // localhost is a secure context too, and gating on https alone meant the
+    // entire offline path went live having never once run in development.
+    const secureEnough = location.protocol === 'https:'
+      || ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+    if ('serviceWorker' in navigator && secureEnough) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js').catch(() => {
           // An app that works is more important than one that works offline.

@@ -12,6 +12,7 @@
   <script src="assets/motion.js"></script>
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#132733">
+  <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1093,7 +1094,11 @@
     // Installable, and able to open without a connection. The worker caches the
     // app shell only — never an API response, because a cached prescription is
     // a cached movement ceiling. See sw.js.
-    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    // localhost is a secure context too, and gating on https alone meant the
+    // entire offline path went live having never once run in development.
+    const secureEnough = location.protocol === 'https:'
+      || ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+    if ('serviceWorker' in navigator && secureEnough) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js').catch(() => {
           // An app that works is more important than one that works offline.
