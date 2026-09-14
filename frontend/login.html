@@ -514,7 +514,7 @@
           <span class="field-error" id="password-error">Password must be at least 8 characters.</span>
         </div>
 
-        <a href="#" class="forgot" id="forgot-link">Forgot your password?</a>
+        <a href="reset-password.html" class="forgot" id="forgot-link">Forgot your password?</a>
 
         <button type="submit" class="btn-login" id="login-btn">
           <span id="login-btn-text">Log in</span>
@@ -648,9 +648,11 @@
     });
 
     forgotLink.addEventListener('click', (e) => {
+      const typed = emailEl.value.trim();
+      if (!typed) return;   // plain navigation to the reset page
+      // Carry the address across rather than asking for it a second time.
       e.preventDefault();
-      // Being straight about it beats a form that silently does nothing.
-      showToast('Password reset needs email delivery, which isn\u2019t set up yet.', 3500);
+      window.location.href = `reset-password.html?email=${encodeURIComponent(typed)}`;
     });
 
     form.addEventListener('submit', async (e) => {
@@ -725,10 +727,11 @@
       }
     });
 
-    guestBtn.addEventListener('click', () => {
+    guestBtn.addEventListener('click', async () => {
       // A stale token would otherwise quietly attach itself to a guest
-      // analysis and file it under someone else's account.
-      PhysioAPI.logout();
+      // analysis and file it under someone else's account. Awaited because
+      // signing out is now a request, and navigating away would cancel it.
+      await PhysioAPI.logout();
       window.location.href = 'upload.html';
     });
 

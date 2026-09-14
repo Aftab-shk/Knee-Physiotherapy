@@ -699,3 +699,54 @@
   .om-scale { flex-direction: column; gap: 5px; }
   .om-option { text-align: left; padding: 11px 14px; }
 }
+
+/* ── Account panel ──────────────────────────────────────────────── */
+.account-block {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  margin-top: 18px;
+}
+
+.account-block-title {
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.account-note {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--slate);
+  margin-bottom: 12px;
+  max-width: 62ch;
+}
+
+/* Deleting is not the same kind of action as the two above it, and should
+   not look like it is. */
+.account-block.danger .account-block-title { color: var(--red); }
+
+.btn-danger {
+  padding: 10px 16px;
+  border: 1px solid var(--red);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--red);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background .2s, color .2s;
+}
+
+.btn-danger:hover:not(:disabled) { background: var(--red); color: #fff; }
+.btn-danger:disabled { opacity: .5; cursor: not-allowed; }
+
+.account-msg {
+  font-size: 13px;
+  margin-top: 9px;
+  min-height: 1em;
+}
+
+.account-msg.ok { color: #15803d; }
+.account-msg.bad { color: var(--red); }

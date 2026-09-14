@@ -20,12 +20,13 @@
 
 // Bump on every deploy. Old caches are deleted on activate, which is what makes
 // a stale build impossible rather than merely unlikely.
-const CACHE = 'physioai-shell-v3';
+const CACHE = 'physioai-shell-v4';
 
 const SHELL = [
   './',
   './index.html',
   './login.html',
+  './reset-password.html',
   './upload.html',
   './tracker.html',
   './progress.html',

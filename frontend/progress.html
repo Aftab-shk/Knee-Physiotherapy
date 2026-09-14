@@ -30,6 +30,7 @@
       <span class="nav-who" id="nav-who"></span>
       <a href="upload.html" class="nav-link">New analysis</a>
       <a href="#" class="nav-link" id="share-link-open">Share</a>
+      <a href="#" class="nav-link" id="account-open">Account</a>
       <a href="#" class="nav-link" id="logout-link">Log out</a>
     </div>
   </nav>
@@ -90,6 +91,58 @@
     <!-- Sharing. A clinician will click a link; they will not create an account
          in their patient's app, so the link is the credential. Which makes
          withdrawing it the part that matters — hence the list below. -->
+    <div class="card hidden" id="account-panel" style="margin-bottom:22px">
+      <div class="card-head">
+        <div class="card-title">Your account</div>
+        <button class="range-btn" type="button" id="account-close">Close</button>
+      </div>
+
+      <div class="card-sub">Change your password, take a copy of your data, or leave.</div>
+
+      <div class="account-block">
+        <div class="account-block-title">Change password</div>
+        <div class="account-note">
+          Every other device you are signed in on is signed out. This one stays.
+        </div>
+        <div class="share-form">
+          <input class="share-input" type="password" id="acc-current" autocomplete="current-password"
+            placeholder="Current password">
+          <input class="share-input" type="password" id="acc-new" autocomplete="new-password"
+            minlength="8" placeholder="New password (8+ characters)">
+          <button class="btn" type="button" id="acc-change">Change</button>
+        </div>
+        <div class="account-msg" id="acc-change-msg"></div>
+      </div>
+
+      <div class="account-block">
+        <div class="account-block-title">Download your data</div>
+        <div class="account-note">
+          Everything held about you as a JSON file: your analyses, exercise sessions,
+          outcome scores and sharing history. Your X-ray images are not in it — they were
+          never stored, only what was read off them.
+        </div>
+        <button class="btn" type="button" id="acc-export">Download my data</button>
+        <div class="account-msg" id="acc-export-msg"></div>
+      </div>
+
+      <div class="account-block danger">
+        <div class="account-block-title">Delete your account</div>
+        <div class="account-note">
+          Immediate and permanent. Your analyses, exercise history, outcome scores and any
+          clinician's access to them are destroyed — there is no grace period and no copy
+          kept. Download your data first if you want it.
+        </div>
+        <div class="share-form">
+          <input class="share-input" type="password" id="acc-del-password"
+            autocomplete="current-password" placeholder="Your password">
+          <input class="share-input" type="text" id="acc-del-confirm"
+            placeholder="Type DELETE to confirm">
+          <button class="btn-danger" type="button" id="acc-delete">Delete everything</button>
+        </div>
+        <div class="account-msg" id="acc-delete-msg"></div>
+      </div>
+    </div>
+
     <div class="card hidden" id="share-panel" style="margin-bottom:22px">
       <div class="card-head">
         <div class="card-title">Share with your physiotherapist</div>
@@ -252,9 +305,99 @@
       });
     }
 
-    $('logout-link').addEventListener('click', (e) => {
+    // ── Account panel ──────────────────────────────────────────────────
+    const accountPanel = $('account-panel');
+
+    function accMsg(id, text, kind) {
+      const el = $(id);
+      // textContent: these strings come back from the server.
+      el.textContent = text;
+      el.className = `account-msg ${kind}`;
+    }
+
+    $('account-open').addEventListener('click', (e) => {
       e.preventDefault();
-      PhysioAPI.logout();
+      accountPanel.classList.remove('hidden');
+      accountPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+
+    $('account-close').addEventListener('click', () => accountPanel.classList.add('hidden'));
+
+    $('acc-change').addEventListener('click', async () => {
+      const btn = $('acc-change');
+      const current = $('acc-current').value;
+      const next = $('acc-new').value;
+      if (!current || next.length < 8) {
+        accMsg('acc-change-msg', 'Enter your current password and a new one of at least 8 characters.', 'bad');
+        return;
+      }
+      btn.disabled = true;
+      try {
+        await PhysioAPI.changePassword({ currentPassword: current, newPassword: next });
+        $('acc-current').value = '';
+        $('acc-new').value = '';
+        accMsg('acc-change-msg', 'Password changed. Any other device has been signed out.', 'ok');
+      } catch (err) {
+        accMsg('acc-change-msg', err.detail || 'Could not change your password.', 'bad');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    $('acc-export').addEventListener('click', async () => {
+      const btn = $('acc-export');
+      btn.disabled = true;
+      accMsg('acc-export-msg', 'Preparing your file…', '');
+      try {
+        const { blob, filename } = await PhysioAPI.exportMyData();
+        const href = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = href;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        // Released, or every download leaks the whole file for the tab's life.
+        URL.revokeObjectURL(href);
+        accMsg('acc-export-msg', 'Downloaded.', 'ok');
+      } catch (err) {
+        accMsg('acc-export-msg', err.detail || 'Could not prepare your data.', 'bad');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    $('acc-delete').addEventListener('click', async () => {
+      const password = $('acc-del-password').value;
+      const confirm = $('acc-del-confirm').value.trim().toUpperCase();
+      if (!password || confirm !== 'DELETE') {
+        accMsg('acc-delete-msg', 'Enter your password and type DELETE to confirm.', 'bad');
+        return;
+      }
+      // A browser confirm() on top of the typed word: this is the one action
+      // on the page that cannot be undone.
+      if (!window.confirm(
+        'This permanently deletes your account and every analysis, exercise session and '
+        + 'outcome score in it. It cannot be undone. Continue?')) return;
+
+      const btn = $('acc-delete');
+      btn.disabled = true;
+      try {
+        const receipt = await PhysioAPI.deleteMyAccount({ password });
+        accMsg('acc-delete-msg',
+          `Deleted ${receipt.prescriptions} analyses and ${receipt.sessions} sessions. Goodbye.`, 'ok');
+        setTimeout(() => { window.location.href = 'index.html'; }, 1800);
+      } catch (err) {
+        accMsg('acc-delete-msg', err.detail || 'Could not delete your account.', 'bad');
+        btn.disabled = false;
+      }
+    });
+
+    $('logout-link').addEventListener('click', async (e) => {
+      e.preventDefault();
+      // Awaited: this ends the session on the server as well as in this tab,
+      // and navigating away first would cancel the request that does it.
+      await PhysioAPI.logout();
       window.location.href = 'login.html';
     });
 

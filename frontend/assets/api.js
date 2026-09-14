@@ -220,13 +220,91 @@
   }
 
   /**
-   * Forget the token.
+   * Sign out, for real.
    *
-   * Local only: the server issues stateless JWTs, so a token that has already
-   * been copied elsewhere stays valid until it expires. Revocation needs a
-   * server-side denylist, which is not built.
+   * This used to only forget the local copy, which meant a token already taken
+   * off the device carried on working for the rest of its fortnight. The server
+   * now bumps the account's token version, so every token issued before this
+   * call stops being accepted — including ones this browser never saw.
+   *
+   * The local token is cleared either way. A network failure here should still
+   * sign you out of the machine you are sitting at.
    */
-  function logout() { setAuthToken(null); }
+  async function logout() {
+    try {
+      if (authToken) await request('/auth/logout', { method: 'POST' });
+    } catch {
+      // Signed out locally regardless; the server-side copy expires on its own.
+    } finally {
+      setAuthToken(null);
+    }
+  }
+
+  /**
+   * Change the password, proving the current one first.
+   *
+   * Every other session ends. The replacement token comes back from the server
+   * already issued against the new version, so the tab doing the changing stays
+   * signed in and every other one does not.
+   */
+  async function changePassword({ currentPassword, newPassword }) {
+    const res = await request('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    setAuthToken(res.access_token);
+    return res;
+  }
+
+  /**
+   * Ask for a reset link.
+   *
+   * Always resolves the same way whether or not the address has an account —
+   * the server refuses to say, and this must not leak it by handling the two
+   * cases differently.
+   */
+  function requestPasswordReset({ email }) {
+    return request('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  /** Set a new password from an emailed link, and sign in with it. */
+  async function resetPassword({ token, newPassword }) {
+    const res = await request('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, new_password: newPassword }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    setAuthToken(res.access_token);
+    return res;
+  }
+
+  /** Everything the server holds about this patient, as a downloadable file. */
+  async function exportMyData() {
+    const res = await fetch(`${cfg.API_BASE}/me/export`, { headers: authHeaders() });
+    if (!res.ok) throw new ApiError('Could not prepare your data.', { status: res.status });
+    return { blob: await res.blob(), filename: `physio-data-${new Date().toISOString().slice(0, 10)}.json` };
+  }
+
+  /**
+   * Delete the account and everything in it. Irreversible, immediately.
+   *
+   * The password is required again because the common way to reach a delete
+   * button is a session somebody left open.
+   */
+  async function deleteMyAccount({ password }) {
+    const res = await request('/me/delete', {
+      method: 'POST',
+      body: JSON.stringify({ password, confirm: 'DELETE' }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    setAuthToken(null);
+    return res;
+  }
 
   /** The signed-in patient, or null if the token is missing or no longer good. */
   async function me() {
@@ -628,6 +706,11 @@
     register,
     login,
     logout,
+    changePassword,
+    requestPasswordReset,
+    resetPassword,
+    exportMyData,
+    deleteMyAccount,
     me,
     myPrescriptions,
     setSurgery,
