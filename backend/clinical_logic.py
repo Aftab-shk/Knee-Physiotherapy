@@ -15,6 +15,11 @@ from typing import Optional
 from exercise_protocols import get_phase
 from kl_constants import KL_DESCRIPTIONS, KL_HEALTH_SCORE, KL_MAX_ANGLE  # noqa: F401
 
+# The most range an X-ray the model could not read confidently is allowed to
+# grant. Grade 2's ceiling: the middle of the scale, and the point past which a
+# knee is being trusted with load on the strength of a coin-flip reading.
+UNCERTAIN_READ_CEILING = KL_MAX_ANGLE[2]
+
 DISCLAIMER = (
     "⚠️ This output is for informational purposes only and is not a substitute "
     "for professional medical advice. Always consult your physiotherapist or "
@@ -155,7 +160,10 @@ def _build_rationale(
     # is not one — stating "82% confident" next to a movement restriction claims
     # a precision this model has not demonstrated.
     if calibrated:
-        confidence_str = f"{CONFIDENCE_PHRASES[confidence_band]} ({int(confidence * 100)}% calibrated confidence)"
+        # round(), not int(): the summary card in upload.html rounds, and 0.336
+        # showing as 34% beside prose saying 33% reads as two different numbers
+        # for the same thing.
+        confidence_str = f"{CONFIDENCE_PHRASES[confidence_band]} ({round(confidence * 100)}% calibrated confidence)"
     else:
         confidence_str = CONFIDENCE_PHRASES[confidence_band]
 
@@ -342,6 +350,21 @@ def build_prescription(
     applies = kl_applies(surgery_type)
     if applies:
         effective_ceiling = max_angle
+        # A ceiling is only worth as much as the grade it came from.
+        #
+        # Below 50% confidence the model is barely favouring one grade over the
+        # next, and a low grade read that way hands out the most permissive
+        # ceiling there is. A chest radiograph uploaded by mistake came back as
+        # grade 0 at 36% confidence: 120 degrees and a full-squat programme,
+        # with the doubt mentioned only in a sentence of prose underneath.
+        #
+        # So an uncertain read is not allowed to unlock more range than a
+        # moderate arthritic knee gets. It can still restrict — a low-confidence
+        # grade 4 keeps its 45 degrees — because caution only ever moves one
+        # way. Being made to work at 90 degrees when 120 was available costs a
+        # confident patient some progress; the reverse costs a joint.
+        if confidence_band == "low":
+            effective_ceiling = min(effective_ceiling, UNCERTAIN_READ_CEILING)
     else:
         effective_ceiling = protocol_ceiling(phase)
 

@@ -402,10 +402,35 @@ def load_calibration(checkpoint_path: str) -> dict:
     if energy_ref.get("p99") is not None and energy_ref.get("p50") is not None:
         p50, p95, p99 = energy_ref["p50"], energy_ref.get("p95", energy_ref["p99"]), energy_ref["p99"]
         warn_threshold = p95
-        # One full inter-percentile spread beyond p99: far into the tail for a
-        # genuine radiograph, while still catching inputs the model has no
-        # business grading at all.
-        reject_threshold = p99 + max(p99 - p50, 1e-3)
+        # How far past p99 an image has to score before it is refused outright,
+        # measured in p50-to-p99 spreads.
+        #
+        # This was a hard-coded 1.0, which put the bar at -1.31 for the shipped
+        # checkpoint. Nothing reaches that. A chest film scored -1.71, random
+        # noise -1.71, a blank white image -1.52; all were graded, and the chest
+        # film came back as a healthy knee with a 120-degree ceiling. A gate that
+        # cannot fire is not a gate.
+        #
+        # 0.5 puts the bar about 2.8 standard deviations above the mean of the
+        # validation films, refusing roughly 0.3% of genuine radiographs.
+        #
+        # Be clear about how weak this gate is, because the old value hid it. A
+        # chest radiograph scores -1.71 on this checkpoint and random noise
+        # -1.71, both sitting comfortably inside the range real knee films
+        # occupy. Catching those would mean a threshold near -1.72, which throws
+        # away more than 1% of genuine studies — and a patient whose own X-ray
+        # is refused cannot use the app at all, while a misread one is now held
+        # to a cautious ceiling by build_prescription(). That asymmetry is why
+        # this errs towards letting images through.
+        #
+        # So: this rejects blank, uniform and near-degenerate uploads, most of
+        # which the contrast check in image_checks.py already catches. It is not
+        # protection against the wrong body part, and nothing downstream should
+        # be written as though it were. Tuning it into something that is needs a
+        # labelled out-of-distribution set, which is why it is an environment
+        # variable and why every rejection logs its energy.
+        margin = float(os.getenv("OOD_REJECT_MARGIN", "0.5"))
+        reject_threshold = p99 + max(margin * (p99 - p50), 1e-3)
 
     return {
         "temperature":      temperature,
