@@ -77,6 +77,32 @@ class Patient(Base):
     # own table; this is the thing the protocol selector actually reads.
     surgery_type: Mapped[str | None] = mapped_column(String(16), nullable=True)
 
+
+    # ── Session and credential control ───────────────────────────────────────
+    # Every token carries the version this counter stood at when it was issued,
+    # and a token whose version no longer matches is refused. Bumping it is what
+    # makes "sign out everywhere" and "changing your password ends other
+    # sessions" possible at all: a JWT is otherwise valid until it expires, and
+    # there was no way to take one back.
+    #
+    # A counter rather than a cutoff timestamp, because `iat` is only accurate
+    # to the second: a token issued and revoked inside the same second would
+    # have survived a timestamp comparison. A counter has no clock in it, so
+    # signing out always takes effect immediately.
+    #
+    # And a counter rather than a table of revoked tokens: one column, nothing
+    # to sweep up later, and it revokes at the only granularity that is
+    # actually useful after a password change — all of them.
+    token_version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    # A pending password reset. Only the hash is kept, for the same reason the
+    # password is: this column is a credential while it lives, and a readable
+    # one in a stolen backup would be an account takeover.
+    reset_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    reset_requested_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     care_links: Mapped[list["CareLink"]] = relationship(
         back_populates="patient",
         cascade="all, delete-orphan",
@@ -513,6 +539,32 @@ class Clinician(Base):
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+    # ── Session and credential control ───────────────────────────────────────
+    # Every token carries the version this counter stood at when it was issued,
+    # and a token whose version no longer matches is refused. Bumping it is what
+    # makes "sign out everywhere" and "changing your password ends other
+    # sessions" possible at all: a JWT is otherwise valid until it expires, and
+    # there was no way to take one back.
+    #
+    # A counter rather than a cutoff timestamp, because `iat` is only accurate
+    # to the second: a token issued and revoked inside the same second would
+    # have survived a timestamp comparison. A counter has no clock in it, so
+    # signing out always takes effect immediately.
+    #
+    # And a counter rather than a table of revoked tokens: one column, nothing
+    # to sweep up later, and it revokes at the only granularity that is
+    # actually useful after a password change — all of them.
+    token_version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    # A pending password reset. Only the hash is kept, for the same reason the
+    # password is: this column is a credential while it lives, and a readable
+    # one in a stolen backup would be an account takeover.
+    reset_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    reset_requested_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     care_links: Mapped[list["CareLink"]] = relationship(
         back_populates="clinician",

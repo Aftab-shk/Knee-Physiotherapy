@@ -18,6 +18,7 @@ no equivalent of bcrypt's silent 72-byte truncation, where two different long
 passwords hash identically.
 """
 
+import hashlib
 import logging
 import os
 import secrets
@@ -116,13 +117,22 @@ ROLE_PATIENT = "patient"
 ROLE_CLINICIAN = "clinician"
 
 
-def create_access_token(subject_id: str, role: str = ROLE_PATIENT) -> tuple[str, int]:
-    """Return (token, seconds_until_expiry)."""
+def create_access_token(
+    subject_id: str, role: str = ROLE_PATIENT, token_version: int = 0
+) -> tuple[str, int]:
+    """
+    Return (token, seconds_until_expiry).
+
+    token_version is the account's counter at the moment of issue. Bumping that
+    counter is what invalidates every token already out there — see
+    revoke_tokens() and _still_valid().
+    """
     expires_delta = timedelta(hours=JWT_EXPIRY_HOURS)
     now = datetime.now(timezone.utc)
     payload = {
         "sub": subject_id,
         "role": role,
+        "ver": int(token_version),
         "iat": int(now.timestamp()),
         "exp": int((now + expires_delta).timestamp()),
     }
@@ -131,7 +141,9 @@ def create_access_token(subject_id: str, role: str = ROLE_PATIENT) -> tuple[str,
 
 def decode_token(token: str) -> Optional[tuple[str, str]]:
     """
-    Return (subject_id, role), or None if the token is invalid or expired.
+    Return (subject_id, role, token_version), or None if the token is invalid
+    or expired. The version is what the lookups below compare against the
+    account's own counter, which is how a token gets taken back.
 
     A token issued before roles existed carries no claim; those are patients,
     which is what every account was at the time. Anything else — a role this
@@ -152,7 +164,63 @@ def decode_token(token: str) -> Optional[tuple[str, str]]:
     role = claims.get("role", ROLE_PATIENT)
     if role not in (ROLE_PATIENT, ROLE_CLINICIAN):
         return None
-    return sub, role
+
+    # The version claim is what makes a token revocable. One issued before this
+    # existed carries none, and is read as version 0 — the value every account
+    # starts at, so nothing is signed out merely by this shipping.
+    ver = claims.get("ver", 0)
+    if not isinstance(ver, int) or isinstance(ver, bool):
+        return None
+    return sub, role, ver
+
+
+# ---------------------------------------------------------------------------
+# Password reset tokens
+# ---------------------------------------------------------------------------
+
+# Long enough that guessing is not a strategy, short enough to survive being
+# pasted out of an email client that has wrapped the line.
+RESET_TOKEN_BYTES = 32
+RESET_TOKEN_TTL_MINUTES = int(os.getenv("RESET_TOKEN_TTL_MINUTES", "60"))
+
+
+def new_reset_token() -> tuple[str, str]:
+    """
+    Return (token, hash). Only the hash is stored.
+
+    SHA-256 rather than Argon2: this is a 256-bit random value with an hour to
+    live, not a human-chosen password, so there is nothing for a slow hash to
+    protect against — and the verify happens on an unauthenticated endpoint
+    where a 85 ms hash would be a denial-of-service lever.
+    """
+    token = secrets.token_urlsafe(RESET_TOKEN_BYTES)
+    return token, hash_reset_token(token)
+
+
+def hash_reset_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def reset_token_is_live(account) -> bool:
+    """True when the account has a reset outstanding that has not expired."""
+    if not account.reset_token_hash or account.reset_requested_at is None:
+        return False
+    requested = account.reset_requested_at
+    if requested.tzinfo is None:
+        requested = requested.replace(tzinfo=timezone.utc)
+    age = datetime.now(timezone.utc) - requested
+    return age <= timedelta(minutes=RESET_TOKEN_TTL_MINUTES)
+
+
+def revoke_tokens(account) -> None:
+    """
+    Take back every token issued to this account so far.
+
+    Called on sign-out, on a password change, and on a completed reset. The
+    caller commits, and anything it hands back afterwards must be issued from
+    the new counter value.
+    """
+    account.token_version = (account.token_version or 0) + 1
 
 
 # ---------------------------------------------------------------------------
@@ -171,27 +239,45 @@ _UNAUTHORISED = HTTPException(
 )
 
 
+def _still_valid(account, token_version: int) -> bool:
+    """
+    False once the account has been bumped past the version this token carries.
+
+    Signing out, changing a password and completing a reset all increment the
+    counter, which takes back every token issued before. Equality rather than a
+    comparison: a token from the future is as wrong as one from the past, and
+    both mean something has gone astray.
+    """
+    return token_version == (getattr(account, "token_version", 0) or 0)
+
+
 def _lookup(db: Session, token: str) -> Optional[Patient]:
     decoded = decode_token(token)
     if decoded is None:
         return None
-    subject_id, role = decoded
+    subject_id, role, token_version = decoded
     # A clinician's token must not open a patient's door, however valid it is.
     if role != ROLE_PATIENT:
         return None
     # A token can outlive the account it names — deletion does not reach back
     # and revoke tokens already issued.
-    return db.get(Patient, subject_id)
+    patient = db.get(Patient, subject_id)
+    if patient is None or not _still_valid(patient, token_version):
+        return None
+    return patient
 
 
 def _lookup_clinician(db: Session, token: str) -> Optional[Clinician]:
     decoded = decode_token(token)
     if decoded is None:
         return None
-    subject_id, role = decoded
+    subject_id, role, token_version = decoded
     if role != ROLE_CLINICIAN:
         return None
-    return db.get(Clinician, subject_id)
+    clinician = db.get(Clinician, subject_id)
+    if clinician is None or not _still_valid(clinician, token_version):
+        return None
+    return clinician
 
 
 def current_patient(
