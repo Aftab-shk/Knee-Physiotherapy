@@ -28,7 +28,13 @@
 export const POSE_GATE = {
   SPREAD_OK:          0.38,   // max(shoulder,hip) spread ÷ torso; side-on ≈ 0.1–0.3
   SPREAD_RECOVER:     0.46,   // hysteresis: harder to lose the lock than to gain it
-  FORESHORTEN_MAX:    22,     // ° of disagreement allowed between the 3D and 2D knee angle
+  // ° of disagreement allowed between the 3D and 2D knee angle. Was 22, which
+  // had to be that wide because the 2D angle was measured in unsquared
+  // coordinates and disagreed with its own 3D reference by ~16° on a 16:9
+  // camera before the leg turned at all. With squareUp() in place a properly
+  // side-on leg agrees to within a degree, so the budget can go back to
+  // catching what it is for. 12 still passes a patient standing 50° off axis.
+  FORESHORTEN_MAX:    12,
   VISIBILITY_MIN:     0.5,    // per-landmark confidence floor
   FRAME_MARGIN:       0.02,   // normalised coords; nearer an edge than this counts as clipped
   TORSO_MIN:          0.06,   // shorter than this ⇒ too far away, or an overhead view
@@ -46,6 +52,23 @@ export const HARD_FAIL_CODES = Object.freeze(['no-pose', 'low-visibility', 'out-
 export const isHardFail = (code) => HARD_FAIL_CODES.includes(code);
 
 // ── Geometry ────────────────────────────────────────────────────────────────
+
+/**
+ * Undo MediaPipe's anisotropic normalisation.
+ *
+ * Landmarks come back normalised to 0–1 by frame *width* for x and frame
+ * *height* for y. On anything but a square frame those are different real
+ * distances, and every piece of geometry below — angles, lengths, ratios —
+ * silently reads the leg as though the image had been squashed. A true 60°
+ * knee measured this way reports 44° on a 1280×720 webcam, and under-reading
+ * is the direction that lets a patient past their ceiling with no alarm.
+ *
+ * Dividing y by the frame's aspect (width ÷ height) puts it back in the same
+ * units as x. `aspect` of 1 is a square frame and leaves everything untouched,
+ * which is what the synthetic bodies in the tests use.
+ */
+const squareUp = (p, aspect) =>
+  (!p || aspect === 1) ? p : { ...p, y: p.y / aspect };
 
 const dist2 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const mid2  = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
@@ -77,8 +100,10 @@ export function jointAngle3D(a, b, c) {
 }
 
 // Knee flexion: straight leg = 0°, fully bent ≈ 135°.
-export function calcKneeAngle(hip, knee, ankle) {
-  return 180 - jointAngle(hip, knee, ankle);
+// `aspect` is the frame's width ÷ height — pass it or the reading is distorted
+// by the frame's shape rather than by the knee. See squareUp().
+export function calcKneeAngle(hip, knee, ankle, aspect = 1) {
+  return 180 - jointAngle(squareUp(hip, aspect), squareUp(knee, aspect), squareUp(ankle, aspect));
 }
 
 // Signed ankle deviation from neutral: positive = plantarflexion (toes pointed
@@ -86,8 +111,9 @@ export function calcKneeAngle(hip, knee, ankle) {
 // as one clean oscillation through zero rather than two peaks. Ankle Pumps is
 // the only exercise counted off this.
 export const ANKLE_NEUTRAL_DEG = 90;
-export function calcAnkleAngle(knee, ankle, footIndex) {
-  return jointAngle(knee, ankle, footIndex) - ANKLE_NEUTRAL_DEG;
+export function calcAnkleAngle(knee, ankle, footIndex, aspect = 1) {
+  return jointAngle(squareUp(knee, aspect), squareUp(ankle, aspect), squareUp(footIndex, aspect))
+    - ANKLE_NEUTRAL_DEG;
 }
 
 // 'both' has no single tracked leg, so it falls back to the right side. Any
@@ -122,6 +148,10 @@ export function landmarkIndices(kneeSide) {
 export function assessView(lm, world, idx, opts = {}) {
   const spreadCeiling = opts.spreadCeiling ?? POSE_GATE.SPREAD_OK;
   const trackedJoint  = opts.trackedJoint ?? 'knee';
+  // Frame width ÷ height. Every length and angle below is measured after
+  // squaring the coordinates up, so the thresholds mean the same thing on a
+  // 16:9 webcam, a 4:3 one and a portrait phone.
+  const aspect        = opts.aspect ?? 1;
 
   if (!lm || [11, 12, 23, 24, idx.hip, idx.knee, idx.ankle].some(i => !lm[i])) {
     return { ok: false, code: 'no-pose', visibility: 0, message: 'Step into frame — we can’t see you yet.' };
@@ -155,7 +185,8 @@ export function assessView(lm, world, idx, opts = {}) {
   // 3. Torso length is the scale reference for the test below. A very short one
   //    means the camera is far away, or looking down the length of the body,
   //    and neither gives a measurable knee.
-  const torso = dist2(mid2(lm[23], lm[24]), mid2(lm[11], lm[12]));
+  const sq = p => squareUp(p, aspect);
+  const torso = dist2(mid2(sq(lm[23]), sq(lm[24])), mid2(sq(lm[11]), sq(lm[12])));
   if (torso < POSE_GATE.TORSO_MIN) {
     return { ok: false, code: 'too-far', visibility, message: 'Move closer, or bring the camera down to knee height.' };
   }
@@ -164,7 +195,7 @@ export function assessView(lm, world, idx, opts = {}) {
   //    shoulders) project onto almost the same point; seen square-on they are a
   //    shoulder-width apart. Dividing by torso length makes the ratio
   //    independent of how far away the patient is and of their build.
-  const spread = Math.max(dist2(lm[23], lm[24]), dist2(lm[11], lm[12])) / torso;
+  const spread = Math.max(dist2(sq(lm[23]), sq(lm[24])), dist2(sq(lm[11]), sq(lm[12]))) / torso;
   if (spread > spreadCeiling) {
     return { ok: false, code: 'not-sagittal', visibility, message: 'Turn side-on to the camera — we need a profile view of your leg.' };
   }
@@ -176,7 +207,7 @@ export function assessView(lm, world, idx, opts = {}) {
   if (world && world[idx.hip] && world[idx.knee] && world[idx.ankle]) {
     const raw3d = jointAngle3D(world[idx.hip], world[idx.knee], world[idx.ankle]);
     if (raw3d !== null &&
-        Math.abs((180 - raw3d) - calcKneeAngle(hip, knee, ankle)) > POSE_GATE.FORESHORTEN_MAX) {
+        Math.abs((180 - raw3d) - calcKneeAngle(hip, knee, ankle, aspect)) > POSE_GATE.FORESHORTEN_MAX) {
       return { ok: false, code: 'foreshortened', visibility, message: 'Your leg is pointing towards the camera. Turn so it lies across the view.' };
     }
   }

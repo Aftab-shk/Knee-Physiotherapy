@@ -219,3 +219,81 @@ test("landmark indices follow the knee being treated", () => {
   // guidance text shown to the patient reads from the same `side` field.
   assert.deepEqual(landmarkIndices("both"), { hip: 24, knee: 26, ankle: 28, foot: 32, side: "right" });
 });
+
+// ── Frame shape must not change the reading ─────────────────────────────────
+// MediaPipe normalises x by frame width and y by frame height. Treating those
+// as the same unit made a true 60° knee read 44° on a 1280×720 webcam — under
+// -reading, which is the direction that lets a patient past their ceiling in
+// silence. Every body above is built square, so nothing here caught it.
+
+/** The same physical leg, normalised the way MediaPipe would for a W×H frame. */
+function legInFrame(flexDeg, W, H) {
+  const f = (flexDeg * Math.PI) / 180;
+  const thigh = 200, shank = 200;                       // pixels
+  const hip   = { x: 300, y: 100 };
+  const knee  = { x: 300, y: 100 + thigh };
+  const ankle = { x: knee.x - Math.sin(f) * shank, y: knee.y + Math.cos(f) * shank };
+  const n = p => ({ x: p.x / W, y: p.y / H, visibility: 0.99 });
+  return { hip: n(hip), knee: n(knee), ankle: n(ankle), aspect: W / H };
+}
+
+test("the knee angle is the same whatever shape the frame is", () => {
+  for (const trueDeg of [20, 45, 60, 90, 120]) {
+    for (const [W, H] of [[600, 600], [640, 480], [1280, 720], [720, 1280]]) {
+      const leg = legInFrame(trueDeg, W, H);
+      const got = calcKneeAngle(leg.hip, leg.knee, leg.ankle, leg.aspect);
+      assert.ok(
+        Math.abs(got - trueDeg) < 0.5,
+        `${trueDeg}° in a ${W}x${H} frame read as ${got.toFixed(1)}°`,
+      );
+    }
+  }
+});
+
+test("without the frame shape, a 16:9 webcam under-reads a bent knee", () => {
+  // Guards the fix by pinning what it was fixing: the uncorrected call is still
+  // wrong, so anyone who drops the argument at a call site gets a failing test
+  // rather than a silently low reading.
+  const leg = legInFrame(60, 1280, 720);
+  const uncorrected = calcKneeAngle(leg.hip, leg.knee, leg.ankle);
+  assert.ok(uncorrected < 50, `expected a low reading, got ${uncorrected.toFixed(1)}°`);
+  assert.ok(Math.abs(calcKneeAngle(leg.hip, leg.knee, leg.ankle, leg.aspect) - 60) < 0.5);
+});
+
+test("the side-on test survives a non-square frame", () => {
+  // spread ÷ torso is a ratio of a sideways length to a mostly-vertical one, so
+  // it moved with the frame shape too: a square-on patient could pass the gate
+  // on one camera and fail on another.
+  // makeBody() builds square coordinates (both axes divided by the same
+  // number). In a W×H frame MediaPipe would divide y by H instead, which is the
+  // square value times the aspect. Scaling that back to fit inside the frame is
+  // a uniform zoom, so it changes neither angles nor the spread ÷ torso ratio —
+  // only the anisotropy under test survives it.
+  const squash = (b, aspect) => {
+    const pts = b.lm.filter(Boolean);
+    const ys = pts.map(p => p.y * aspect);
+    const lo = Math.min(...ys), hi = Math.max(...ys);
+    const zoom = Math.min(1, 0.86 / (hi - lo));
+    const cy = (lo + hi) / 2;
+    return {
+      lm: b.lm.map(p => (p ? {
+        ...p,
+        x: 0.5 + (p.x - 0.5) * zoom,
+        y: 0.5 + (p.y * aspect - cy) * zoom,
+      } : p)),
+      world: b.world,
+    };
+  };
+  for (const aspect of [4 / 3, 16 / 9, 9 / 16]) {
+    const sideOn = squash(makeBody(90, 60), aspect);
+    const squareOn = squash(makeBody(0, 60), aspect);
+    assert.equal(
+      assessView(sideOn.lm, sideOn.world, IDX, { aspect }).ok, true,
+      `side-on rejected at aspect ${aspect.toFixed(2)}`,
+    );
+    assert.equal(
+      assessView(squareOn.lm, squareOn.world, IDX, { aspect }).code, "not-sagittal",
+      `square-on accepted at aspect ${aspect.toFixed(2)}`,
+    );
+  }
+});
