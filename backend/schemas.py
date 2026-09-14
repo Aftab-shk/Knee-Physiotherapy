@@ -2,7 +2,7 @@ from datetime import date, datetime
 from enum import Enum
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class KneeSide(str, Enum):
@@ -227,6 +227,29 @@ class HealthResponse(BaseModel):
 # Accounts
 # ---------------------------------------------------------------------------
 
+# The short list of passwords that a length rule alone lets straight through.
+# "password" and "12345678" both cleared the old check, and so did eight spaces.
+# This is deliberately not a 100k-entry dictionary: the top handful covers most
+# of what people actually type, and a real blocklist belongs behind a service
+# rather than in an import.
+_COMMON_PASSWORDS = frozenset({
+    "password", "password1", "password123", "passw0rd", "12345678", "123456789",
+    "1234567890", "qwerty123", "qwertyui", "11111111", "00000000", "iloveyou",
+    "admin123", "letmein1", "welcome1", "abc12345", "physio123", "knee1234",
+})
+
+
+def _check_password(value: str) -> str:
+    """Reject the passwords a length floor is blind to."""
+    if not value.strip():
+        raise ValueError("Your password cannot be only spaces.")
+    if value.lower() in _COMMON_PASSWORDS:
+        raise ValueError("That password is one of the most commonly used ones. Please pick another.")
+    if len(set(value)) < 4:
+        raise ValueError("Your password repeats too few different characters.")
+    return value
+
+
 class RegisterRequest(BaseModel):
     email:        EmailStr
     # The floor is enforced here so the API is safe on its own terms, not only
@@ -235,6 +258,8 @@ class RegisterRequest(BaseModel):
     # readable message instead of a 500 from the hasher.
     password:     str           = Field(..., min_length=8, max_length=1024)
     display_name: Optional[str] = Field(None, max_length=120)
+
+    _validate_password = field_validator("password")(_check_password)
 
 
 class LoginRequest(BaseModel):
@@ -812,6 +837,8 @@ class ClinicianRegister(BaseModel):
     # Free text: registration bodies and title conventions differ by country,
     # and a dropdown of guesses would be wrong more often than useful.
     registration: Optional[str] = Field(None, max_length=64, description="e.g. HCPC PH123456")
+
+    _validate_password = field_validator("password")(_check_password)
 
 
 class ClinicianOut(BaseModel):

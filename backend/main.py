@@ -312,6 +312,57 @@ app.add_middleware(
 
 
 # ---------------------------------------------------------------------------
+# Security headers
+# ---------------------------------------------------------------------------
+
+# Now that this process serves the pages as well as the API, these are the app's
+# headers, not just an API's. The bearer token lives in localStorage, so the
+# policy below is what limits the blast radius if a script ever does get in.
+#
+# The allowances are all load-bearing: MediaPipe's pose code and wasm come from
+# jsDelivr and its model from Google's storage, the fonts come from Google, the
+# tracker builds blob: workers, and upload.html previews the chosen X-ray from a
+# blob URL. 'unsafe-inline' is there because the pages are written as inline
+# script and style throughout; removing it is a refactor, not a header change,
+# and is the one real gap left in this policy.
+_CSP = "; ".join([
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data: blob:",
+    "media-src 'self' blob:",
+    "worker-src 'self' blob:",
+    "connect-src 'self' https://cdn.jsdelivr.net https://storage.googleapis.com",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'",
+])
+
+# Set only when the request already arrived over https, so a plain-http
+# development server does not pin a browser to a scheme it cannot serve.
+_HSTS = "max-age=31536000; includeSubDomains"
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("Content-Security-Policy", _CSP)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    # The tracker needs the camera; nothing here needs anything else.
+    response.headers.setdefault(
+        "Permissions-Policy", "camera=(self), microphone=(), geolocation=(), interest-cohort=()"
+    )
+    forwarded_proto = request.headers.get("x-forwarded-proto", "")
+    if request.url.scheme == "https" or forwarded_proto == "https":
+        response.headers.setdefault("Strict-Transport-Security", _HSTS)
+    return response
+
+
+# ---------------------------------------------------------------------------
 # Rate limiting
 # ---------------------------------------------------------------------------
 
@@ -723,6 +774,32 @@ def record_set(
     The browser retries on a dropped connection, and a retry must not turn one
     set into two.
     """
+    # The exercise name and its ceiling both arrive from the browser. The name
+    # is what a clinician reads back later, and an unknown one made the history
+    # describe work that does not exist in any protocol. Match it against the
+    # catalogue the prescription was drawn from.
+    known = {e["name"]: e for e in all_exercises()}
+    if body.exercise_name not in known:
+        raise HTTPException(
+            status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail      = f"'{body.exercise_name}' is not an exercise in the catalogue.",
+        )
+
+    # The ceiling is a clinical number and the page is not where it is decided.
+    # A tracker running an out-of-date prescription, or a hand-written request,
+    # must not be able to file a set claiming a limit nobody prescribed. Only the
+    # upper bound is checked: a patient's own ceiling is often lower than the
+    # protocol's, because the KL grade capped it.
+    catalogue_limit = known[body.exercise_name].get("protocol_angle_limit")
+    if catalogue_limit is not None and body.angle_limit > catalogue_limit:
+        raise HTTPException(
+            status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail      = (
+                f"{body.exercise_name} has a ceiling of {catalogue_limit}°; "
+                f"this set reported {body.angle_limit}°."
+            ),
+        )
+
     session = db.scalar(
         select(ExerciseSession).where(
             ExerciseSession.patient_id == patient.id,
