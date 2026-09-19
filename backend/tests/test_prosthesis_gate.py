@@ -220,6 +220,34 @@ def test_scattered_bright_pixels_are_not_metalwork():
     assert "scattered" in result["reason"]
 
 
+def test_an_over_exposed_film_is_not_metalwork():
+    """
+    The false alarm that actually happens. On 1656 real native knees the
+    detector flagged 17.9%, and they were not speckled — a washed-out film is
+    bright in one large solid block, which the solidity rule keeps. What gives it
+    away is that everything else in the frame is bright too; beside real metal,
+    bone and soft tissue stay mid-grey.
+    """
+    import numpy as np
+
+    rng = np.random.default_rng(2)
+    arr = rng.integers(175, 225, (200, 200), dtype="uint8")   # washed-out bone
+    arr[40:160, 40:160] = 255                                 # one solid blown-out region
+    result = detect_hardware(make_png(arr))
+
+    assert result["saturated_fraction"] > 0.3, "the region really is large and solid"
+    assert result["solidity"] > 0.35
+    assert result["suspected"] is False
+    assert "over-exposed" in result["reason"]
+
+
+def test_metal_beside_normally_exposed_bone_is_still_caught():
+    """The same block, against bone at ordinary exposure — the gate must not cost this."""
+    result = detect_hardware(make_png(with_implant()))
+    assert result["suspected"] is True
+    assert result["rest_mean"] < 160
+
+
 def test_a_blank_dark_image_is_not_metalwork():
     import numpy as np
 
