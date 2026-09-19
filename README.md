@@ -66,8 +66,8 @@ knee-physiotherapy/
 ├── ruff.toml                      lint config
 │
 └── frontend/
-    ├── index.html                 Landing page
-    ├── login.html                 Log in / create account / guest access
+    ├── index.html                 Landing page, with the log in / create account / guest popup
+    ├── login.html                 Redirect to the popup (old links)
     ├── upload.html                X-ray upload + results + exercise plan
     ├── progress.html              Range of motion, consistency, per-exercise history
     ├── tracker.html               Webcam safety tracker (MediaPipe pose landmarker)

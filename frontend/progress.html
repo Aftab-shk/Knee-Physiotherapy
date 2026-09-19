@@ -6,12 +6,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Your dashboard — Knee-Physiotherapy</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="assets/theme.css">
   <!-- Sets .js-motion before first paint; see the file header for why it is not deferred. -->
   <script src="assets/motion.js"></script>
   <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#132733">
+  <meta name="theme-color" content="#f7f7f2">
   <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -20,25 +20,64 @@
 </head>
 
 <body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 13v8"/><path d="M4 14.9A7 7 0 1 1 15.7 8h1.8a4.5 4.5 0 0 1 2.5 8.2"/><path d="m8 17 4-4 4 4"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
+    <symbol id="i-logout" viewBox="0 0 24 24"><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.13-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.13a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.13 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.13a.5.5 0 0 1-.96 0z"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  </svg>
 
-  <nav class="topnav">
+  <div class="progress-shell">
+  <!-- Restored before the sidebar is parsed, so a hidden sidebar does not
+       slide away on every page load. -->
+  <script>
+    try {
+      if (localStorage.getItem('physio-sidebar') === 'hidden') document.currentScript.parentElement.classList.add('sidebar-hidden');
+    } catch { /* storage blocked: start with the sidebar shown */ }
+  </script>
+
+  <button type="button" class="sidebar-toggle" id="sidebar-toggle" aria-controls="sidebar" aria-expanded="true" aria-label="Hide sidebar">
+    <svg class="i"><use href="#i-chevron"/></svg>
+  </button>
+
+  <aside class="progress-sidebar" id="sidebar">
     <a href="index.html" class="nav-logo">
-      <img src="logo.png" alt="Knee-Physiotherapy Logo" class="nav-logo-img">
+      <img src="logo-dark.png" alt="" class="nav-logo-img" width="24" height="24">
       <span class="nav-logo-text">Knee-Physiotherapy</span>
     </a>
-    <div class="nav-right">
-      <span class="nav-who" id="nav-who"></span>
-      <a href="upload.html" class="nav-link">New analysis</a>
-      <a href="#" class="nav-link" id="share-link-open">Share</a>
-      <a href="#" class="nav-link" id="account-open">Account</a>
-      <a href="#" class="nav-link" id="logout-link">Log out</a>
+    <div class="patient-mini">
+      <div class="patient-avatar" id="nav-avatar" aria-hidden="true"></div>
+      <div>
+        <strong class="nav-who" id="nav-who"></strong>
+        <span>Your recovery</span>
+      </div>
     </div>
-  </nav>
+    <nav class="progress-nav" aria-label="Dashboard">
+      <a href="#top" aria-current="page"><svg class="i"><use href="#i-activity"/></svg> Overview</a>
+      <a href="upload.html"><svg class="i"><use href="#i-upload"/></svg> New analysis</a>
+      <a href="#" id="share-link-open"><svg class="i"><use href="#i-shield"/></svg> Care sharing</a>
+      <a href="#" id="account-open"><svg class="i"><use href="#i-user"/></svg> Account</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-help">
+        <svg class="i"><use href="#i-spark"/></svg>
+        <strong>Need a refresher?</strong>
+        <span>See how each exercise in your plan should look.</span>
+        <a href="animations.html">Open the guide <svg class="i"><use href="#i-arrow"/></svg></a>
+      </div>
+      <a href="#" class="sidebar-logout" id="logout-link"><svg class="i"><use href="#i-logout"/></svg> Log out</a>
+    </div>
+  </aside>
 
-  <div class="page">
+  <div class="page" id="top">
 
     <div class="head">
       <div>
+        <span class="mini-label">Patient dashboard</span>
         <div class="head-title" id="head-title">Your dashboard</div>
         <div class="head-sub" id="head-sub">How far your knee is bending, and how often you are working it.</div>
       </div>
@@ -65,7 +104,7 @@
           <div class="profile-name" id="profile-name">&nbsp;</div>
           <div class="profile-email" id="profile-email"></div>
         </div>
-        <a href="upload.html" class="btn profile-cta" id="upload-cta">Upload an X-ray →</a>
+        <a href="upload.html" class="btn profile-cta" id="upload-cta"><svg class="i"><use href="#i-upload"/></svg> Upload an X-ray</a>
       </div>
 
       <div class="profile-facts" id="profile-facts"></div>
@@ -209,12 +248,14 @@
         how far your knee bent each day, how consistently you have been training, and
         where you went past your safe limit.
       </p>
-      <a href="upload.html" class="btn">Start an exercise →</a>
+      <a href="upload.html" class="btn">Start an exercise <svg class="i"><use href="#i-arrow"/></svg></a>
     </div>
 
     <!-- The charts live in assets/progress-view.js, shared with share.html. -->
     <div id="content" class="hidden"></div>
   </div>
+
+  </div><!-- /progress-shell -->
 
   <script src="assets/config.js"></script>
   <script src="assets/api.js"></script>
@@ -259,7 +300,7 @@
         render(data);
       } catch (err) {
         if (err instanceof PhysioAPI.ApiError && err.status === 401) {
-          window.location.href = 'login.html';
+          window.location.href = 'index.html#login';
           return;
         }
         showError(await PhysioAPI.describeFailure(err));
@@ -281,7 +322,7 @@
         await PhysioAPI.downloadSummary({ days: rangeDays, tzOffsetMinutes: TZ_OFFSET });
       } catch (err) {
         if (err instanceof PhysioAPI.ApiError && err.status === 401) {
-          window.location.href = 'login.html';
+          window.location.href = 'index.html#login';
           return;
         }
         showError(await PhysioAPI.describeFailure(err));
@@ -398,7 +439,7 @@
       // Awaited: this ends the session on the server as well as in this tab,
       // and navigating away first would cancel the request that does it.
       await PhysioAPI.logout();
-      window.location.href = 'login.html';
+      window.location.href = 'index.html#login';
     });
 
     // Redraw on resize: the tooltip and hit areas are positioned from the
@@ -408,6 +449,26 @@
       clearTimeout(resizeTimer);
       // The payload lives in the view module, so the redraw does too.
       resizeTimer = setTimeout(() => ProgressView.redraw(), 150);
+    });
+
+    // Sidebar hide / show, remembered in this browser. Hiding it widens the
+    // main column without resizing the window, so the charts redraw once the
+    // slide has finished.
+    const shell = document.querySelector('.progress-shell');
+    const sidebarToggle = $('sidebar-toggle');
+    const syncSidebarToggle = () => {
+      const hidden = shell.classList.contains('sidebar-hidden');
+      sidebarToggle.setAttribute('aria-expanded', String(!hidden));
+      sidebarToggle.setAttribute('aria-label', hidden ? 'Show sidebar' : 'Hide sidebar');
+    };
+    syncSidebarToggle();
+    sidebarToggle.addEventListener('click', () => {
+      const hidden = shell.classList.toggle('sidebar-hidden');
+      syncSidebarToggle();
+      try { localStorage.setItem('physio-sidebar', hidden ? 'hidden' : 'shown'); } catch { /* not remembered */ }
+    });
+    $('sidebar').addEventListener('transitionend', (e) => {
+      if (e.propertyName === 'margin-left') ProgressView.redraw();
     });
 
     // ── Sharing ────────────────────────────────────────────────────────────
@@ -725,11 +786,9 @@
       }
     }
 
-    // ProgressView.longDate splits an ISO date on "-", so a full timestamp
-    // ("2026-09-12T10:33:00Z") would hand it "12T10:33:00Z" and render NaN.
-    // surgery_date is a plain date and created_at is a datetime, so both arrive
-    // here — trimming to the day makes one helper serve both.
-    const dayOf = (value) => longDate(String(value).slice(0, 10));
+    // surgery_date is a plain date and created_at is a datetime; longDate
+    // reads both.
+    const dayOf = longDate;
 
     function fact(label, value, note) {
       const box = el('div', 'profile-fact');
@@ -812,7 +871,7 @@
     (async function start() {
       const patient = await PhysioAPI.me().catch(() => null);
       if (!patient) {
-        window.location.href = 'login.html';
+        window.location.href = 'index.html#login';
         return;
       }
       // The charts go first and are never gated behind the card. A throw while
@@ -825,6 +884,7 @@
       loadKoos();
 
       $('nav-who').textContent = patient.display_name || patient.email;
+      $('nav-avatar').textContent = String(patient.display_name || patient.email || '?').trim().charAt(0).toUpperCase();
       // .split on a name is safe only once it is known to be a string — a
       // display_name of "" is falsy and handled, but any other shape is not
       // worth trusting on a page that has already started rendering.

@@ -25,8 +25,8 @@
  * screens that matter most. New nodes are picked up as they land.
  *
  * Not loaded by tracker.html (a live camera view, nothing to scroll, and
- * its cards update every frame) or login.html (one centred form, above the
- * fold, with its own slideUp entrance).
+ * its cards update every frame) or login.html (now only a redirect to the
+ * login popup on index.html).
  */
 (function () {
   'use strict';

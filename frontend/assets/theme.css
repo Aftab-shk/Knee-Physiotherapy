@@ -11,10 +11,18 @@
  * Load it before the page's own <style> so page rules win:
  *   <link rel="stylesheet" href="assets/theme.css">
  *
- * The surface tokens below describe the LIGHT surfaces used by index.html and
- * upload.html. login.html and tracker.html sit on the navy ground and override
- * what they need in their own <style> — those overrides are deliberate, not
- * drift.
+ * The palette is the "paper and ink" one: warm off-white ground, a deep green
+ * ink, coral as the one accent, mint and lavender as quiet fills. Most pages
+ * are light; tracker.html is a camera view and sits on the ink ground, and
+ * overrides what it needs in its own <style>.
+ *
+ * The older token names (--navy, --teal, --slate, …) are kept and pointed at
+ * the new palette rather than renamed, so a page that has not been touched
+ * still comes out in the right colours. New work should use the named tokens
+ * (--ink, --paper, --coral, …) directly.
+ *
+ * Each page loads the three faces with this <link> in its <head>:
+ *   https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap
  */
 
 *,
@@ -25,35 +33,55 @@
   padding: 0;
 }
 
+/* No visible scrollbars anywhere. Everything still scrolls by wheel, touch,
+   trackpad and keyboard; only the bar itself is gone. */
+* { scrollbar-width: none; }
+::-webkit-scrollbar { display: none; }
+
 :root {
-  /* ── Brand palette ─────────────────────────────────────────────────────
+  /* ── Palette ───────────────────────────────────────────────────────── */
+  --ink:        #24322f;
+  --ink-soft:   #59635e;
+  --paper:      #f7f7f2;
+  --paper-deep: #eef0e9;
+  --card:       #fbfbf7;
+  --mint:       #cfe9d9;
+  --mint-deep:  #9fceb2;
+  --lavender:   #dbd5e8;
+  --coral:      #ff806a;   /* fills and decoration                         */
+  --coral-dark: #e86b58;   /* hover, large display text                    */
+  --coral-ink:  #c24f3d;   /* small text and white-on-coral buttons: this is
+                              the shade that clears 4.5:1 against white     */
+  --good:       #4a825f;   /* "within range" — a status, never the accent   */
+  --line:       rgba(36, 50, 47, .14);
+
+  /* ── Legacy names, pointed at the palette above ─────────────────────
      The -rgb triplets exist so rgba() can vary alpha against the same colour:
      rgba(var(--teal-rgb), .15). Keep each pair in step. */
-  --navy:           #132733;
-  --navy-rgb:       19, 39, 51;
-  --navy-mid:       #1f3949;
-  --navy-mid-rgb:   31, 57, 73;
-  --blue:           #629bb5;
-  --blue-rgb:       98, 155, 182;
-  --teal:           #447f98;
-  --teal-rgb:       68, 127, 152;
-  --teal-light:     #629bb5;
-  --teal-light-rgb: 98, 155, 182;
+  --navy:           #24322f;
+  --navy-rgb:       36, 50, 47;
+  --navy-mid:       #314640;
+  --navy-mid-rgb:   49, 70, 64;
+  --blue:           #6e63a4;
+  --blue-rgb:       110, 99, 164;
+  --teal:           #c24f3d;
+  --teal-rgb:       194, 79, 61;
+  --teal-light:     #ff806a;
+  --teal-light-rgb: 255, 128, 106;
   --red:            #dc2626;
   --white:          #ffffff;
-
-  /* ── Light-surface tokens ──────────────────────────────────────────── */
-  --off-white:      #d6ebf3;  /* Ice Blue  */
-  --border:         #dadee1;  /* Platinum  */
-  --slate:          #5a7380;
-  --text:           #1b2f3a;
+  --off-white:      #eef0e9;
+  --border:         #dce2db;
+  --slate:          #59635e;
+  --text:           #24322f;
 
   /* ── Type ──────────────────────────────────────────────────────────────
      Faces come from the Google Fonts <link> in each page's <head>; the
-     fallbacks matter because that request can fail. */
-  --mono:    'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
-  --display: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
-  --body:    'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+     fallbacks matter because that request can fail. Display is the serif,
+     for headings and large numbers only — buttons and labels use --body. */
+  --mono:    'DM Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --display: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --body:    'DM Sans', 'Segoe UI', system-ui, sans-serif;
 
   /* ── Motion ────────────────────────────────────────────────────────────
      One rhythm for the whole product. Before these existed each page timed
@@ -71,8 +99,8 @@
 
   /* Skeleton greys. Same two values the progress charts have always used —
      named here so the shimmer can be shared instead of re-declared. */
-  --skeleton-base:  #eef2f5;
-  --skeleton-sheen: #f6f9fa;
+  --skeleton-base:  #eef0e9;
+  --skeleton-sheen: #f7f7f2;
 }
 
 /* ── Scroll reveal ───────────────────────────────────────────────────────

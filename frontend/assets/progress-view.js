@@ -21,9 +21,11 @@
 (function (global) {
   'use strict';
 
+  // No wrapper of its own: the page supplies the host (#content) and shows or
+  // hides it. A wrapper here once carried id="content" class="hidden" too, which
+  // duplicated the page's id — getElementById found the outer one, unhid it, and
+  // left every chart inside the inner one hidden for good.
   const MARKUP = `
-      <div id="content" class="hidden">
-
         <div class="kpis">
           <div class="kpi">
             <div class="kpi-label">Latest flexion</div>
@@ -143,8 +145,6 @@
             </table>
           </div>
         </div>
-
-      </div>
 `;
 
   // ── Module state and helpers ─────────────────────────────────────────────
@@ -165,14 +165,27 @@
     root.innerHTML = MARKUP;
   }
 
+    // A plain "2026-09-12" is a calendar day and is read as one, never through
+    // UTC — new Date('2026-09-12') would land on the 11th west of Greenwich.
+    // A full timestamp (share links, created_at) is a moment, so it is placed
+    // in the reader's own day. Splitting a timestamp on "-" as if it were a day
+    // is what printed "Invalid Date" on the share page.
+    function toDay(value) {
+      const s = String(value);
+      if (s.length > 10) {
+        const t = new Date(s);
+        return new Date(t.getFullYear(), t.getMonth(), t.getDate());
+      }
+      const [y, m, d] = s.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+
     function shortDate(iso) {
-      const [y, m, d] = iso.split('-').map(Number);
-      return new Date(y, m - 1, d).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+      return toDay(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
     }
 
     function longDate(iso) {
-      const [y, m, d] = iso.split('-').map(Number);
-      return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+      return toDay(iso).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
     }
 
     // Every value that reaches the DOM goes through textContent. The bearer
@@ -564,6 +577,7 @@
       const wrap = $('heat-wrap');
       let lastMonth = null;
       let lastLabelCol = -2;
+      let lastLabel = null;
 
       cells.forEach((cell, i) => {
         const slot = lead + i;
@@ -588,10 +602,16 @@
         if (month !== lastMonth) {
           lastMonth = month;
           if (col > lastLabelCol) {
+            // A three-letter month is wider than one column, so a month that
+            // starts in the very next column would print over the last label
+            // ("JunJul"). The earlier one is only a stub of a few days at the
+            // edge of the range, so it gives way.
+            if (lastLabel && col === lastLabelCol + 1) lastLabel.remove();
             lastLabelCol = col;
             const t = svgEl('text', { class: 'heat-label', x: LEFT + col * (CELL + GAP), y: 8 });
             t.textContent = new Date(`${cell.iso}T00:00:00`).toLocaleDateString(undefined, { month: 'short' });
             svg.appendChild(t);
+            lastLabel = t;
           }
         }
 

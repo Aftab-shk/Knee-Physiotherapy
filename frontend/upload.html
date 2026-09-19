@@ -6,12 +6,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Analyse X-ray — Knee-Physiotherapy</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="assets/theme.css">
   <!-- Sets .js-motion before first paint; see the file header for why it is not deferred. -->
   <script src="assets/motion.js"></script>
   <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#132733">
+  <meta name="theme-color" content="#f7f7f2">
   <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -24,23 +24,26 @@
 
     body {
       font-family: var(--body);
-      color: var(--text);
-      background: var(--off-white);
+      color: var(--ink);
+      background: var(--paper);
       min-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
 
     /* ── Top nav ─────────────────────────────────────────────────────── */
     .topnav {
-      background: var(--navy);
-      padding: 0 40px;
-      height: 60px;
+      background: rgba(247, 247, 242, .92);
+      backdrop-filter: blur(10px);
+      padding: 0 clamp(20px, 6vw, 96px);
+      height: 68px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       position: sticky;
       top: 0;
       z-index: 100;
-      box-shadow: 0 1px 0 rgba(255, 255, 255, .05);
+      border-bottom: 1px solid var(--line);
     }
 
     /* Used by the progress link, which only appears for a signed-in patient. */
@@ -54,16 +57,17 @@
     }
 
     .nav-logo-img {
-      width: 30px;
-      height: 30px;
+      width: 24px;
+      height: 24px;
       object-fit: contain;
     }
 
     .nav-logo-text {
-      font-family: var(--display);
-      font-size: 18px;
+      font-family: var(--body);
+      font-size: 17px;
       font-weight: 700;
-      color: var(--white);
+      letter-spacing: -.04em;
+      color: var(--ink);
     }
 
     .nav-steps {
@@ -77,23 +81,25 @@
       align-items: center;
       gap: 8px;
       font-family: var(--mono);
-      font-size: 12px;
-      color: rgba(255, 255, 255, .4);
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: #8a948d;
     }
 
     .nav-step.active {
-      color: var(--teal-light);
+      color: var(--ink);
     }
 
     .nav-step.done {
-      color: rgba(255, 255, 255, .6);
+      color: var(--good);
     }
 
     .nav-step-num {
       width: 22px;
       height: 22px;
       border-radius: 50%;
-      border: 1.5px solid currentColor;
+      border: 1px solid currentColor;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -101,20 +107,20 @@
     }
 
     .nav-step.active .nav-step-num {
-      background: var(--teal);
-      border-color: var(--teal);
+      background: var(--coral);
+      border-color: var(--coral);
       color: var(--white);
     }
 
     .nav-step.done .nav-step-num {
-      background: rgba(255, 255, 255, .15);
+      background: var(--mint);
       border-color: transparent;
     }
 
     .nav-step-sep {
-      width: 24px;
+      width: 28px;
       height: 1px;
-      background: rgba(255, 255, 255, .15);
+      background: var(--line);
     }
 
     .nav-right {
@@ -124,21 +130,26 @@
     }
 
     .nav-home {
-      font-size: 13px;
-      color: rgba(255, 255, 255, .5);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #6f7a72;
       text-decoration: none;
       transition: color .2s;
     }
 
     .nav-home:hover {
-      color: var(--white);
+      color: var(--coral-ink);
     }
 
     /* ── Page layout ─────────────────────────────────────────────────── */
     .page {
+      width: 100%;
       max-width: 860px;
       margin: 0 auto;
-      padding: 40px 24px 80px;
+      padding: 56px 24px 80px;
+      flex: 1;
     }
 
     /* ── Demo banner ─────────────────────────────────────────────────── */
@@ -146,13 +157,15 @@
       display: none;
       align-items: center;
       gap: 12px;
-      background: #fef3c7;
-      border: 1px solid #f59e0b;
-      border-radius: 10px;
-      padding: 12px 18px;
-      margin-bottom: 24px;
-      font-size: 14px;
-      color: #92400e;
+      max-width: 600px;
+      margin: 0 auto 20px;
+      background: #fdf3e2;
+      border: 1px solid #efd3a4;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #7a4a12;
     }
 
     .demo-banner.visible {
@@ -161,84 +174,104 @@
 
     /* ── Upload panel ────────────────────────────────────────────────── */
     .upload-panel {
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 1px 4px rgba(var(--navy-rgb), .05);
+      max-width: 600px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid #e0e6df;
+      border-radius: 21px;
+      box-shadow: 0 22px 45px rgba(44, 64, 49, .08);
     }
 
     .panel-header {
-      padding: 24px 28px 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 15px;
+      padding: 27px 27px 0;
     }
 
     .panel-title {
-      font-family: var(--display);
-      font-size: 20px;
+      margin-top: 8px;
+      font-family: var(--body);
+      font-size: 21px;
       font-weight: 600;
-      color: var(--navy);
-      margin-bottom: 4px;
+      letter-spacing: -.045em;
+      color: var(--ink);
+      margin-bottom: 6px;
     }
 
     .panel-sub {
-      font-size: 14px;
-      color: var(--slate);
+      font-size: 13px;
+      line-height: 1.55;
+      color: #6f7a72;
+      max-width: 44ch;
     }
 
     .panel-divider {
-      height: 1px;
-      background: var(--border);
-      margin: 20px 0;
+      height: 0;
+      margin: 12px 0;
     }
 
     .panel-body {
-      padding: 0 28px 28px;
+      padding: 0 27px 27px;
     }
 
     /* ── Drop zone ───────────────────────────────────────────────────── */
     .drop-zone {
-      border: 2px dashed var(--border);
-      border-radius: 12px;
-      padding: 40px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 185px;
+      border: 1px dashed #b9cabd;
+      border-radius: 14px;
+      padding: 25px;
       text-align: center;
       cursor: pointer;
-      transition: border-color .2s, background .2s;
+      background: #f1f6f0;
+      transition: border-color .2s, background .2s, transform .2s var(--ease-out);
       position: relative;
       overflow: hidden;
     }
 
     .drop-zone:hover,
     .drop-zone.drag-over {
-      border-color: var(--teal);
-      background: rgba(var(--teal-rgb), .03);
+      border-color: var(--coral);
+      background: #fff3ee;
     }
 
     .drop-zone.has-file {
-      border-color: var(--teal);
-      background: rgba(var(--teal-rgb), .04);
+      border-color: var(--mint-deep);
+      background: #edf7ee;
     }
 
     .drop-icon {
-      font-size: 36px;
-      margin-bottom: 12px;
-      display: block;
+      display: grid;
+      place-items: center;
+      width: 43px;
+      height: 43px;
+      margin: 0 auto 13px;
+      border-radius: 12px;
+      color: var(--coral-dark);
+      background: #ffe9e1;
     }
 
     .drop-title {
-      font-family: var(--display);
-      font-size: 16px;
+      font-family: var(--body);
+      font-size: 13px;
       font-weight: 600;
-      color: var(--navy);
+      color: var(--ink);
       margin-bottom: 6px;
     }
 
     .drop-sub {
-      font-size: 13px;
-      color: var(--slate);
+      font-size: 11px;
+      line-height: 1.5;
+      color: #6f7a72;
     }
 
     .drop-sub span {
-      color: var(--teal);
+      color: var(--coral-ink);
       font-weight: 600;
       cursor: pointer;
     }
@@ -261,14 +294,14 @@
     .drop-side-label {
       display: inline-block;
       margin-bottom: 8px;
-      padding: 3px 10px;
+      padding: 4px 10px;
       border-radius: 100px;
-      background: rgba(var(--teal-rgb), .12);
+      background: #fff0e9;
       font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: .04em;
+      font-size: 10px;
+      letter-spacing: .08em;
       text-transform: uppercase;
-      color: var(--teal);
+      color: var(--coral-ink);
     }
 
     /* ── Per-knee results ─────────────────────────────────────────────
@@ -322,20 +355,21 @@
        are drawn in the same family because an ordinal model putting mass next
        door is saying "nearby", not "wrong". */
     .dist {
-      margin-bottom: 26px;
-      padding: 18px;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: var(--white);
+      margin-bottom: 20px;
+      padding: 21px 23px;
+      border: 1px solid #e0e5dd;
+      border-radius: 16px;
+      background: var(--card);
     }
 
     .dist.hidden { display: none; }
 
     .dist-title {
-      font-family: var(--display);
-      font-size: 15px;
+      font-family: var(--body);
+      font-size: 16px;
       font-weight: 600;
-      color: var(--text);
+      letter-spacing: -.04em;
+      color: var(--ink);
       margin-bottom: 4px;
     }
 
@@ -363,19 +397,19 @@
     .dist-track {
       height: 12px;
       border-radius: 6px;
-      background: rgba(var(--navy-rgb), .07);
+      background: #e8ede7;
       overflow: hidden;
     }
 
     .dist-fill {
       height: 100%;
       border-radius: 6px;
-      background: rgba(var(--teal-rgb), .3);
+      background: rgba(var(--teal-light-rgb), .3);
       transition: width .3s;
     }
 
-    .dist-row.chosen .dist-fill { background: var(--teal); }
-    .dist-row.neighbour .dist-fill { background: rgba(var(--teal-rgb), .55); }
+    .dist-row.chosen .dist-fill { background: var(--coral); }
+    .dist-row.neighbour .dist-fill { background: rgba(var(--teal-light-rgb), .55); }
 
     .dist-value {
       font-family: var(--mono);
@@ -404,11 +438,11 @@
        at the same box and can be faded out, so the radiograph underneath is
        always readable. */
     .looked {
-      margin-bottom: 26px;
-      padding: 18px;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: var(--white);
+      margin-bottom: 20px;
+      padding: 21px 23px;
+      border: 1px solid #e0e5dd;
+      border-radius: 16px;
+      background: var(--card);
     }
 
     .looked.hidden { display: none; }
@@ -423,10 +457,11 @@
     }
 
     .looked-title {
-      font-family: var(--display);
-      font-size: 15px;
+      font-family: var(--body);
+      font-size: 16px;
       font-weight: 600;
-      color: var(--text);
+      letter-spacing: -.04em;
+      color: var(--ink);
     }
 
     .looked-sub {
@@ -511,9 +546,9 @@
 
     .drop-preview-name {
       font-family: var(--mono);
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--navy);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink);
       margin-bottom: 3px;
     }
 
@@ -523,10 +558,10 @@
     }
 
     .drop-preview-change {
-      font-size: 12px;
-      color: var(--teal);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--coral-ink);
       cursor: pointer;
-      text-decoration: underline;
       margin-top: 4px;
     }
 
@@ -534,8 +569,8 @@
     .fields-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-top: 20px;
+      gap: 15px;
+      margin-top: 23px;
     }
 
     .field-full {
@@ -551,22 +586,22 @@
       align-items: baseline;
       justify-content: space-between;
       gap: 12px;
-      padding: 11px 14px;
-      border: 1px solid rgba(var(--teal-rgb), .35);
-      border-radius: 10px;
-      background: rgba(var(--teal-rgb), .08);
+      padding: 11px 13px;
+      border: 1px solid #cfe6d4;
+      border-radius: 9px;
+      background: #edf7ee;
     }
 
     .derived-weeks-value {
       font-family: var(--mono);
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--teal);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--good);
     }
 
     .derived-weeks-from {
-      font-size: 12px;
-      color: var(--slate);
+      font-size: 11px;
+      color: #6f7a72;
     }
 
     .link-button {
@@ -574,14 +609,14 @@
       border: none;
       padding: 0;
       font-family: var(--body);
-      font-size: 12px;
-      color: var(--teal);
-      text-decoration: underline;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--coral-ink);
       cursor: pointer;
       white-space: nowrap;
     }
 
-    .link-button:hover { color: var(--navy); }
+    .link-button:hover { text-decoration: underline; }
 
     .remember-date {
       display: flex;
@@ -598,31 +633,32 @@
 
     .field-label {
       display: block;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--navy);
-      margin-bottom: 7px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #4d5a52;
+      margin-bottom: 8px;
     }
 
     .field-required {
-      color: var(--teal);
+      color: var(--coral-ink);
       margin-left: 2px;
     }
 
     .field-select,
     .field-input-num {
       width: 100%;
-      padding: 10px 14px;
+      min-height: 44px;
+      padding: 0 12px;
       background: var(--white);
-      border: 1.5px solid var(--border);
+      border: 1px solid #dce3dc;
       border-radius: 9px;
       font-family: var(--body);
-      font-size: 14px;
-      color: var(--text);
+      font-size: 13px;
+      color: var(--ink);
       outline: none;
-      transition: border-color .2s;
+      transition: border-color .2s, box-shadow .2s;
       appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2391a097' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 12px center;
       padding-right: 32px;
@@ -635,13 +671,14 @@
 
     .field-select:focus,
     .field-input-num:focus {
-      border-color: var(--teal);
+      border-color: var(--mint-deep);
+      box-shadow: 0 0 0 4px rgba(159, 206, 178, .15);
     }
 
     .field-select:disabled,
     .field-input-num:disabled {
-      background: #f1f5f9;
-      color: #94a3b8;
+      background: var(--paper-deep);
+      color: #9aa39c;
       cursor: not-allowed;
     }
 
@@ -665,33 +702,35 @@
 
     .knee-opt-label {
       display: flex;
-      flex-direction: column;
       align-items: center;
-      gap: 4px;
-      padding: 12px 8px;
-      border: 1.5px solid var(--border);
+      justify-content: center;
+      min-height: 44px;
+      padding: 10px 8px;
+      border: 1px solid #dce3dc;
       border-radius: 9px;
+      background: var(--white);
       cursor: pointer;
-      transition: border-color .2s, background .2s;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--slate);
+      transition: border-color .2s, background .2s, color .2s;
+      font-size: 12px;
+      font-weight: 600;
+      color: #5a665e;
       text-align: center;
     }
 
-    .knee-opt-label .opt-icon {
-      font-size: 22px;
+    .knee-opt input:focus-visible+.knee-opt-label {
+      outline: 2px solid var(--coral);
+      outline-offset: 2px;
     }
 
     .knee-opt input:checked+.knee-opt-label {
-      border-color: var(--teal);
-      background: rgba(var(--teal-rgb), .06);
-      color: var(--teal);
+      border-color: var(--coral);
+      background: #fff0e9;
+      color: var(--coral-ink);
     }
 
     .knee-opt-label:hover {
-      border-color: var(--teal);
-      color: var(--navy);
+      border-color: var(--coral);
+      color: var(--ink);
     }
 
     /* ── Submit button ───────────────────────────────────────────────── */
@@ -701,30 +740,30 @@
 
     .btn-submit {
       width: 100%;
-      padding: 14px;
-      background: var(--teal);
+      min-height: 48px;
+      background: var(--ink);
       border: none;
       border-radius: 10px;
-      font-family: var(--display);
-      font-size: 16px;
+      font-family: var(--body);
+      font-size: 13px;
       font-weight: 600;
       color: var(--white);
       cursor: pointer;
-      transition: background .2s, transform .15s, box-shadow .2s;
+      transition: background .2s, transform .18s var(--ease-out), box-shadow .2s;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      box-shadow: 0 3px 12px rgba(var(--teal-rgb), .25);
     }
 
     .btn-submit:hover {
-      background: var(--teal-light);
-      transform: translateY(-1px);
+      background: #334842;
+      transform: translateY(-2px);
+      box-shadow: 0 13px 24px rgba(35, 50, 47, .15);
     }
 
     .btn-submit:disabled {
-      background: #94a3b8;
+      background: #b7bfb9;
       box-shadow: none;
       cursor: not-allowed;
       transform: none;
@@ -740,8 +779,13 @@
     /* ── Loading ─────────────────────────────────────────────────────── */
     .loading-panel {
       display: none;
+      max-width: 600px;
+      margin: 0 auto;
       text-align: center;
-      padding: 60px 24px;
+      padding: 56px 24px;
+      background: var(--card);
+      border: 1px solid #e0e6df;
+      border-radius: 21px;
     }
 
     .loading-panel.visible {
@@ -756,15 +800,16 @@
 
     .loading-title {
       font-family: var(--display);
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--navy);
+      font-size: 28px;
+      font-weight: 500;
+      letter-spacing: -.05em;
+      color: var(--ink);
       margin-bottom: 8px;
     }
 
     .loading-sub {
-      font-size: 14px;
-      color: var(--slate);
+      font-size: 13px;
+      color: #6f7a72;
     }
 
     .loading-steps {
@@ -779,16 +824,18 @@
       align-items: center;
       gap: 8px;
       font-family: var(--mono);
-      font-size: 11px;
-      color: #94a3b8;
+      font-size: 10px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: #9aa39c;
     }
 
     .loading-step.active {
-      color: var(--teal);
+      color: var(--coral-ink);
     }
 
     .loading-step.done {
-      color: #22c55e;
+      color: var(--good);
     }
 
     .loading-step-dot {
@@ -817,10 +864,10 @@
     /* ── Error panel ─────────────────────────────────────────────────── */
     .error-panel {
       display: none;
-      background: #fef2f2;
-      border: 1px solid #fecaca;
+      background: #fff0eb;
+      border: 1px solid #f3c7bd;
       border-radius: 12px;
-      padding: 20px 24px;
+      padding: 16px 18px;
       margin-top: 20px;
     }
 
@@ -836,22 +883,24 @@
     }
 
     .error-title {
-      font-family: var(--display);
-      font-size: 15px;
+      font-family: var(--body);
+      font-size: 13px;
       font-weight: 600;
-      color: var(--red);
+      color: #9c3a28;
       margin-bottom: 4px;
     }
 
     .error-desc {
-      font-size: 13px;
-      color: #7f1d1d;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #7a3324;
     }
 
     .error-retry {
       margin-top: 8px;
-      font-size: 13px;
-      color: var(--red);
+      font-size: 12px;
+      font-weight: 600;
+      color: #9c3a28;
       text-decoration: underline;
       cursor: pointer;
       background: none;
@@ -892,26 +941,27 @@
     }
 
     .summary-card {
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 18px 16px;
-      text-align: center;
+      background: var(--card);
+      border: 1px solid #e0e5dd;
+      border-radius: 15px;
+      padding: 19px 16px;
+      text-align: left;
     }
 
     .summary-card-value {
-      font-family: var(--mono);
-      font-size: 28px;
-      font-weight: 600;
+      font-family: var(--display);
+      font-size: 32px;
+      font-weight: 500;
+      letter-spacing: -.05em;
       display: block;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
     }
 
     .summary-card-label {
-      font-size: 12px;
-      color: var(--slate);
+      font-size: 9px;
+      color: #7f8a83;
       text-transform: uppercase;
-      letter-spacing: .06em;
+      letter-spacing: .1em;
       font-family: var(--mono);
     }
 
@@ -974,34 +1024,35 @@
 
     /* Rationale + phase box */
     .rationale-box {
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-left: 4px solid var(--teal);
-      border-radius: 0 12px 12px 0;
+      background: var(--card);
+      border: 1px solid #e0e5dd;
+      border-left: 4px solid var(--coral);
+      border-radius: 0 15px 15px 0;
       padding: 20px 24px;
       margin-bottom: 20px;
     }
 
     .rationale-phase {
       font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: .1em;
+      font-size: 10px;
+      letter-spacing: .12em;
       text-transform: uppercase;
-      color: var(--teal);
+      color: var(--coral-ink);
       margin-bottom: 6px;
     }
 
     .rationale-goal {
-      font-family: var(--display);
+      font-family: var(--body);
       font-size: 16px;
       font-weight: 600;
-      color: var(--navy);
+      letter-spacing: -.03em;
+      color: var(--ink);
       margin-bottom: 8px;
     }
 
     .rationale-text {
-      font-size: 14px;
-      color: var(--slate);
+      font-size: 13px;
+      color: var(--ink-soft);
       line-height: 1.7;
     }
 
@@ -1015,31 +1066,34 @@
 
     .exercises-title {
       font-family: var(--display);
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--navy);
+      font-size: 30px;
+      font-weight: 500;
+      letter-spacing: -.055em;
+      color: var(--ink);
     }
 
     .exercises-count {
       font-family: var(--mono);
-      font-size: 12px;
-      color: var(--slate);
-      background: var(--off-white);
+      font-size: 10px;
+      letter-spacing: .06em;
+      color: #6f7a72;
+      background: var(--paper-deep);
       border-radius: 100px;
-      padding: 3px 12px;
+      padding: 4px 12px;
     }
 
     .exercise-card {
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-radius: 12px;
+      background: var(--card);
+      border: 1px solid #e0e5dd;
+      border-radius: 15px;
       overflow: hidden;
       margin-bottom: 10px;
-      transition: box-shadow .2s;
+      transition: box-shadow .2s, border-color .2s;
     }
 
     .exercise-card:hover {
-      box-shadow: 0 2px 12px rgba(var(--navy-rgb), .06);
+      border-color: #cfd8ce;
+      box-shadow: 0 12px 24px rgba(55, 62, 49, .07);
     }
 
     .exercise-header {
@@ -1060,28 +1114,29 @@
     .exercise-num {
       width: 30px;
       height: 30px;
-      background: var(--off-white);
-      border-radius: 8px;
+      background: var(--lavender);
+      border-radius: 9px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--slate);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--ink);
       flex-shrink: 0;
     }
 
     .exercise-name {
-      font-family: var(--display);
-      font-size: 15px;
+      font-family: var(--body);
+      font-size: 14px;
       font-weight: 600;
-      color: var(--navy);
+      letter-spacing: -.03em;
+      color: var(--ink);
     }
 
     .exercise-desc {
-      font-size: 13px;
-      color: var(--slate);
+      font-size: 12px;
+      color: #6f7a72;
       margin-top: 2px;
     }
 
@@ -1109,9 +1164,9 @@
     }
 
     .angle-badge.normal {
-      background: rgba(var(--teal-rgb), .1);
-      color: var(--teal);
-      border: 1px solid rgba(var(--teal-rgb), .25);
+      background: #fff0e9;
+      color: var(--coral-ink);
+      border: 1px solid #f6d7cc;
     }
 
     .angle-badge.capped {
@@ -1122,7 +1177,7 @@
 
     .exercise-chevron {
       font-size: 12px;
-      color: #94a3b8;
+      color: #9aa39c;
       transition: transform .2s;
       margin-left: 4px;
     }
@@ -1218,9 +1273,10 @@
 
     .excluded-title {
       font-family: var(--display);
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--navy);
+      font-size: 26px;
+      font-weight: 500;
+      letter-spacing: -.055em;
+      color: var(--ink);
     }
 
     .excluded-intro {
@@ -1287,21 +1343,21 @@
       grid-column: 1 / -1;
       margin-top: 16px;
       width: 100%;
-      padding: 12px;
-      background: var(--navy);
+      min-height: 46px;
+      background: var(--ink);
       border: none;
-      border-radius: 9px;
-      font-family: var(--display);
-      font-size: 14px;
+      border-radius: 10px;
+      font-family: var(--body);
+      font-size: 13px;
       font-weight: 600;
       color: var(--white);
       cursor: pointer;
-      transition: background .2s, transform .15s;
+      transition: background .2s, transform .18s var(--ease-out);
     }
 
     .btn-start-exercise:hover {
-      background: var(--teal);
-      transform: translateY(-1px);
+      background: #334842;
+      transform: translateY(-2px);
     }
 
     /* Tutorial + Start sit on one row; Start keeps the visual weight. */
@@ -1319,29 +1375,30 @@
 
     .btn-tutorial {
       padding: 12px 18px;
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      font-family: var(--display);
-      font-size: 14px;
+      background: transparent;
+      border: 1px solid #dce2db;
+      border-radius: 10px;
+      font-family: var(--body);
+      font-size: 13px;
       font-weight: 600;
-      color: var(--navy);
+      color: var(--ink);
       cursor: pointer;
       white-space: nowrap;
-      transition: border-color .2s, color .2s, transform .15s;
+      transition: border-color .2s, background .2s, transform .18s var(--ease-out);
     }
 
     .btn-tutorial:hover {
-      border-color: var(--teal);
-      color: var(--teal);
-      transform: translateY(-1px);
+      border-color: #b9cdbd;
+      background: #f0f5ee;
+      transform: translateY(-2px);
     }
 
     /* Tutorial modal */
     .tut-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(var(--navy-rgb), .55);
+      background: rgba(28, 42, 36, .48);
+      backdrop-filter: blur(10px);
       display: none;
       align-items: center;
       justify-content: center;
@@ -1354,12 +1411,14 @@
     }
 
     .tut-modal {
-      background: var(--white);
-      border-radius: 14px;
+      background: var(--paper);
+      border: 1px solid rgba(255, 255, 255, .85);
+      border-radius: 24px;
+      box-shadow: 0 28px 70px rgba(22, 39, 31, .28);
       width: min(520px, 100%);
       max-height: 90vh;
       overflow-y: auto;
-      padding: 22px;
+      padding: 28px;
     }
 
     .tut-head {
@@ -1371,23 +1430,32 @@
 
     .tut-title {
       font-family: var(--display);
-      font-size: 18px;
-      color: var(--navy);
+      font-size: 30px;
+      font-weight: 500;
+      letter-spacing: -.055em;
+      color: var(--ink);
       margin: 0;
     }
 
     .tut-close {
-      background: none;
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: var(--paper-deep);
       border: none;
-      font-size: 24px;
+      font-size: 20px;
       line-height: 1;
-      color: var(--slate);
+      color: #6f7a72;
       cursor: pointer;
-      padding: 0 4px;
+      transition: color .2s, transform .2s var(--ease-out);
     }
 
     .tut-close:hover {
-      color: var(--navy);
+      color: var(--ink);
+      transform: rotate(90deg);
     }
 
     .tut-desc {
@@ -1409,13 +1477,13 @@
 
     /* Disclaimer */
     .disclaimer-box {
-      background: var(--white);
-      border: 1px solid var(--border);
+      background: var(--paper-deep);
+      border: 1px solid #e0e5dd;
       border-radius: 12px;
-      padding: 16px 20px;
+      padding: 14px 18px;
       margin-top: 16px;
-      font-size: 12px;
-      color: var(--slate);
+      font-size: 11px;
+      color: #5f6b63;
       line-height: 1.6;
       display: flex;
       gap: 10px;
@@ -1426,6 +1494,18 @@
       flex-shrink: 0;
     }
 
+    /* ── Card chrome shared with the rest of the product ─────────────────── */
+    .mini-label { display: block; color: #778079; font: 500 10px/1.2 var(--mono); letter-spacing: .14em; text-transform: uppercase; }
+    .i { width: 16px; height: 16px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .secure-chip { display: flex; align-items: center; gap: 5px; flex-shrink: 0; padding: 7px 10px; border-radius: 999px; color: var(--good); background: #e8f4e9; font: 9px var(--mono); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+    .secure-chip .i { width: 12px; height: 12px; }
+    .drop-icon .i { width: 22px; height: 22px; }
+    .upload-footer { display: flex; justify-content: space-between; gap: 20px; padding: 18px clamp(20px, 6vw, 96px); border-top: 1px solid var(--line); color: #7f8a83; font-size: 11px; }
+    .upload-footer span { display: flex; align-items: center; gap: 6px; }
+    .upload-footer a { color: var(--coral-ink); font-weight: 600; text-decoration: none; }
+    .upload-footer a:hover { text-decoration: underline; }
+    .btn-submit:focus-visible, .btn-start-exercise:focus-visible, .btn-tutorial:focus-visible, .btn-new:focus-visible, .nav-home:focus-visible, .nav-logo:focus-visible { outline: 2px solid var(--coral); outline-offset: 3px; }
+
     /* ── New analysis button ──────────────────────────────────────────── */
     .new-analysis-bar {
       display: flex;
@@ -1434,30 +1514,48 @@
     }
 
     .btn-new {
-      padding: 12px 28px;
-      background: var(--white);
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      font-family: var(--display);
-      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 22px;
+      background: transparent;
+      border: 1px solid #dce2db;
+      border-radius: 999px;
+      font-family: var(--body);
+      font-size: 13px;
       font-weight: 600;
-      color: var(--navy);
+      color: var(--ink);
       cursor: pointer;
-      transition: border-color .2s, box-shadow .2s;
+      transition: border-color .2s, background .2s;
     }
 
     .btn-new:hover {
-      border-color: var(--teal);
-      box-shadow: 0 2px 12px rgba(var(--teal-rgb), .12);
+      border-color: #b9cdbd;
+      background: #f0f5ee;
     }
 
     @media (max-width: 768px) {
       .topnav {
-        padding: 0 20px;
+        padding: 0 18px;
       }
 
       .nav-steps {
         display: none;
+      }
+
+      .page {
+        padding: 32px 16px 60px;
+      }
+
+      .panel-header,
+      .panel-body {
+        padding-left: 20px;
+        padding-right: 20px;
+      }
+
+      .upload-footer {
+        flex-direction: column;
+        gap: 9px;
       }
 
       .fields-grid {
@@ -1472,19 +1570,22 @@
         grid-template-columns: 1fr;
       }
 
-      .page {
-        padding: 24px 16px 60px;
-      }
     }
   </style>
 </head>
 
 <body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 13v8"/><path d="M4 14.9A7 7 0 1 1 15.7 8h1.8a4.5 4.5 0 0 1 2.5 8.2"/><path d="m8 17 4-4 4 4"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
+  </svg>
 
   <!-- Top nav -->
   <nav class="topnav">
     <a href="index.html" class="nav-logo">
-      <img src="logo.png" alt="Knee-Physiotherapy Logo" class="nav-logo-img">
+      <img src="logo-dark.png" alt="" class="nav-logo-img" width="24" height="24">
       <span class="nav-logo-text">Knee-Physiotherapy</span>
     </a>
     <div class="nav-steps">
@@ -1500,7 +1601,7 @@
     </div>
     <div class="nav-right">
       <a href="progress.html" class="nav-home hidden" id="progress-link">Your dashboard</a>
-      <a href="index.html" class="nav-home">← Home</a>
+      <a href="index.html" class="nav-home"><svg class="i"><use href="#i-back"/></svg> Home</a>
     </div>
   </nav>
 
@@ -1515,9 +1616,14 @@
     <!-- Upload panel -->
     <div class="upload-panel" id="upload-panel">
       <div class="panel-header">
-        <div class="panel-title">Analyse your knee X-ray</div>
-        <div class="panel-sub">Upload an X-ray and enter your surgery details to receive your personalised exercise
-          plan.</div>
+        <div>
+          <span class="mini-label">Diagnostic X-ray</span>
+          <h1 class="panel-title">Analyse your knee <span style="white-space:nowrap">X-ray</span></h1>
+          <p class="panel-sub">Upload an X-ray and enter your surgery details to receive your personalised exercise
+            plan.</p>
+        </div>
+        <!-- True as stated: the image is graded in memory and discarded. -->
+        <div class="secure-chip"><svg class="i"><use href="#i-shield"/></svg> Not stored</div>
       </div>
       <div class="panel-divider"></div>
       <div class="panel-body">
@@ -1526,7 +1632,7 @@
         <div class="drop-zone" id="drop-zone">
           <input type="file" class="drop-input" id="file-input" accept="image/jpeg,image/png,image/jpg">
           <div id="drop-idle">
-            <span class="drop-icon">🩻</span>
+            <span class="drop-icon"><svg class="i"><use href="#i-upload"/></svg></span>
             <div class="drop-title">Drop your knee X-ray here</div>
             <p class="drop-sub">Drag and drop, or <span onclick="document.getElementById('file-input').click()">browse
                 to upload</span>. JPEG or PNG, up to 10 MB.</p>
@@ -1570,21 +1676,18 @@
               <label class="knee-opt">
                 <input type="radio" name="knee_side" value="left" id="knee-left">
                 <span class="knee-opt-label">
-                  <span class="opt-icon">🦵</span>
                   Left knee
                 </span>
               </label>
               <label class="knee-opt">
                 <input type="radio" name="knee_side" value="right" id="knee-right">
                 <span class="knee-opt-label">
-                  <span class="opt-icon">🦵</span>
                   Right knee
                 </span>
               </label>
               <label class="knee-opt">
                 <input type="radio" name="knee_side" value="both" id="knee-both">
                 <span class="knee-opt-label">
-                  <span class="opt-icon">🦵</span>
                   Both knees
                 </span>
               </label>
@@ -1644,7 +1747,7 @@
         <!-- Submit -->
         <div class="submit-wrap" id="submit-wrap">
           <button class="btn-submit" id="submit-btn" disabled>
-            Analyse X-ray →
+            Analyse X-ray <svg class="i" aria-hidden="true"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>
           </button>
           <div class="btn-disclaimer">
 
@@ -1758,6 +1861,11 @@
     </div>
 
   </div><!-- /page -->
+
+  <footer class="upload-footer">
+    <span><svg class="i" aria-hidden="true"><use href="#i-info"/></svg> This tool supports your home routine and does not replace a clinical diagnosis.</span>
+    <a href="index.html">Back to home</a>
+  </footer>
 
   <!-- Tutorial modal. One instance, reused: the animation is mounted on open
        and destroyed on close so instances do not accumulate. -->

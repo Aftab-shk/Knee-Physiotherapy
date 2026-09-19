@@ -6,15 +6,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Exercise Tracker — Knee-Physiotherapy</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="assets/theme.css">
   <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#132733">
+  <meta name="theme-color" content="#24322f">
   <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <style>
+    /* The camera view sits on the ink ground. Its colours are status, not
+       decoration, so they are split by meaning: mint for "tracking, holding,
+       done", amber for a form correction, red for the safety alarm, and coral
+       only on buttons. The legacy --teal names are re-pointed here so every
+       status rule below picks up mint rather than the page-wide coral, which
+       sits too close to the alarm red to be used for "all is well". */
+    :root {
+      --teal:           #4a825f;
+      --teal-rgb:       74, 130, 95;
+      --teal-light:     #9fceb2;
+      --teal-light-rgb: 159, 206, 178;
+    }
 
     html,
     body {
@@ -176,10 +188,10 @@
 
     .btn-start-cam {
       padding: 14px 32px;
-      background: var(--teal);
+      background: var(--coral-ink);
       border: none;
       border-radius: 10px;
-      font-family: var(--display);
+      font-family: var(--body);
       font-size: 15px;
       font-weight: 600;
       color: var(--white);
@@ -188,7 +200,7 @@
     }
 
     .btn-start-cam:hover {
-      background: var(--teal-light);
+      background: #a9422f;
       transform: translateY(-1px);
     }
 
@@ -426,7 +438,7 @@
       border: 1.5px solid rgba(255, 255, 255, .25);
       border-radius: 10px;
       background: transparent;
-      font-family: var(--display);
+      font-family: var(--body);
       font-size: 14px;
       font-weight: 600;
       color: rgba(255, 255, 255, .85);
@@ -434,8 +446,8 @@
     }
 
     .btn-rest.primary {
-      background: var(--teal);
-      border-color: var(--teal);
+      background: var(--coral-ink);
+      border-color: var(--coral-ink);
       color: var(--white);
     }
 
@@ -821,7 +833,7 @@
 
     .safety-text-main {
       color: white;
-      font-family: var(--display);
+      font-family: var(--body);
       font-size: clamp(24px, 5vw, 40px);
       font-weight: 800;
       text-align: center;
@@ -870,7 +882,7 @@
       background: white;
       border: none;
       border-radius: 10px;
-      font-family: var(--display);
+      font-family: var(--body);
       font-size: 15px;
       font-weight: 700;
       color: var(--red);
@@ -944,10 +956,10 @@
 
     .btn-complete-primary {
       padding: 13px 28px;
-      background: var(--teal);
+      background: var(--coral-ink);
       border: none;
       border-radius: 10px;
-      font-family: var(--display);
+      font-family: var(--body);
       font-size: 14px;
       font-weight: 600;
       color: white;

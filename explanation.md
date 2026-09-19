@@ -73,8 +73,8 @@ The backend is built in Python using **FastAPI** and comprises three primary fil
 
 The frontend is implemented using vanilla HTML5, modern CSS design tokens, and JavaScript:
 
-* **[index.html](file:///c:/Users/aftab/OneDrive/Desktop/knee-physiotherapy/frontend/index.html):** Public landing page detailing system capabilities and medical rationale.
-* **[login.html](file:///c:/Users/aftab/OneDrive/Desktop/knee-physiotherapy/frontend/login.html):** User access and authentication portal.
+* **[index.html](file:///c:/Users/aftab/OneDrive/Desktop/knee-physiotherapy/frontend/index.html):** Public landing page detailing system capabilities and medical rationale. Also holds the log in / create account popup.
+* **[login.html](file:///c:/Users/aftab/OneDrive/Desktop/knee-physiotherapy/frontend/login.html):** Redirects to the login popup on index.html, for old links.
 * **[upload.html](file:///c:/Users/aftab/OneDrive/Desktop/knee-physiotherapy/frontend/upload.html):**
   * Interactive drag-and-drop X-ray upload interface with real-time validation.
   * Communicates with backend endpoint `POST /analyse-xray`.
