@@ -41,6 +41,59 @@ MAX_ASPECT_RATIO  = 4.0
 # to the two formats that were meant to be supported.
 ALLOWED_FORMATS = {"JPEG", "PNG", "MPO"}   # MPO: multi-frame JPEG from phone cameras
 
+# An inverted (negative) radiograph clears every check above and still comes back
+# with a grade — a different one. On the synthetic films in this repo, negating
+# the image moved the reading from KL 0 to KL 3, which is a 30-degree change in
+# what the patient is then told they may bend to. The energy-based OOD screen
+# does not see it: -1.718 against -1.640, the same number twice.
+#
+# What separates a film from its own negative is where the bright pixels sit.
+# The anatomy is centred and denser than what surrounds it, so the middle of the
+# frame reads brighter than its border. Medians rather than means, so a white
+# collimation band down one edge does not swing it.
+#
+# The statistic is exactly antisymmetric — negating the image negates it, since
+# 255-x flips both medians and leaves the spread alone — so a threshold on one
+# side is a guarantee on the other: any film scoring above +0.5 has its own
+# negative rejected.
+#
+# First fitted against synthetic films; since checked on 1656 real ones (the
+# Kaggle KL test split, which the model never trained on). The real distribution
+# sits well clear of the threshold: median +1.27, and 5% of films below +0.78.
+# Those films are 224px crops of the joint, the case the synthetic tests feared
+# would read as zero — it does not, because bone is still the bright centre of a
+# real crop.
+#
+# The gate refused 26 of the 1656, and every one checked by eye is a genuine
+# negative: the joint space shows as a white band where it should be dark. The
+# dataset ships them — 13 patients, both knees each. The most normal-looking of
+# the refused scored -0.93; the least typical film let through, a badly
+# washed-out but correctly oriented one, scored +0.32. -0.5 sits in that gap.
+#
+# One thing the real films changed: the model graded 22 of those 26 negatives
+# correctly, because it trained on the same source and so on the same negatives.
+# Refusing them costs a re-upload, not accuracy. The gate is kept anyway — the
+# synthetic result above shows a negative from anywhere else is not safe.
+MIN_POLARITY = float(os.getenv("MIN_POLARITY", "-0.5"))
+
+
+def _polarity(gray: np.ndarray) -> float:
+    """
+    How much brighter the middle of the frame is than its border, in units of the
+    image's own spread. Positive for a radiograph, negative for its negative.
+    """
+    height, width = gray.shape
+    band_y, band_x = max(1, int(height * 0.12)), max(1, int(width * 0.12))
+    border = np.concatenate([
+        gray[:band_y].ravel(),
+        gray[-band_y:].ravel(),
+        gray[band_y:-band_y, :band_x].ravel(),
+        gray[band_y:-band_y, -band_x:].ravel(),
+    ])
+    centre = gray[int(height * 0.25):int(height * 0.75),
+                  int(width * 0.25):int(width * 0.75)]
+    return float((np.median(centre) - np.median(border)) / (gray.std() + 1e-6))
+
 
 def validate_image(image_bytes: bytes) -> tuple[bool, str]:
     """
@@ -96,5 +149,11 @@ def validate_image(image_bytes: bytes) -> tuple[bool, str]:
         return False, "Image appears completely black. Please check the file."
     if mean > MAX_MEAN:
         return False, "Image appears overexposed / blank. Please check the file."
+
+    if _polarity(gray) < MIN_POLARITY:
+        return False, (
+            "This looks like a negative: the bone appears dark against a light background. "
+            "Please upload the X-ray the way it is normally viewed."
+        )
 
     return True, "ok"
