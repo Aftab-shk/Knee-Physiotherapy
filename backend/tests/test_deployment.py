@@ -100,3 +100,31 @@ def test_production_refuses_to_print_reset_links_into_the_log(prod, monkeypatch)
     monkeypatch.setenv("MAIL_BACKEND", "log")
     with pytest.raises(RuntimeError, match="MAIL_BACKEND"):
         main.refuse_unsafe_production()
+
+
+# ---------------------------------------------------------------------------
+# The torch / numpy pairing
+# ---------------------------------------------------------------------------
+
+def test_torch_can_still_hand_a_tensor_to_numpy():
+    """
+    The pin that drifted, checked the only way that actually means anything.
+
+    torch before 2.5 was built against NumPy 1. Install NumPy 2 beside it and
+    nothing complains: the import succeeds, the model loads, a forward pass
+    returns. It breaks at the first `.numpy()` — which on this codebase is
+    model/gradcam.py:149, so the symptom is the explanation overlay throwing on
+    a live request while every other endpoint looks healthy.
+
+    requirements.txt pins the pair and requirements-dev.txt back-pins matplotlib
+    and scikit-learn to keep numpy from being dragged forward underneath it. Both
+    of those are statements about versions, and versions drift — the image and
+    the checked-in virtualenvs hold torch 2.3.0 while a current machine resolves
+    2.12.1, and both are correct because each brings its matching numpy.
+
+    So this asserts the bridge rather than the numbers. It needs no table of
+    known-good combinations and cannot go stale.
+    """
+    torch = pytest.importorskip("torch", reason="the API tests run without torch on CI")
+
+    assert torch.zeros(3).numpy().shape == (3,)

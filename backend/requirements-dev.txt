@@ -18,6 +18,11 @@
 # numpy==1.26.4 pin in requirements.txt and breaks torch 2.3.0 — it keeps
 # importing, then throws "Numpy is not available" on any .numpy() call.
 # Do not unpin these without moving torch to a NumPy 2 build first.
+#
+# That upgrade path is no longer theoretical: the suite passes on torch 2.12.1
+# with numpy 2.3.4, matplotlib 3.10.8 and scikit-learn 1.7.2. Moving all four at
+# once is the supported way to do it; moving these two alone is what breaks.
+# test_deployment.py checks the pairing on whatever is installed.
 
 # Confusion matrix and training-curve figures (train.py only).
 matplotlib==3.8.4

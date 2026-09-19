@@ -2,10 +2,26 @@ fastapi==0.111.0
 uvicorn[standard]==0.29.0
 python-multipart==0.0.9
 Pillow==10.3.0
+# Held at 1.x by the torch pin below, not by anything in this codebase. See the
+# note there: the two versions are a pair and only move together.
 numpy==1.26.4
 opencv-python-headless==4.9.0.80
+
 # torch + torchvision: installed via Dockerfile with CPU wheels
 # for local dev run: pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+#
+# These are a lockfile, not a compatibility claim. They are what the image
+# installs and what the checked-in virtualenvs hold; a current machine resolves
+# torch 2.12.1 with numpy 2.3.4 instead, and the whole suite passes on that too.
+# Both are fine because each brings the numpy that matches it. torch before 2.5
+# was built against NumPy 1, and pairing it with NumPy 2 fails nowhere near the
+# mistake: imports succeed, inference succeeds, and the first .numpy() call
+# raises "Numpy is not available" — which on this codebase means the Grad-CAM
+# overlay throwing at request time (model/gradcam.py), not a training script.
+#
+# pip cannot express that coupling, so it is asserted in test_deployment.py
+# against whatever is actually installed. Move these two together, or that test
+# will say so.
 torch==2.3.0
 torchvision==0.18.0
 pydantic==2.7.1
