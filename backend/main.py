@@ -403,7 +403,11 @@ def _client_key(request: Request) -> str:
 
 async def enforce_rate_limit(request: Request) -> None:
     """
-    Sliding-window limiter for the expensive endpoint.
+    Sliding-window limiter for the expensive endpoints.
+
+    Inference is the obvious one. The summary PDFs are the other: each renders a
+    chart and a full page of layout off a progress query spanning up to a year,
+    and one of the three needs no account at all — a share token is enough.
 
     NOTE: state is per-process. The Dockerfile runs `--workers 2`, so the
     effective limit is RATE_LIMIT_REQUESTS x worker count. That is fine as a
@@ -3078,6 +3082,7 @@ def my_summary_pdf(
     tz_offset_minutes: int = Query(0, ge=-840, le=840),
     patient: Patient = Depends(auth.current_patient),
     db: Session = Depends(get_db),
+    _rate_limited: None = Depends(enforce_rate_limit),
 ) -> Response:
     """
     The patient's own copy.
@@ -3144,6 +3149,7 @@ def clinician_summary_pdf(
     tz_offset_minutes: int = Query(0, ge=-840, le=840),
     clinician: Clinician = Depends(auth.current_clinician),
     db: Session = Depends(get_db),
+    _rate_limited: None = Depends(enforce_rate_limit),
 ) -> Response:
     """
     For the paper file, or to hand back at the end of the appointment.
