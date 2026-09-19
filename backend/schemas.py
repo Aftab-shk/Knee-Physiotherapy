@@ -1,8 +1,22 @@
 from datetime import date, datetime
 from enum import Enum
-from typing import List, Optional
+from html import escape
+from typing import Annotated, List, Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field, field_validator
+
+# Free text one clinician types and another person is shown. Every screen in
+# this repo builds those strings with textContent, so none of them is a way in
+# today — but the clinician review UI has not been written yet, and the reviewer
+# who writes it will be reaching for a template literal like the ones already in
+# upload.html. Escaping here means the first screen to render a note with
+# innerHTML is not also the first cross-site scripting bug.
+#
+# The cost is honest and worth naming: a note reading "flexion < 90" is stored
+# as "flexion &lt; 90", so whatever renders it has to put it in the document as
+# HTML for it to read correctly. That is the trade — mangled punctuation in a
+# clinical note against script from one account running in another's session.
+ClinicianText = Annotated[str, AfterValidator(escape)]
 
 
 class KneeSide(str, Enum):
@@ -1033,17 +1047,17 @@ class ExerciseDecision(BaseModel):
 
     # Required by the API whenever the change loosens a restriction. Tightening
     # needs no justification; loosening is the direction that can hurt.
-    reason: Optional[str] = Field(None, max_length=1000)
+    reason: Optional[ClinicianText] = Field(None, max_length=1000)
 
 
 class ReviewRequest(BaseModel):
     decisions: List[ExerciseDecision] = Field(default_factory=list)
-    note:      Optional[str] = Field(None, max_length=2000)
+    note:      Optional[ClinicianText] = Field(None, max_length=2000)
 
     # Raises or lowers the whole safe flexion ceiling the X-ray produced. A
     # surgeon who replaced the joint knows things the radiograph does not.
     ceiling:        Optional[int] = Field(None, ge=0, le=180)
-    ceiling_reason: Optional[str] = Field(None, max_length=1000)
+    ceiling_reason: Optional[ClinicianText] = Field(None, max_length=1000)
 
 
 class AuditEntry(BaseModel):

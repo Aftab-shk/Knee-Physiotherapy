@@ -453,3 +453,45 @@ def test_the_catalogue_carries_what_the_tracker_needs(client):
         # A hold has to say where it is held, or the tracker cannot time it.
         if ex["hold_seconds"]:
             assert ex["hold_target"] in ("straight", "flexed"), ex["name"]
+
+
+# ---------------------------------------------------------------------------
+# Free text a clinician types, that another account is shown
+# ---------------------------------------------------------------------------
+
+def test_markup_in_a_review_is_escaped_before_it_is_stored(client, linked, prescription):
+    """
+    The note, the reason on an exercise and the reason on a ceiling change are
+    all typed by one account and displayed to another. Nothing renders them with
+    innerHTML today, so this is not a live hole — it is the guarantee that the
+    screen which eventually does render them cannot become one.
+    """
+    _, clin = linked
+    pid = prescription["prescription_id"]
+    drafted = first_exercise(prescription)
+
+    r = review(
+        client, clin, pid,
+        note="<script>alert(document.cookie)</script>",
+        ceiling=prescription["max_angle"] - 10,
+        ceiling_reason="tightened <b>after</b> review",
+        decisions=[{
+            "name":        drafted["name"],
+            "action":      "adjust",
+            "angle_limit": drafted["angle_limit"] - 5,
+            "reason":      '<img src=x onerror="alert(1)">',
+        }],
+    )
+    assert r.status_code == 200
+    body = r.json()
+
+    assert body["review_note"] == "&lt;script&gt;alert(document.cookie)&lt;/script&gt;"
+    assert "<img" not in first_exercise(body)["override"]["reason"]
+    assert all("<b>" not in (a["reason"] or "") for a in body["audit"])
+
+    # Nothing raw reached the row the patient's own screen reads back.
+    with SessionLocal() as db:
+        row = db.query(Prescription).one()
+        assert "<script>" not in (row.review_note or "")
+        assert "<img" not in (row.approved_payload or "")
+        assert all("<" not in (a.reason or "") for a in db.query(PrescriptionAudit).all())
