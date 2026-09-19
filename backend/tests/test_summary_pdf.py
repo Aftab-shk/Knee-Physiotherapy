@@ -294,6 +294,57 @@ def test_a_latin_name_with_accents_needs_no_apology():
     assert "could not be drawn" not in text
 
 
+def wide_font():
+    """
+    A font covering Greek and Cyrillic, if this machine has one.
+
+    matplotlib ships DejaVu Sans and is already a test dependency, so anywhere
+    this suite runs there is one to hand — no font needs vendoring into the repo
+    to prove the mechanism works. It is a stand-in for the Noto Sans the
+    Dockerfile installs, not the same file.
+    """
+    mpl = pytest.importorskip("matplotlib", reason="the wide-font test borrows DejaVu Sans")
+    path = Path(mpl.__file__).parent / "mpl-data" / "fonts" / "ttf" / "DejaVuSans.ttf"
+    if not path.is_file():
+        pytest.skip("no wide-coverage font on this machine")
+    return path
+
+
+def test_a_bold_face_is_looked_for_beside_the_regular_not_after_it():
+    """
+    Getting this wrong is invisible, which is why it gets a test: the font loads,
+    the sheet renders, and the masthead, every stat and the patient's own name
+    are silently drawn at regular weight with nothing to say so.
+
+    NotoSans-Regular.ttf is what the Dockerfile points SUMMARY_PDF_FONT at, and
+    its bold sibling replaces the weight token rather than following it.
+    """
+    noto = "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf"
+    assert sp._bold_candidates(noto)[0] == "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf"
+
+    # Families that append still work — Windows names its bold arialbd.ttf.
+    assert "/fonts/arialbd.ttf" in sp._bold_candidates("/fonts/arial.ttf")
+
+    # And the regular is never offered back as its own bold.
+    assert "/fonts/arial.ttf" not in sp._bold_candidates("/fonts/arial.ttf")
+
+
+def test_a_font_with_the_coverage_prints_the_name_rather_than_apologising(monkeypatch):
+    """
+    The other half of the pair above: with a font that reaches the script, the
+    name is drawn and there is nothing to apologise for. This is what the
+    deployed image does, and the reason the Dockerfile installs a font at all.
+    """
+    font = wide_font()
+    monkeypatch.setenv(sp.FONT_ENV, str(font))
+    sp._registered.pop(str(font), None)
+
+    pages, text = read(sp.render(data(patient_name="Ольга Петрова")))
+    assert pages == 1
+    assert "Ольга Петрова" in text
+    assert "could not be drawn" not in text
+
+
 def test_an_unreadable_font_setting_falls_back_instead_of_failing_the_download(monkeypatch, tmp_path):
     """A misconfigured font must not be the reason a patient cannot print anything."""
     missing = tmp_path / "not-a-font.ttf"

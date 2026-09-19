@@ -34,10 +34,22 @@ without a font the deployment provides:
 
     SUMMARY_PDF_FONT=/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf
 
-Set it and names render. Leave it and any character the font cannot draw becomes
-"?" — with a line printed on the sheet saying so, naming the variable. Quietly
-mangling somebody's name on their own medical summary is not an option; saying
-plainly that it happened is.
+The Dockerfile now installs Noto Sans and sets exactly that, so Latin Extended,
+Greek, Cyrillic and Vietnamese names print on a deployed image with nobody
+configuring anything. Run outside that image and the variable is still the way
+in; leave it unset and you are back to Helvetica and Latin-1.
+
+What Noto Sans does not reach is Devanagari, Arabic, Hebrew, Thai and CJK.
+reportlab binds one file per face and has no fallback chain, so a name in one of
+those scripts means pointing SUMMARY_PDF_FONT at the face that carries it — the
+Noto package ships one per script, NotoSansDevanagari-Regular.ttf beside the
+rest. Any character the active font cannot draw still becomes "?", with a line
+printed on the sheet saying so and naming the variable. Quietly mangling
+somebody's name on their own medical summary is not an option; saying plainly
+that it happened is.
+
+A bold face is picked up automatically when one sits beside the regular. See
+_bold_candidates for why that is not simply a matter of appending "-Bold".
 
 Kept free of FastAPI, SQLAlchemy and torch so the layout can be tested on plain
 data.
@@ -179,6 +191,28 @@ FONT_ENV = "SUMMARY_PDF_FONT"
 _registered: dict[str, tuple[str, str]] = {}
 
 
+def _bold_candidates(path: str) -> list[str]:
+    """
+    Where a bold face might sit beside `path`.
+
+    A family that names its weight in the filename replaces that token rather
+    than appending to it: NotoSans-Regular.ttf sits beside NotoSans-Bold.ttf and
+    never beside NotoSans-Regular-Bold.ttf. Appending alone — which is all this
+    used to do — finds arialbd.ttf and misses every Noto face, so the font a
+    deployment ships would load and then draw the masthead, every stat and the
+    patient's own name at regular weight, with nothing anywhere to say the sheet
+    had quietly lost its typography.
+    """
+    stem = path[:-4] if path[-4:].lower() == ".ttf" else path
+    candidates = [
+        f"{stem[: -len(token)]}-Bold.ttf"
+        for token in ("-Regular", "-regular")
+        if stem.endswith(token)
+    ]
+    candidates += [f"{stem}{suffix}.ttf" for suffix in ("-Bold", "-bold", "Bold", "bd")]
+    return [c for c in candidates if c != path]
+
+
 def _register_fonts() -> tuple[str, str]:
     """
     Return (regular, bold) font names, honouring SUMMARY_PDF_FONT.
@@ -200,9 +234,8 @@ def _register_fonts() -> tuple[str, str]:
         # One face used for both weights unless a bold sits beside it. Synthetic
         # emboldening is not worth a second guess at a filename.
         bold = "SummaryFont"
-        for suffix in ("-Bold", "-bold", "Bold", "bd"):
-            candidate = path.replace(".ttf", f"{suffix}.ttf")
-            if candidate != path and os.path.exists(candidate):
+        for candidate in _bold_candidates(path):
+            if os.path.exists(candidate):
                 pdfmetrics.registerFont(TTFont("SummaryFont-Bold", candidate))
                 bold = "SummaryFont-Bold"
                 break

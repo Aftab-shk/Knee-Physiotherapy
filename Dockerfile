@@ -8,14 +8,28 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# ── System dependencies for OpenCV headless ─────────────────────────────────
+# ── System dependencies, and a font that can spell a name ────────────────────
+#
+# fonts-noto-core is what lets the appointment summary print a name outside
+# Latin-1. Without it reportlab's base-14 faces draw "Ольга" as five question
+# marks on that patient's own medical document. ~13 MB against a 2 GB image;
+# summary_pdf.py says what the face does and does not reach.
+#
+# The two `test -f` lines are what make the install worth trusting: if Debian
+# renames the package or moves the faces, the build stops here. Without them
+# the image would build clean and the fix would have silently reverted to
+# question marks, because summary_pdf.py falls back to Helvetica rather than
+# failing a download — the right call at runtime, and a quiet one.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libglib2.0-0 \
         libsm6 \
         libxext6 \
         libxrender-dev \
         libgomp1 \
-    && rm -rf /var/lib/apt/lists/*
+        fonts-noto-core \
+    && rm -rf /var/lib/apt/lists/* \
+    && test -f /usr/share/fonts/truetype/noto/NotoSans-Regular.ttf \
+    && test -f /usr/share/fonts/truetype/noto/NotoSans-Bold.ttf
 
 # ── Python dependencies ──────────────────────────────────────────────────────
 # Install torch + torchvision CPU-only first (saves ~1.5 GB vs CUDA build)
@@ -62,6 +76,10 @@ EXPOSE 8000
 # Resolved relative to backend/model/ when not absolute.
 ENV MODEL_PATH=best_model.pth
 ENV FRONTEND_DIR=/frontend
+# Latin Extended, Greek, Cyrillic and Vietnamese on the summary sheet. The bold
+# face beside it is found automatically. Anything further — Devanagari, Arabic,
+# CJK — means pointing this at that script's own Noto face instead.
+ENV SUMMARY_PDF_FONT=/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf
 # Same-origin now, so the allow-list only matters if the pages are hosted
 # elsewhere as well.
 ENV CORS_ORIGINS=http://localhost:5173,http://localhost:3000
