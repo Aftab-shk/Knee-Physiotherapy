@@ -3471,7 +3471,7 @@ async def _grade_one_side(
     # reference (see model/inference.load_calibration).
     if result.get("ood_reject"):
         logger.warning(
-            "OOD reject | energy=%s exceeds the reference for this checkpoint",
+            "OOD reject | energy=%s is outside the reference range for this checkpoint",
             result.get("energy"),
         )
         raise HTTPException(

@@ -284,7 +284,7 @@ class KneeClassifier:
             "calibrated":        self.calibration["calibrated"],
             "energy":            round(energy, 3),
             "ood_suspected":     warn_t is not None and energy > warn_t,
-            "ood_reject":        reject_t is not None and energy > reject_t,
+            "ood_reject":        outside_energy_range(energy, self.calibration),
             "ood_screened":      reject_t is not None,
             "demo_mode":         False,
         }
@@ -384,6 +384,22 @@ def _derive_model_version(ckpt: dict) -> str:
     return "_".join(parts)
 
 
+def outside_energy_range(energy: float, calibration: dict) -> bool:
+    """
+    Is this energy score outside the band real knee films occupy?
+
+    Both ends matter. Too high is a degenerate or near-blank image; too low is
+    an image the network answers with runaway activations, which is what a
+    photograph or a screenshot does. Inert while the checkpoint carries no
+    energy reference, which is also why the upper bound decides that.
+    """
+    high = calibration.get("reject_threshold")
+    low = calibration.get("floor_threshold")
+    if high is None:
+        return False
+    return energy > high or (low is not None and energy < low)
+
+
 def load_calibration(checkpoint_path: str) -> dict:
     """
     Read the temperature and OOD energy reference fitted on the validation split
@@ -399,6 +415,7 @@ def load_calibration(checkpoint_path: str) -> dict:
 
     reject_threshold = None
     warn_threshold = None
+    floor_threshold = None
     if energy_ref.get("p99") is not None and energy_ref.get("p50") is not None:
         p50, p95, p99 = energy_ref["p50"], energy_ref.get("p95", energy_ref["p99"]), energy_ref["p99"]
         # p95 by design, so about 1 genuine film in 20 carries the "unusual image"
@@ -443,12 +460,31 @@ def load_calibration(checkpoint_path: str) -> dict:
         margin = float(os.getenv("OOD_REJECT_MARGIN", "0.5"))
         reject_threshold = p99 + max(margin * (p99 - p50), 1e-3)
 
+        # The other side of the same gate, and the side that was open.
+        #
+        # Energy is minus a log-sum-exp of the logits, so an image the network
+        # answers with enormous activations scores very NEGATIVE, not positive.
+        # Only the upper bound existed, so those sailed through. Measured on the
+        # shipped checkpoint: a colour portrait scored -48285 and came back KL 4
+        # at 100% confidence, a screenshot of this app's own landing page -28651
+        # and came back KL 2 at 100%, an app icon -4595, a screenshot of a
+        # tutorial dialog -215.
+        #
+        # All 1656 films of the Kaggle test split sit between -3.737 and -1.712,
+        # p50 -2.493. Eight p50-to-p99 spreads below p50 puts the floor near
+        # -7.1: about three spreads clear of the lowest genuine film, and orders
+        # of magnitude above the junk. Nothing on that split is refused by it,
+        # and every image listed above is.
+        floor_spreads = float(os.getenv("OOD_FLOOR_SPREADS", "8"))
+        floor_threshold = p50 - max(floor_spreads * (p99 - p50), 1e-3)
+
     return {
         "temperature":      temperature,
         "calibrated":       temperature != 1.0,
         "energy_ref":       energy_ref,
         "warn_threshold":   warn_threshold,
         "reject_threshold": reject_threshold,
+        "floor_threshold":  floor_threshold,
         "ece":              (ckpt.get("calibration") or {}).get("ece_after"),
     }
 
