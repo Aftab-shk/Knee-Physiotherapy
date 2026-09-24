@@ -42,6 +42,12 @@ export const POSE_GATE = {
   SUSPEND_FRAMES:     12,     // ~0.4 s of a bad view before counting stops
   RESUME_FRAMES:      15,     // ~0.5 s of a good view before it picks up again
   ESCAPE_AFTER_MS:    20000,  // offer the manual override after this long stuck
+  // No new camera frame for this long means the feed has stopped, not that the
+  // patient is holding still. A webcam delivers 15-30 fps, so 700 ms is over
+  // ten missed frames: long enough that a hiccup does not trip it, short enough
+  // that a frozen picture cannot pass for a live one while the knee keeps
+  // bending. See handleFeedStall() in tracker.html.
+  FEED_STALL_MS:      700,
 };
 
 // Codes that mean there is no usable angle at all, as opposed to an angle

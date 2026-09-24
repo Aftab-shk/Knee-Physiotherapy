@@ -16,1562 +16,7 @@
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <style>
-
-    html {
-      scroll-behavior: smooth;
-    }
-
-    body {
-      font-family: var(--body);
-      color: var(--ink);
-      background: var(--paper);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    /* ── Top nav ─────────────────────────────────────────────────────── */
-    .topnav {
-      background: rgba(247, 247, 242, .92);
-      backdrop-filter: blur(10px);
-      padding: 0 clamp(20px, 6vw, 96px);
-      height: 68px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      border-bottom: 1px solid var(--line);
-    }
-
-    /* Used by the progress link, which only appears for a signed-in patient. */
-    .hidden { display: none !important; }
-
-    .nav-logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      text-decoration: none;
-    }
-
-    .nav-logo-img {
-      width: 24px;
-      height: 24px;
-      object-fit: contain;
-    }
-
-    .nav-logo-text {
-      font-family: var(--body);
-      font-size: 17px;
-      font-weight: 700;
-      letter-spacing: -.04em;
-      color: var(--ink);
-    }
-
-    .nav-steps {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .nav-step {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-      color: #8a948d;
-    }
-
-    .nav-step.active {
-      color: var(--ink);
-    }
-
-    .nav-step.done {
-      color: var(--good);
-    }
-
-    .nav-step-num {
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      border: 1px solid currentColor;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
-    }
-
-    .nav-step.active .nav-step-num {
-      background: var(--coral);
-      border-color: var(--coral);
-      color: var(--white);
-    }
-
-    .nav-step.done .nav-step-num {
-      background: var(--mint);
-      border-color: transparent;
-    }
-
-    .nav-step-sep {
-      width: 28px;
-      height: 1px;
-      background: var(--line);
-    }
-
-    .nav-right {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
-
-    .nav-home {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      color: #6f7a72;
-      text-decoration: none;
-      transition: color .2s;
-    }
-
-    .nav-home:hover {
-      color: var(--coral-ink);
-    }
-
-    /* ── Page layout ─────────────────────────────────────────────────── */
-    .page {
-      width: 100%;
-      max-width: 860px;
-      margin: 0 auto;
-      padding: 56px 24px 80px;
-      flex: 1;
-    }
-
-    /* ── Demo banner ─────────────────────────────────────────────────── */
-    .demo-banner {
-      display: none;
-      align-items: center;
-      gap: 12px;
-      max-width: 600px;
-      margin: 0 auto 20px;
-      background: #fdf3e2;
-      border: 1px solid #efd3a4;
-      border-radius: 12px;
-      padding: 12px 16px;
-      font-size: 12px;
-      line-height: 1.5;
-      color: #7a4a12;
-    }
-
-    .demo-banner.visible {
-      display: flex;
-    }
-
-    /* ── Upload panel ────────────────────────────────────────────────── */
-    .upload-panel {
-      max-width: 600px;
-      margin: 0 auto;
-      background: var(--card);
-      border: 1px solid #e0e6df;
-      border-radius: 21px;
-      box-shadow: 0 22px 45px rgba(44, 64, 49, .08);
-    }
-
-    .panel-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 15px;
-      padding: 27px 27px 0;
-    }
-
-    .panel-title {
-      margin-top: 8px;
-      font-family: var(--body);
-      font-size: 21px;
-      font-weight: 600;
-      letter-spacing: -.045em;
-      color: var(--ink);
-      margin-bottom: 6px;
-    }
-
-    .panel-sub {
-      font-size: 13px;
-      line-height: 1.55;
-      color: #6f7a72;
-      max-width: 44ch;
-    }
-
-    .panel-divider {
-      height: 0;
-      margin: 12px 0;
-    }
-
-    .panel-body {
-      padding: 0 27px 27px;
-    }
-
-    /* ── Drop zone ───────────────────────────────────────────────────── */
-    .drop-zone {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 185px;
-      border: 1px dashed #b9cabd;
-      border-radius: 14px;
-      padding: 25px;
-      text-align: center;
-      cursor: pointer;
-      background: #f1f6f0;
-      transition: border-color .2s, background .2s, transform .2s var(--ease-out);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .drop-zone:hover,
-    .drop-zone.drag-over {
-      border-color: var(--coral);
-      background: #fff3ee;
-    }
-
-    .drop-zone.has-file {
-      border-color: var(--mint-deep);
-      background: #edf7ee;
-    }
-
-    .drop-icon {
-      display: grid;
-      place-items: center;
-      width: 43px;
-      height: 43px;
-      margin: 0 auto 13px;
-      border-radius: 12px;
-      color: var(--coral-dark);
-      background: #ffe9e1;
-    }
-
-    .drop-title {
-      font-family: var(--body);
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--ink);
-      margin-bottom: 6px;
-    }
-
-    .drop-sub {
-      font-size: 11px;
-      line-height: 1.5;
-      color: #6f7a72;
-    }
-
-    .drop-sub span {
-      color: var(--coral-ink);
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .drop-input {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
-      width: 100%;
-      height: 100%;
-    }
-
-    /* ── The second knee ──────────────────────────────────────────────
-       One film cannot answer for two joints, so choosing "both" asks for the
-       other one rather than quietly grading the same image twice. */
-    .drop-zone.secondary { margin-top: 14px; }
-    .drop-zone.hidden { display: none; }
-
-    .drop-side-label {
-      display: inline-block;
-      margin-bottom: 8px;
-      padding: 4px 10px;
-      border-radius: 100px;
-      background: #fff0e9;
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      color: var(--coral-ink);
-    }
-
-    /* ── Per-knee results ─────────────────────────────────────────────
-       Two knees routinely differ by two grades — 90 degrees down to 45 — so
-       each gets its own heading, its own ceiling and its own exercise list. */
-    .side-tabs {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 18px;
-      padding: 4px;
-      border-radius: 10px;
-      background: rgba(var(--navy-rgb), .05);
-    }
-
-    .side-tabs.hidden { display: none; }
-
-    .side-tab {
-      flex: 1;
-      padding: 9px 12px;
-      border: none;
-      border-radius: 7px;
-      background: transparent;
-      font-family: var(--body);
-      font-size: 13.5px;
-      font-weight: 600;
-      color: var(--slate);
-      cursor: pointer;
-      transition: background .18s, color .18s;
-    }
-
-    .side-tab[aria-selected="true"] { background: var(--white); color: var(--text); }
-
-    .side-tab:focus-visible {
-      outline: 2px solid var(--teal);
-      outline-offset: 1px;
-    }
-
-    .side-tab-limit {
-      display: block;
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 400;
-      color: var(--slate);
-      margin-top: 2px;
-    }
-
-    /* ── How sure it was, grade by grade ─────────────────────────────
-       A single confidence figure describes the model as less useful than it is
-       and hides the cases where it is genuinely torn. The bars show where the
-       probability actually sits; the chosen grade is marked, and its neighbours
-       are drawn in the same family because an ordinal model putting mass next
-       door is saying "nearby", not "wrong". */
-    .dist {
-      margin-bottom: 20px;
-      padding: 21px 23px;
-      border: 1px solid #e0e5dd;
-      border-radius: 16px;
-      background: var(--card);
-    }
-
-    .dist.hidden { display: none; }
-
-    .dist-title {
-      font-family: var(--body);
-      font-size: 16px;
-      font-weight: 600;
-      letter-spacing: -.04em;
-      color: var(--ink);
-      margin-bottom: 4px;
-    }
-
-    .dist-sub {
-      font-size: 12.5px;
-      line-height: 1.6;
-      color: var(--slate);
-      margin-bottom: 16px;
-      max-width: 60ch;
-    }
-
-    .dist-rows { display: flex; flex-direction: column; gap: 7px; }
-
-    .dist-row {
-      display: grid;
-      grid-template-columns: 76px 1fr 52px;
-      align-items: center;
-      gap: 10px;
-      font-size: 12.5px;
-    }
-
-    .dist-label { color: var(--slate); }
-    .dist-row.chosen .dist-label { color: var(--text); font-weight: 600; }
-
-    .dist-track {
-      height: 12px;
-      border-radius: 6px;
-      background: #e8ede7;
-      overflow: hidden;
-    }
-
-    .dist-fill {
-      height: 100%;
-      border-radius: 6px;
-      background: rgba(var(--teal-light-rgb), .3);
-      transition: width .3s;
-    }
-
-    .dist-row.chosen .dist-fill { background: var(--coral); }
-    .dist-row.neighbour .dist-fill { background: rgba(var(--teal-light-rgb), .55); }
-
-    .dist-value {
-      font-family: var(--mono);
-      font-size: 11.5px;
-      color: var(--slate);
-      text-align: right;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .dist-row.chosen .dist-value { color: var(--text); font-weight: 600; }
-
-    .dist-foot {
-      margin-top: 14px;
-      padding-top: 12px;
-      border-top: 1px solid var(--border);
-      font-size: 12.5px;
-      line-height: 1.6;
-      color: var(--slate);
-    }
-
-    .dist-foot strong { color: var(--text); }
-
-    /* ── Where the model looked ───────────────────────────────────────
-       Shown beside the grade, because a number that restricts how far someone
-       bends a healing knee should be checkable. The overlay sits on the X-ray
-       at the same box and can be faded out, so the radiograph underneath is
-       always readable. */
-    .looked {
-      margin-bottom: 20px;
-      padding: 21px 23px;
-      border: 1px solid #e0e5dd;
-      border-radius: 16px;
-      background: var(--card);
-    }
-
-    .looked.hidden { display: none; }
-
-    .looked-head {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 4px;
-    }
-
-    .looked-title {
-      font-family: var(--body);
-      font-size: 16px;
-      font-weight: 600;
-      letter-spacing: -.04em;
-      color: var(--ink);
-    }
-
-    .looked-sub {
-      font-size: 12.5px;
-      line-height: 1.6;
-      color: var(--slate);
-      margin-bottom: 14px;
-      max-width: 58ch;
-    }
-
-    .looked-stage {
-      position: relative;
-      width: 100%;
-      max-width: 340px;
-      margin: 0 auto;
-      aspect-ratio: 1 / 1;
-      border-radius: 10px;
-      overflow: hidden;
-      background: #0b1116;
-    }
-
-    .looked-stage img {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
-
-    .looked-heat { transition: opacity .18s; }
-
-    .looked-controls {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      max-width: 340px;
-      margin: 12px auto 0;
-      font-size: 12px;
-      color: var(--slate);
-    }
-
-    .looked-controls input[type="range"] { flex: 1; accent-color: var(--teal); }
-
-    .looked-scale {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      max-width: 340px;
-      margin: 10px auto 0;
-      font-size: 11px;
-      color: var(--slate);
-    }
-
-    .looked-bar {
-      flex: 1;
-      height: 8px;
-      border-radius: 4px;
-      background: linear-gradient(to right, #00008c, #006ec8, #00bea0, #f0c828, #e65a1e, #be0014);
-    }
-
-    .drop-preview {
-      display: none;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .drop-preview.visible {
-      display: flex;
-    }
-
-    .drop-preview-img {
-      width: 72px;
-      height: 72px;
-      object-fit: cover;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-    }
-
-    .drop-preview-info {
-      text-align: left;
-    }
-
-    .drop-preview-name {
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--ink);
-      margin-bottom: 3px;
-    }
-
-    .drop-preview-size {
-      font-size: 12px;
-      color: var(--slate);
-    }
-
-    .drop-preview-change {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--coral-ink);
-      cursor: pointer;
-      margin-top: 4px;
-    }
-
-    /* ── Form fields ─────────────────────────────────────────────────── */
-    .fields-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-      margin-top: 23px;
-    }
-
-    .field-full {
-      grid-column: 1 / -1;
-    }
-
-    .field {}
-
-    /* ── Derived weeks-post-op ────────────────────────────────────────
-       Shown in place of the number input once a surgery date is on file. */
-    .derived-weeks {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 11px 13px;
-      border: 1px solid #cfe6d4;
-      border-radius: 9px;
-      background: #edf7ee;
-    }
-
-    .derived-weeks-value {
-      font-family: var(--mono);
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--good);
-    }
-
-    .derived-weeks-from {
-      font-size: 11px;
-      color: #6f7a72;
-    }
-
-    .link-button {
-      background: none;
-      border: none;
-      padding: 0;
-      font-family: var(--body);
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--coral-ink);
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    .link-button:hover { text-decoration: underline; }
-
-    .remember-date {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      margin-top: 8px;
-      font-size: 12px;
-      color: var(--slate);
-    }
-
-    .field.hidden,
-    .remember-date.hidden,
-    .derived-weeks.hidden { display: none; }
-
-    .field-label {
-      display: block;
-      font-size: 11px;
-      font-weight: 600;
-      color: #4d5a52;
-      margin-bottom: 8px;
-    }
-
-    .field-required {
-      color: var(--coral-ink);
-      margin-left: 2px;
-    }
-
-    .field-select,
-    .field-input-num {
-      width: 100%;
-      min-height: 44px;
-      padding: 0 12px;
-      background: var(--white);
-      border: 1px solid #dce3dc;
-      border-radius: 9px;
-      font-family: var(--body);
-      font-size: 13px;
-      color: var(--ink);
-      outline: none;
-      transition: border-color .2s, box-shadow .2s;
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2391a097' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-      padding-right: 32px;
-    }
-
-    .field-input-num {
-      background-image: none;
-      padding-right: 14px;
-    }
-
-    .field-select:focus,
-    .field-input-num:focus {
-      border-color: var(--mint-deep);
-      box-shadow: 0 0 0 4px rgba(159, 206, 178, .15);
-    }
-
-    .field-select:disabled,
-    .field-input-num:disabled {
-      background: var(--paper-deep);
-      color: #9aa39c;
-      cursor: not-allowed;
-    }
-
-    /* Knee side radio buttons */
-    .knee-options {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-    }
-
-    .knee-opt {
-      position: relative;
-    }
-
-    .knee-opt input {
-      position: absolute;
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
-    .knee-opt-label {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 44px;
-      padding: 10px 8px;
-      border: 1px solid #dce3dc;
-      border-radius: 9px;
-      background: var(--white);
-      cursor: pointer;
-      transition: border-color .2s, background .2s, color .2s;
-      font-size: 12px;
-      font-weight: 600;
-      color: #5a665e;
-      text-align: center;
-    }
-
-    .knee-opt input:focus-visible+.knee-opt-label {
-      outline: 2px solid var(--coral);
-      outline-offset: 2px;
-    }
-
-    .knee-opt input:checked+.knee-opt-label {
-      border-color: var(--coral);
-      background: #fff0e9;
-      color: var(--coral-ink);
-    }
-
-    .knee-opt-label:hover {
-      border-color: var(--coral);
-      color: var(--ink);
-    }
-
-    /* ── Submit button ───────────────────────────────────────────────── */
-    .submit-wrap {
-      margin-top: 24px;
-    }
-
-    .btn-submit {
-      width: 100%;
-      min-height: 48px;
-      background: var(--ink);
-      border: none;
-      border-radius: 10px;
-      font-family: var(--body);
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--white);
-      cursor: pointer;
-      transition: background .2s, transform .18s var(--ease-out), box-shadow .2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .btn-submit:hover {
-      background: #334842;
-      transform: translateY(-2px);
-      box-shadow: 0 13px 24px rgba(35, 50, 47, .15);
-    }
-
-    .btn-submit:disabled {
-      background: #b7bfb9;
-      box-shadow: none;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .btn-disclaimer {
-      text-align: center;
-      margin-top: 10px;
-      font-size: 12px;
-      color: var(--slate);
-    }
-
-    /* ── Loading ─────────────────────────────────────────────────────── */
-    .loading-panel {
-      display: none;
-      max-width: 600px;
-      margin: 0 auto;
-      text-align: center;
-      padding: 56px 24px;
-      background: var(--card);
-      border: 1px solid #e0e6df;
-      border-radius: 21px;
-    }
-
-    .loading-panel.visible {
-      display: block;
-    }
-
-    /* The disc itself is .spinner in assets/theme.css; this only adds the
-       gap to the title beneath it. */
-    .loading-spinner {
-      margin-bottom: 20px;
-    }
-
-    .loading-title {
-      font-family: var(--display);
-      font-size: 28px;
-      font-weight: 500;
-      letter-spacing: -.05em;
-      color: var(--ink);
-      margin-bottom: 8px;
-    }
-
-    .loading-sub {
-      font-size: 13px;
-      color: #6f7a72;
-    }
-
-    .loading-steps {
-      display: flex;
-      justify-content: center;
-      gap: 24px;
-      margin-top: 24px;
-    }
-
-    .loading-step {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: .06em;
-      text-transform: uppercase;
-      color: #9aa39c;
-    }
-
-    .loading-step.active {
-      color: var(--coral-ink);
-    }
-
-    .loading-step.done {
-      color: var(--good);
-    }
-
-    .loading-step-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: currentColor;
-    }
-
-    .loading-step.active .loading-step-dot {
-      animation: pulse 1s ease infinite;
-    }
-
-    @keyframes pulse {
-
-      0%,
-      100% {
-        opacity: 1
-      }
-
-      50% {
-        opacity: .3
-      }
-    }
-
-    /* ── Error panel ─────────────────────────────────────────────────── */
-    .error-panel {
-      display: none;
-      background: #fff0eb;
-      border: 1px solid #f3c7bd;
-      border-radius: 12px;
-      padding: 16px 18px;
-      margin-top: 20px;
-    }
-
-    .error-panel.visible {
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-    }
-
-    .error-icon {
-      font-size: 20px;
-      flex-shrink: 0;
-    }
-
-    .error-title {
-      font-family: var(--body);
-      font-size: 13px;
-      font-weight: 600;
-      color: #9c3a28;
-      margin-bottom: 4px;
-    }
-
-    .error-desc {
-      font-size: 12px;
-      line-height: 1.5;
-      color: #7a3324;
-    }
-
-    .error-retry {
-      margin-top: 8px;
-      font-size: 12px;
-      font-weight: 600;
-      color: #9c3a28;
-      text-decoration: underline;
-      cursor: pointer;
-      background: none;
-      border: none;
-      padding: 0;
-      font-family: var(--body);
-    }
-
-    /* ── Results ─────────────────────────────────────────────────────── */
-    .results {
-      display: none;
-      margin-top: 24px;
-      animation: fadeIn .4s ease;
-    }
-
-    .results.visible {
-      display: block;
-    }
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(12px)
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0)
-      }
-    }
-
-    /* Summary cards row */
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    .summary-card {
-      background: var(--card);
-      border: 1px solid #e0e5dd;
-      border-radius: 15px;
-      padding: 19px 16px;
-      text-align: left;
-    }
-
-    .summary-card-value {
-      font-family: var(--display);
-      font-size: 32px;
-      font-weight: 500;
-      letter-spacing: -.05em;
-      display: block;
-      margin-bottom: 6px;
-    }
-
-    .summary-card-label {
-      font-size: 9px;
-      color: #7f8a83;
-      text-transform: uppercase;
-      letter-spacing: .1em;
-      font-family: var(--mono);
-    }
-
-    .conf-high {
-      color: #16a34a;
-    }
-
-    .conf-moderate {
-      color: #b45309;
-    }
-
-    .conf-low {
-      color: var(--red);
-    }
-
-    .confidence-note {
-      display: none;
-      margin-top: 14px;
-      background: #fffbeb;
-      border: 1px solid #fde68a;
-      border-radius: 12px;
-      padding: 12px 16px;
-    }
-
-    .confidence-note.visible {
-      display: block;
-    }
-
-    .confidence-note-item {
-      font-size: 13px;
-      color: #78350f;
-      line-height: 1.7;
-    }
-
-    .confidence-note-item + .confidence-note-item {
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px solid #fde68a;
-    }
-
-    .kl-0 {
-      color: #16a34a;
-    }
-
-    .kl-1 {
-      color: #65a30d;
-    }
-
-    .kl-2 {
-      color: #d97706;
-    }
-
-    .kl-3 {
-      color: #ea580c;
-    }
-
-    .kl-4 {
-      color: var(--red);
-    }
-
-    /* Rationale + phase box */
-    .rationale-box {
-      background: var(--card);
-      border: 1px solid #e0e5dd;
-      border-left: 4px solid var(--coral);
-      border-radius: 0 15px 15px 0;
-      padding: 20px 24px;
-      margin-bottom: 20px;
-    }
-
-    .rationale-phase {
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      color: var(--coral-ink);
-      margin-bottom: 6px;
-    }
-
-    .rationale-goal {
-      font-family: var(--body);
-      font-size: 16px;
-      font-weight: 600;
-      letter-spacing: -.03em;
-      color: var(--ink);
-      margin-bottom: 8px;
-    }
-
-    .rationale-text {
-      font-size: 13px;
-      color: var(--ink-soft);
-      line-height: 1.7;
-    }
-
-    /* Exercises section */
-    .exercises-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 14px;
-    }
-
-    .exercises-title {
-      font-family: var(--display);
-      font-size: 30px;
-      font-weight: 500;
-      letter-spacing: -.055em;
-      color: var(--ink);
-    }
-
-    .exercises-count {
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: .06em;
-      color: #6f7a72;
-      background: var(--paper-deep);
-      border-radius: 100px;
-      padding: 4px 12px;
-    }
-
-    .exercise-card {
-      background: var(--card);
-      border: 1px solid #e0e5dd;
-      border-radius: 15px;
-      overflow: hidden;
-      margin-bottom: 10px;
-      transition: box-shadow .2s, border-color .2s;
-    }
-
-    .exercise-card:hover {
-      border-color: #cfd8ce;
-      box-shadow: 0 12px 24px rgba(55, 62, 49, .07);
-    }
-
-    .exercise-header {
-      padding: 16px 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .exercise-header-left {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .exercise-num {
-      width: 30px;
-      height: 30px;
-      background: var(--lavender);
-      border-radius: 9px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--ink);
-      flex-shrink: 0;
-    }
-
-    .exercise-name {
-      font-family: var(--body);
-      font-size: 14px;
-      font-weight: 600;
-      letter-spacing: -.03em;
-      color: var(--ink);
-    }
-
-    .exercise-desc {
-      font-size: 12px;
-      color: #6f7a72;
-      margin-top: 2px;
-    }
-
-    .exercise-header-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-shrink: 0;
-    }
-
-    .exercise-reps {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--slate);
-      white-space: nowrap;
-    }
-
-    .angle-badge {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 600;
-      padding: 3px 9px;
-      border-radius: 5px;
-      white-space: nowrap;
-    }
-
-    .angle-badge.normal {
-      background: #fff0e9;
-      color: var(--coral-ink);
-      border: 1px solid #f6d7cc;
-    }
-
-    .angle-badge.capped {
-      background: rgba(245, 158, 11, .1);
-      color: #d97706;
-      border: 1px solid rgba(245, 158, 11, .3);
-    }
-
-    .exercise-chevron {
-      font-size: 12px;
-      color: #9aa39c;
-      transition: transform .2s;
-      margin-left: 4px;
-    }
-
-    .exercise-card.open .exercise-chevron {
-      transform: rotate(180deg);
-    }
-
-    .exercise-body {
-      display: none;
-      padding: 0 20px 20px;
-      border-top: 1px solid var(--border);
-    }
-
-    /* Opening a row used to snap. Height still jumps — display cannot be
-       transitioned, and restructuring an accordion whose body is built
-       from a template string is not worth the risk — but fading the
-       content in over that jump is enough to read as an expansion rather
-       than a redraw. */
-    .exercise-card.open .exercise-body {
-      display: block;
-      animation: accordion-open var(--t-base) var(--ease-out);
-    }
-
-    @keyframes accordion-open {
-      from {
-        opacity: 0;
-        transform: translateY(-6px);
-      }
-    }
-
-    .exercise-body-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      padding-top: 16px;
-    }
-
-    .ex-section-title {
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-      color: var(--slate);
-      margin-bottom: 8px;
-    }
-
-    .instructions-list {
-      list-style: none;
-      padding: 0;
-    }
-
-    .instructions-list li {
-      display: flex;
-      gap: 10px;
-      font-size: 13px;
-      color: var(--text);
-      margin-bottom: 8px;
-      line-height: 1.55;
-    }
-
-    .instructions-list li::before {
-      content: counter(step);
-      counter-increment: step;
-      width: 20px;
-      height: 20px;
-      background: var(--teal);
-      border-radius: 50%;
-      color: var(--white);
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
-
-    .instructions-list {
-      counter-reset: step;
-    }
-
-    /* Withheld exercises — hidden unless the ceiling screened something out */
-    .excluded-section {
-      display: none;
-      margin-top: 28px;
-    }
-
-    .excluded-section.visible {
-      display: block;
-    }
-
-    .excluded-title {
-      font-family: var(--display);
-      font-size: 26px;
-      font-weight: 500;
-      letter-spacing: -.055em;
-      color: var(--ink);
-    }
-
-    .excluded-intro {
-      font-size: 13px;
-      color: var(--slate);
-      line-height: 1.7;
-      margin-bottom: 14px;
-      max-width: 68ch;
-    }
-
-    .excluded-item {
-      background: #fff7ed;
-      border: 1px solid #fed7aa;
-      border-radius: 12px;
-      padding: 14px 16px;
-      margin-bottom: 10px;
-    }
-
-    .excluded-item-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 6px;
-    }
-
-    .excluded-item-name {
-      font-weight: 600;
-      color: #9a3412;
-      font-size: 15px;
-    }
-
-    .excluded-badge {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: #9a3412;
-      background: #ffedd5;
-      border-radius: 100px;
-      padding: 3px 10px;
-      white-space: nowrap;
-    }
-
-    .excluded-item-reason {
-      font-size: 13px;
-      color: #7c2d12;
-      line-height: 1.7;
-    }
-
-    .caution-box {
-      margin-top: 12px;
-      grid-column: 1 / -1;
-      background: #fff7ed;
-      border: 1px solid #fed7aa;
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: 13px;
-      color: #9a3412;
-      display: flex;
-      gap: 8px;
-    }
-
-    .btn-start-exercise {
-      grid-column: 1 / -1;
-      margin-top: 16px;
-      width: 100%;
-      min-height: 46px;
-      background: var(--ink);
-      border: none;
-      border-radius: 10px;
-      font-family: var(--body);
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--white);
-      cursor: pointer;
-      transition: background .2s, transform .18s var(--ease-out);
-    }
-
-    .btn-start-exercise:hover {
-      background: #334842;
-      transform: translateY(-2px);
-    }
-
-    /* Tutorial + Start sit on one row; Start keeps the visual weight. */
-    .exercise-actions {
-      grid-column: 1 / -1;
-      margin-top: 16px;
-      display: flex;
-      gap: 10px;
-    }
-
-    .exercise-actions .btn-start-exercise {
-      margin-top: 0;
-      flex: 1;
-    }
-
-    .btn-tutorial {
-      padding: 12px 18px;
-      background: transparent;
-      border: 1px solid #dce2db;
-      border-radius: 10px;
-      font-family: var(--body);
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--ink);
-      cursor: pointer;
-      white-space: nowrap;
-      transition: border-color .2s, background .2s, transform .18s var(--ease-out);
-    }
-
-    .btn-tutorial:hover {
-      border-color: #b9cdbd;
-      background: #f0f5ee;
-      transform: translateY(-2px);
-    }
-
-    /* Tutorial modal */
-    .tut-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(28, 42, 36, .48);
-      backdrop-filter: blur(10px);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
-      padding: 20px;
-    }
-
-    .tut-overlay.open {
-      display: flex;
-    }
-
-    .tut-modal {
-      background: var(--paper);
-      border: 1px solid rgba(255, 255, 255, .85);
-      border-radius: 24px;
-      box-shadow: 0 28px 70px rgba(22, 39, 31, .28);
-      width: min(520px, 100%);
-      max-height: 90vh;
-      overflow-y: auto;
-      padding: 28px;
-    }
-
-    .tut-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-    }
-
-    .tut-title {
-      font-family: var(--display);
-      font-size: 30px;
-      font-weight: 500;
-      letter-spacing: -.055em;
-      color: var(--ink);
-      margin: 0;
-    }
-
-    .tut-close {
-      display: grid;
-      place-items: center;
-      width: 32px;
-      height: 32px;
-      flex-shrink: 0;
-      border-radius: 50%;
-      background: var(--paper-deep);
-      border: none;
-      font-size: 20px;
-      line-height: 1;
-      color: #6f7a72;
-      cursor: pointer;
-      transition: color .2s, transform .2s var(--ease-out);
-    }
-
-    .tut-close:hover {
-      color: var(--ink);
-      transform: rotate(90deg);
-    }
-
-    .tut-desc {
-      font-size: 13px;
-      color: var(--slate);
-      margin: 6px 0 16px;
-      line-height: 1.5;
-    }
-
-    .tut-steps {
-      margin-top: 18px;
-    }
-
-    @media (max-width:640px) {
-      .exercise-actions {
-        flex-direction: column;
-      }
-    }
-
-    /* Disclaimer */
-    .disclaimer-box {
-      background: var(--paper-deep);
-      border: 1px solid #e0e5dd;
-      border-radius: 12px;
-      padding: 14px 18px;
-      margin-top: 16px;
-      font-size: 11px;
-      color: #5f6b63;
-      line-height: 1.6;
-      display: flex;
-      gap: 10px;
-    }
-
-    .disclaimer-icon {
-      font-size: 16px;
-      flex-shrink: 0;
-    }
-
-    /* ── Card chrome shared with the rest of the product ─────────────────── */
-    .mini-label { display: block; color: #778079; font: 500 10px/1.2 var(--mono); letter-spacing: .14em; text-transform: uppercase; }
-    .i { width: 16px; height: 16px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    .secure-chip { display: flex; align-items: center; gap: 5px; flex-shrink: 0; padding: 7px 10px; border-radius: 999px; color: var(--good); background: #e8f4e9; font: 9px var(--mono); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
-    .secure-chip .i { width: 12px; height: 12px; }
-    .drop-icon .i { width: 22px; height: 22px; }
-    .upload-footer { display: flex; justify-content: space-between; gap: 20px; padding: 18px clamp(20px, 6vw, 96px); border-top: 1px solid var(--line); color: #7f8a83; font-size: 11px; }
-    .upload-footer span { display: flex; align-items: center; gap: 6px; }
-    .upload-footer a { color: var(--coral-ink); font-weight: 600; text-decoration: none; }
-    .upload-footer a:hover { text-decoration: underline; }
-    .btn-submit:focus-visible, .btn-start-exercise:focus-visible, .btn-tutorial:focus-visible, .btn-new:focus-visible, .nav-home:focus-visible, .nav-logo:focus-visible { outline: 2px solid var(--coral); outline-offset: 3px; }
-
-    /* ── New analysis button ──────────────────────────────────────────── */
-    .new-analysis-bar {
-      display: flex;
-      justify-content: center;
-      margin-top: 24px;
-    }
-
-    .btn-new {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 13px 22px;
-      background: transparent;
-      border: 1px solid #dce2db;
-      border-radius: 999px;
-      font-family: var(--body);
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--ink);
-      cursor: pointer;
-      transition: border-color .2s, background .2s;
-    }
-
-    .btn-new:hover {
-      border-color: #b9cdbd;
-      background: #f0f5ee;
-    }
-
-    @media (max-width: 768px) {
-      .topnav {
-        padding: 0 18px;
-      }
-
-      .nav-steps {
-        display: none;
-      }
-
-      .page {
-        padding: 32px 16px 60px;
-      }
-
-      .panel-header,
-      .panel-body {
-        padding-left: 20px;
-        padding-right: 20px;
-      }
-
-      .upload-footer {
-        flex-direction: column;
-        gap: 9px;
-      }
-
-      .fields-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .summary-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .exercise-body-grid {
-        grid-template-columns: 1fr;
-      }
-
-    }
-  </style>
+  <link rel="stylesheet" href="assets/upload.css">
 </head>
 
 <body>
@@ -1613,6 +58,16 @@
       logic (exercise selection, angle limits) runs normally.
     </div>
 
+    <!-- Shown when this page opens the plan stored against the account rather
+         than one graded a moment ago. -->
+    <div class="saved-banner" id="saved-banner">
+      <span aria-hidden="true">✔</span>
+      <div>
+        <strong id="saved-banner-title">Your current plan</strong>
+        <span id="saved-banner-text"></span>
+      </div>
+    </div>
+
     <!-- Upload panel -->
     <div class="upload-panel" id="upload-panel">
       <div class="panel-header">
@@ -1622,8 +77,10 @@
           <p class="panel-sub">Upload an X-ray and enter your surgery details to receive your personalised exercise
             plan.</p>
         </div>
-        <!-- True as stated: the image is graded in memory and discarded. -->
-        <div class="secure-chip"><svg class="i"><use href="#i-shield"/></svg> Not stored</div>
+        <!-- True as stated: the server grades the image in memory and discards
+             it. A signed-in browser keeps its own copy (see keepXray), which is
+             why this says "on our servers" rather than just "Not stored". -->
+        <div class="secure-chip"><svg class="i"><use href="#i-shield"/></svg> Not stored on our servers</div>
       </div>
       <div class="panel-divider"></div>
       <div class="panel-body">
@@ -1747,7 +204,7 @@
         <!-- Submit -->
         <div class="submit-wrap" id="submit-wrap">
           <button class="btn-submit" id="submit-btn" disabled>
-            Analyse X-ray <svg class="i" aria-hidden="true"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>
+            Analyse X-ray
           </button>
           <div class="btn-disclaimer">
 
@@ -2177,6 +634,7 @@
         });
 
         hideLoading();
+        if (data.prescription_id) keepXray(data.prescription_id, selectedFile, selectedFileRight);
         renderResults(data);
 
       } catch (err) {
@@ -2254,7 +712,139 @@
       tabs.classList.remove('hidden');
     }
 
+    // ── Coming back from the tracker ───────────────────────────────────────
+    // Starting an exercise leaves this page, and coming back loaded an empty
+    // upload form: the only route to the second exercise in the plan was to
+    // upload the same X-ray again, which also filed another prescription
+    // against the account. The analysis is kept for the tab session so the
+    // plan is still here on return.
+    //
+    // sessionStorage, not localStorage: it dies with the tab, so nobody is
+    // shown a movement ceiling from last week. A new analysis overwrites it and
+    // "Analyse a different X-ray" clears it. The heat map is not restored — it
+    // is drawn over the uploaded file, which the browser no longer has.
+    const PLAN_KEY = 'physioai_last_analysis';
+
+    function rememberPlan(data) {
+      try { sessionStorage.setItem(PLAN_KEY, JSON.stringify(data)); }
+      catch { /* storage full or blocked; the plan just is not kept */ }
+    }
+
+    function forgetPlan() {
+      try { sessionStorage.removeItem(PLAN_KEY); } catch { /* nothing to clear */ }
+    }
+
+    function restorePlan() {
+      let data = null;
+      try {
+        // Only for someone coming back from an exercise. Opening this page to
+        // grade a new film should still open on the form, not on an old plan,
+        // and that key is written by launchTracker() and by nothing else.
+        if (!sessionStorage.getItem('physioai_current_exercise')) return;
+        data = JSON.parse(sessionStorage.getItem(PLAN_KEY) || 'null');
+      } catch { forgetPlan(); }
+      if (!data || !data.exercise_list) return false;
+      document.getElementById('upload-panel').style.display = 'none';
+      renderResults(data);
+      return true;
+    }
+
+    // ── The X-ray, kept on this device ─────────────────────────────────────
+    // The server keeps the reading and the heat map, but never the image, so a
+    // plan reopened on a later visit had a heat map with nothing to lay it on.
+    // The file is kept here instead: in this browser's IndexedDB, keyed by the
+    // prescription it produced. It never leaves the device. Another browser, a
+    // private window or cleared site data simply shows the plan without it.
+    const XRAY_DB = 'physioai-xrays';
+    let keptFiles = null;   // { file, fileRight } read back for a reopened plan
+
+    function xrayStore(mode) {
+      return new Promise((resolve, reject) => {
+        const open = indexedDB.open(XRAY_DB, 1);
+        open.onupgradeneeded = () => open.result.createObjectStore('xrays');
+        open.onsuccess = () => resolve(open.result.transaction('xrays', mode).objectStore('xrays'));
+        open.onerror = () => reject(open.error);
+      });
+    }
+
+    async function keepXray(prescriptionId, file, fileRight) {
+      try { (await xrayStore('readwrite')).put({ file, fileRight }, prescriptionId); }
+      catch { /* storage blocked: the plan still reopens, without the picture */ }
+    }
+
+    async function findXray(prescriptionId) {
+      try {
+        const store = await xrayStore('readonly');
+        return await new Promise((resolve) => {
+          const get = store.get(prescriptionId);
+          get.onsuccess = () => resolve(get.result || null);
+          get.onerror = () => resolve(null);
+        });
+      } catch { return null; }
+    }
+
+    // After a plan is drawn without the file in hand (back from the tracker, or
+    // reopened from the account), look for the copy kept on this device.
+    async function showKeptXray() {
+      if (selectedFile || !lastAnalysis || !lastAnalysis.prescription_id) return;
+      keptFiles = await findXray(lastAnalysis.prescription_id);
+      if (keptFiles) renderExplanation(viewForSide(lastAnalysis, shownSide));
+    }
+
+    // ── The plan from a previous visit ─────────────────────────────────────
+    // The tab-session copy above dies with the tab, so signing in the next day
+    // used to open an empty form: the only route back to the exercises was to
+    // upload the same X-ray again, filing a second prescription for one knee.
+    // A signed-in patient's plan is already on the server, so read it back.
+    //
+    // Still not localStorage: this is fetched per visit, so a plan a clinician
+    // has since changed arrives changed, and a deleted account has nothing to
+    // read. The date is stated on the page, because a ceiling from six weeks
+    // ago belongs to a phase the patient may have left.
+    //
+    // Only for upload.html?view=plan, the dashboard's "My plan". Its "Upload an
+    // X-ray" opens this page plain, and someone who asked to upload gets the form.
+    async function loadSavedPlan() {
+      if (!window.PhysioAPI || !PhysioAPI.isSignedIn()) return;
+      if (new URLSearchParams(location.search).get('view') !== 'plan') return;
+      try {
+        const { prescriptions } = await PhysioAPI.myPrescriptions({ limit: 1 });
+        const latest = prescriptions && prescriptions[0];
+        if (!latest) return;
+
+        const saved = await PhysioAPI.getMyPrescription(latest.id);
+        // The stored payload predates its own row, so it carries no id. The
+        // tracker needs one to file each set against the right prescription.
+        const data = Object.assign({}, saved.payload, { prescription_id: saved.id });
+        if (!data.exercise_list) return;
+
+        document.getElementById('upload-panel').style.display = 'none';
+        renderResults(data);
+        showSavedBanner(saved.created_at);
+        showKeptXray();
+      } catch {
+        // Offline, or the session expired: the upload form is still there.
+      }
+    }
+
+    function showSavedBanner(createdAt) {
+      const when = new Date(createdAt);
+      const days = Math.floor((Date.now() - when.getTime()) / 86400000);
+      const date = when.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+      const weeks = Math.floor(days / 7);
+      const banner = document.getElementById('saved-banner');
+
+      document.getElementById('saved-banner-title').textContent =
+        `Your plan from your X-ray on ${date}`;
+      document.getElementById('saved-banner-text').textContent = weeks >= 4
+        ? `That was ${weeks} weeks ago, so this plan was built for an earlier stage of your recovery. Analyse a new X-ray, or ask your physiotherapist, before working to these limits.`
+        : 'Start any exercise below. Analyse a new X-ray whenever your knee has moved on.';
+      banner.classList.toggle('stale', weeks >= 4);
+      banner.classList.add('visible');
+    }
+
     function renderResults(data) {
+      rememberPlan(data);
       lastAnalysis = data;
       currentPrescriptionId = data.prescription_id || null;
 
@@ -2417,14 +1007,18 @@
      */
     function renderExplanation(data) {
       const panel = document.getElementById('looked');
-      if (!data.explanation || !selectedFile) {
+      // Both knees means two films, and the heat map belongs to the one on
+      // screen: the right tab used to draw the right knee's heat over the left
+      // knee's film. A single right-knee upload has no fileRight and uses file.
+      const files = selectedFile ? { file: selectedFile, fileRight: selectedFileRight } : keptFiles;
+      const image = files && ((data.knee_side === 'right' && files.fileRight) || files.file);
+      if (!data.explanation || !image) {
         panel.classList.add('hidden');
         return;
       }
 
       const xray = document.getElementById('looked-xray');
-      // The same object URL the drop preview uses; revoked when the form resets.
-      xray.src = URL.createObjectURL(selectedFile);
+      xray.src = URL.createObjectURL(image);
 
       const heat = document.getElementById('looked-heat');
       heat.src = data.explanation;
@@ -2707,6 +1301,9 @@
     function resetForm() {
       shownSide = null;
       lastAnalysis = null;
+      forgetPlan();
+      // The exercise handover belongs to the plan being replaced.
+      try { sessionStorage.removeItem('physioai_current_exercise'); } catch { /* nothing to clear */ }
       // Reset all UI
       clearFile();
       surgeryEl.value = '';
@@ -2716,6 +1313,9 @@
       document.getElementById('results').classList.remove('visible');
       document.getElementById('upload-panel').style.display = 'block';
       document.getElementById('demo-banner').classList.remove('visible');
+      document.getElementById('saved-banner').classList.remove('visible');
+      keptFiles = null;
+      history.replaceState(null, '', location.pathname);
       hideError();
       validateForm();
 
@@ -2725,6 +1325,11 @@
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+
+    // Back from the tracker: show the plan they left rather than a blank form.
+    // Failing that, a signed-in patient gets the plan saved against the account.
+    if (restorePlan()) showKeptXray();
+    else loadSavedPlan();
   </script>
   <script>
     // Installable, and able to open without a connection. The worker caches the

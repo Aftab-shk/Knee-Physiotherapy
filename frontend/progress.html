@@ -58,7 +58,7 @@
     </div>
     <nav class="progress-nav" aria-label="Dashboard">
       <a href="#top" aria-current="page"><svg class="i"><use href="#i-activity"/></svg> Overview</a>
-      <a href="upload.html"><svg class="i"><use href="#i-upload"/></svg> New analysis</a>
+      <a href="upload.html?view=plan"><svg class="i"><use href="#i-upload"/></svg> My plan</a>
       <a href="#" id="share-link-open"><svg class="i"><use href="#i-shield"/></svg> Care sharing</a>
       <a href="#" id="account-open"><svg class="i"><use href="#i-user"/></svg> Account</a>
     </nav>
@@ -157,8 +157,9 @@
         <div class="account-block-title">Download your data</div>
         <div class="account-note">
           Everything held about you as a JSON file: your analyses, exercise sessions,
-          outcome scores and sharing history. Your X-ray images are not in it — they were
-          never stored, only what was read off them.
+          outcome scores and sharing history. Your X-ray images are not in it — our servers
+          never stored them, only what was read off them. This browser keeps its own copy
+          so your plan can show it; deleting your account removes that too.
         </div>
         <button class="btn" type="button" id="acc-export">Download my data</button>
         <div class="account-msg" id="acc-export-msg"></div>
@@ -248,7 +249,7 @@
         how far your knee bent each day, how consistently you have been training, and
         where you went past your safe limit.
       </p>
-      <a href="upload.html" class="btn">Start an exercise <svg class="i"><use href="#i-arrow"/></svg></a>
+      <a href="upload.html?view=plan" class="btn">Start an exercise</a>
     </div>
 
     <!-- The charts live in assets/progress-view.js, shared with share.html. -->
@@ -425,6 +426,8 @@
       btn.disabled = true;
       try {
         const receipt = await PhysioAPI.deleteMyAccount({ password });
+        // The copies of the X-rays this browser kept for the plan page go too.
+        try { indexedDB.deleteDatabase('physioai-xrays'); } catch { /* nothing kept */ }
         accMsg('acc-delete-msg',
           `Deleted ${receipt.prescriptions} analyses and ${receipt.sessions} sessions. Goodbye.`, 'ok');
         setTimeout(() => { window.location.href = 'index.html'; }, 1800);

@@ -19,51 +19,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="stylesheet" href="assets/progress-view.css">
-  <style>
-    /* Only what this page adds. Every chart, tile and table style comes from
-       assets/progress-view.css, shared with progress.html — a clinician and a
-       patient look at the same charts, so they read the same code. */
-    .shared-banner {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: baseline;
-      gap: 8px 16px;
-      margin-bottom: 22px;
-      padding: 13px 18px;
-      border: 1px solid #e0e5dd;
-      border-left: 4px solid var(--coral);
-      border-radius: 0 12px 12px 0;
-      background: var(--card);
-      font-size: 12px;
-      color: #6f7a72;
-    }
-
-    .shared-banner strong { color: var(--text); }
-
-    .shared-expiry {
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: .06em;
-      margin-left: auto;
-    }
-
-    /* The .spinner disc comes from assets/theme.css — until it was defined
-       there, this container held an empty div and the page looked hung. */
-    #loading {
-      padding: 64px 0;
-    }
-
-    .disclaimer {
-      margin-top: 26px;
-      padding: 14px 18px;
-      border: 1px solid #e0e5dd;
-      border-radius: 12px;
-      background: var(--paper-deep);
-      font-size: 11px;
-      line-height: 1.65;
-      color: #5f6b63;
-    }
-  </style>
+  <link rel="stylesheet" href="assets/share.css">
 </head>
 
 <body>

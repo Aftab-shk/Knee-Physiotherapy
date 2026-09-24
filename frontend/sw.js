@@ -20,7 +20,10 @@
 
 // Bump on every deploy. Old caches are deleted on activate, which is what makes
 // a stale build impossible rather than merely unlikely.
-const CACHE = 'physioai-shell-v7';
+// Bump on every change to a cached asset. Static assets are served cache-first,
+// so a deploy that leaves this alone keeps handing out the old pose-gate.js —
+// which is where the camera-feed and view thresholds live.
+const CACHE = 'physioai-shell-v21';
 
 const SHELL = [
   './',
@@ -33,6 +36,11 @@ const SHELL = [
   './share.html',
   './assets/theme.css',
   './assets/progress-view.css',
+  './assets/index.css',
+  './assets/tracker.css',
+  './assets/upload.css',
+  './assets/share.css',
+  './assets/reset-password.css',
   './assets/config.js',
   './assets/api.js',
   './assets/pose-gate.js',
@@ -40,6 +48,9 @@ const SHELL = [
   './assets/form-check.js',
   './assets/progress-view.js',
   './assets/outcome-form.js',
+  './animations.html',
+  './assets/animations.css',
+  './assets/motion.js',
   './exercise-animations.js',
   './logo.png',
   './logo-dark.png',

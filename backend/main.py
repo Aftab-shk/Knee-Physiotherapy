@@ -343,7 +343,9 @@ app.add_middleware(
 # and is the one real gap left in this policy.
 _CSP = "; ".join([
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+    # 'wasm-unsafe-eval' lets MediaPipe compile its wasm; without it the camera
+    # opens and the pose model then fails to load.
+    "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob:",

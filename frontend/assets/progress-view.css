@@ -303,9 +303,6 @@
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      padding: 2px 8px;
-      border-radius: 100px;
-      background: var(--breach-soft);
       color: #a11d1d;
       font-size: 12px;
       font-weight: 600;
