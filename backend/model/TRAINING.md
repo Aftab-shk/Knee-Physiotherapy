@@ -1,7 +1,7 @@
 # Training the Knee-OA Classifier
 
 Quick reference for the improved EfficientNet-B4 recipe. For the plain-English
-walkthrough of the whole pipeline, see `../../model_explanation.md`.
+walkthrough of the whole pipeline, see `../../docs/model_explanation.md`.
 
 ## The command
 

@@ -61,6 +61,11 @@ knee-physiotherapy/
 │   ├── requirements.txt
 │   └── README.md                  Backend-specific docs
 │
+├── docs/
+│   ├── explanation.md             How the whole system fits together, in plain English
+│   ├── model_explanation.md       The training pipeline, in plain English
+│   └── NEXT-clinician-ui.md       Brief for the screens items 09-11 still lack
+│
 ├── Dockerfile                     one image: API + pages, built from this directory
 ├── .github/workflows/ci.yml       lint + tests + large-file guard
 ├── ruff.toml                      lint config
