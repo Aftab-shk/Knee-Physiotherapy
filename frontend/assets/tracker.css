@@ -1,0 +1,1003 @@
+/* tracker.css — styles for tracker.html. Load after assets/theme.css. */
+    /* The camera view sits on the ink ground. Its colours are status, not
+       decoration, so they are split by meaning: mint for "tracking, holding,
+       done", amber for a form correction, red for the safety alarm, and coral
+       only on buttons. The legacy --teal names are re-pointed here so every
+       status rule below picks up mint rather than the page-wide coral, which
+       sits too close to the alarm red to be used for "all is well". */
+    :root {
+      --teal:           #4a825f;
+      --teal-rgb:       74, 130, 95;
+      --teal-light:     #9fceb2;
+      --teal-light-rgb: 159, 206, 178;
+    }
+
+    html,
+    body {
+      height: 100%;
+    }
+
+    body {
+      font-family: var(--body);
+      color: var(--text);
+      background: var(--navy);
+      overflow: hidden;
+    }
+
+    /* ── Top bar ─────────────────────────────────────────────────────── */
+    .topbar {
+      height: 56px;
+      background: rgba(0, 0, 0, .3);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      position: relative;
+      z-index: 50;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .back-btn {
+      color: rgba(255, 255, 255, .7);
+      text-decoration: none;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: color .2s;
+    }
+
+    .back-btn:hover {
+      color: var(--white);
+    }
+
+    .exercise-title {
+      font-family: var(--display);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--white);
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .phase-chip {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--teal-light);
+    }
+
+    /* ── Main stage ──────────────────────────────────────────────────── */
+    .stage {
+      position: relative;
+      width: 100%;
+      height: calc(100vh - 56px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+    }
+
+    #video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+      /* mirror like a real mirror */
+    }
+
+    #overlay-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      /* Must match #video exactly. The video is cover-cropped to its box; a
+         canvas left to stretch draws the skeleton through a different mapping,
+         so the joints land off the body — ankles above the feet, shoulders
+         across the upper arms — and nobody can tell by eye whether tracking is
+         actually working. */
+      object-fit: cover;
+      transform: scaleX(-1);
+      pointer-events: none;
+    }
+
+    /* ── Pre-start overlay ───────────────────────────────────────────── */
+    .pre-start {
+      position: absolute;
+      inset: 0;
+      background: rgba(var(--navy-rgb),.92);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 40;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .pre-start.hidden {
+      display: none;
+    }
+
+    .pre-start-icon {
+      font-size: 56px;
+      margin-bottom: 20px;
+    }
+
+    .pre-start-title {
+      font-family: var(--display);
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 10px;
+    }
+
+    .pre-start-desc {
+      font-size: 15px;
+      color: rgba(255, 255, 255, .6);
+      max-width: 420px;
+      line-height: 1.7;
+      margin-bottom: 28px;
+    }
+
+    .pre-start-limit {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(var(--teal-rgb),.15);
+      border: 1px solid rgba(var(--teal-rgb),.35);
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--teal-light);
+      margin-bottom: 28px;
+    }
+
+    .btn-start-cam {
+      padding: 14px 32px;
+      background: var(--coral-ink);
+      border: none;
+      border-radius: 10px;
+      font-family: var(--body);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--white);
+      cursor: pointer;
+      transition: background .2s, transform .15s;
+    }
+
+    .btn-start-cam:hover {
+      background: #a9422f;
+      transform: translateY(-1px);
+    }
+
+    /* ── Pain and exertion ────────────────────────────────────────────
+       A row of eleven buttons rather than a slider: a slider has to be dragged
+       to a value the patient then has to read back, while these are one tap and
+       the chosen number stays legible. 0–10 is the Numeric Pain Rating Scale and
+       Borg CR10 both, so the same control serves both questions. */
+    .rating-block {
+      width: 100%;
+      max-width: 460px;
+      margin: 0 auto 20px;
+      text-align: left;
+    }
+
+    .rating-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, .85);
+      margin-bottom: 3px;
+    }
+
+    .rating-hint {
+      font-size: 11.5px;
+      color: rgba(255, 255, 255, .4);
+      margin-bottom: 10px;
+    }
+
+    .rating-scale {
+      display: grid;
+      grid-template-columns: repeat(11, 1fr);
+      gap: 4px;
+    }
+
+    .rating-btn {
+      padding: 8px 0;
+      border: 1px solid rgba(255, 255, 255, .16);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, .05);
+      font-family: var(--mono);
+      font-size: 12px;
+      color: rgba(255, 255, 255, .65);
+      cursor: pointer;
+      transition: background .15s, color .15s, border-color .15s;
+    }
+
+    .rating-btn:hover {
+      background: rgba(255, 255, 255, .12);
+      color: var(--white);
+    }
+
+    .rating-btn[aria-pressed="true"] {
+      background: var(--teal);
+      border-color: var(--teal-light);
+      color: var(--white);
+      font-weight: 600;
+    }
+
+    .rating-btn:focus-visible {
+      outline: 2px solid var(--teal-light);
+      outline-offset: 2px;
+    }
+
+    .rating-ends {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 5px;
+      font-size: 10.5px;
+      color: rgba(255, 255, 255, .35);
+    }
+
+    /* Every rating is optional. Saying so where it is asked stops it reading as
+       a form to be completed before the camera will start. */
+    .rating-optional {
+      font-size: 11px;
+      color: rgba(255, 255, 255, .32);
+      text-align: center;
+      margin-bottom: 14px;
+    }
+
+    .cam-permission-note {
+      margin-top: 16px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, .4);
+    }
+
+    /* ── Loading state (model downloading) ──────────────────────────── */
+    .model-loading {
+      position: absolute;
+      inset: 0;
+      background: rgba(var(--navy-rgb),.92);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 45;
+    }
+
+    .model-loading.hidden {
+      display: none;
+    }
+
+    .loading-spinner-cam {
+      width: 44px;
+      height: 44px;
+      border: 3px solid rgba(255, 255, 255, .15);
+      border-top-color: var(--teal);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;  /* keyframes: assets/theme.css */
+      margin-bottom: 18px;
+    }
+
+    .model-loading-text {
+      color: rgba(255, 255, 255, .6);
+      font-size: 14px;
+    }
+
+    /* ── Phone ────────────────────────────────────────────────────────
+       A propped phone is the realistic way to do this: nobody performs floor
+       exercises in front of a laptop. The camera switcher matters because the
+       two cameras solve different problems — the front one lets the patient see
+       the setup guidance while they position themselves, the rear one is
+       sharper once the phone is propped and they have stepped away. */
+    .cam-switch {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      z-index: 33;
+      display: none;
+      align-items: center;
+      gap: 7px;
+      /* No box, and it sits on live video: the shadow keeps white text
+         readable over a bright wall. The padding keeps the tap target. */
+      padding: 9px 4px;
+      border: 0;
+      background: none;
+      font-family: var(--body);
+      font-size: 12.5px;
+      color: rgba(255, 255, 255, .9);
+      text-shadow: 0 1px 3px rgba(0, 0, 0, .8);
+      cursor: pointer;
+    }
+
+    .cam-switch.visible { display: flex; }
+
+    .cam-switch:focus-visible {
+      outline: 2px solid var(--teal-light);
+      outline-offset: 2px;
+    }
+
+    /* Below this the HUD cards and the rest overlay need to shrink or they
+       cover the person the camera is looking at. */
+    @media (max-width: 520px), (max-height: 480px) {
+      .form-tip { bottom: 108px; font-size: 12.5px; padding: 9px 13px; }
+      .rest-count { font-size: 56px; }
+      .cam-switch { bottom: 14px; left: 14px; padding: 7px 4px; font-size: 11.5px; }
+      .voice-toggle { padding: 5px 2px; font-size: 11px; }
+      .setup-hint { font-size: 13px; }
+      .setup-status { font-size: 12px; padding: 10px 14px; }
+    }
+
+    /* ── Form coaching ────────────────────────────────────────────────
+       Amber, not red: this is a correction, not the safety alarm. Confusing the
+       two would either make people ignore the alarm or panic at a posture note.
+       Sits low, out of the way of the angle readout. */
+    .form-tip {
+      position: absolute;
+      left: 50%;
+      bottom: 132px;
+      transform: translateX(-50%);
+      z-index: 32;
+      display: none;
+      align-items: flex-start;
+      gap: 10px;
+      max-width: min(90vw, 430px);
+      padding: 11px 17px;
+      border-radius: 11px;
+      background: rgba(251, 191, 36, .95);
+      color: #3a2c05;
+      font-size: 13.5px;
+      font-weight: 600;
+      line-height: 1.45;
+      text-align: left;
+      box-shadow: 0 6px 22px rgba(0, 0, 0, .35);
+      pointer-events: none;
+    }
+
+    .form-tip.visible { display: flex; }
+
+    /* ── Rest between sets ────────────────────────────────────────────
+       There was no gap before: the counter reset and the next set began
+       whenever the patient happened to move. A rest is part of the
+       prescription, and it is also the only natural moment to say anything. */
+    .rest-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(var(--navy-rgb),.93);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 43;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .rest-overlay.visible { display: flex; }
+
+    .rest-label {
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--teal-light);
+      margin-bottom: 14px;
+    }
+
+    .rest-count {
+      font-family: var(--display);
+      font-size: 76px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--white);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .rest-next {
+      margin-top: 14px;
+      font-size: 14px;
+      color: rgba(255, 255, 255, .6);
+    }
+
+    .rest-actions { display: flex; gap: 10px; margin-top: 26px; }
+
+    .btn-rest {
+      padding: 11px 24px;
+      border: 1.5px solid rgba(255, 255, 255, .25);
+      border-radius: 10px;
+      background: transparent;
+      font-family: var(--body);
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, .85);
+      cursor: pointer;
+    }
+
+    .btn-rest.primary {
+      background: var(--coral-ink);
+      border-color: var(--coral-ink);
+      color: var(--white);
+    }
+
+    /* ── Voice toggle ─────────────────────────────────────────────────── */
+    .voice-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      /* Plain text, no box. The padding stays so the tap target does. */
+      padding: 6px 2px;
+      border: 0;
+      background: none;
+      font-family: var(--body);
+      font-size: 12px;
+      color: rgba(255, 255, 255, .75);
+      cursor: pointer;
+    }
+
+    .voice-toggle[aria-pressed="false"] { color: rgba(255, 255, 255, .4); }
+
+    .voice-toggle:focus-visible {
+      outline: 2px solid var(--teal-light);
+      outline-offset: 2px;
+    }
+
+    /* ── Camera setup gate ───────────────────────────────────────────── */
+    /* A knee angle computed from 2D landmarks is only valid when the camera
+       sees the leg side-on. Square to the camera, femur and tibia project onto
+       nearly the same line and a knee bent to 90 degrees reads close to 0 — the
+       ceiling is never crossed and the alarm never fires. This overlay holds
+       the session until the view is verified, and returns if it is lost. */
+    .setup-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(var(--navy-rgb),.92);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 44;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .setup-overlay.hidden {
+      display: none;
+    }
+
+    .setup-icon {
+      font-size: 48px;
+      margin-bottom: 18px;
+    }
+
+    .setup-title {
+      font-family: var(--display);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 10px;
+    }
+
+    .setup-hint {
+      font-size: 14px;
+      color: rgba(255, 255, 255, .55);
+      max-width: 400px;
+      line-height: 1.7;
+      margin-bottom: 22px;
+    }
+
+    .setup-status {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      max-width: 430px;
+      padding: 12px 22px;
+      border-radius: 10px;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--teal-light);
+      background: rgba(var(--teal-rgb),.15);
+      border: 1px solid rgba(var(--teal-rgb),.35);
+    }
+
+    .setup-status.blocked {
+      color: #fbbf24;
+      background: rgba(251, 191, 36, .12);
+      border-color: rgba(251, 191, 36, .35);
+    }
+
+    .setup-progress {
+      width: 220px;
+      height: 4px;
+      margin-top: 20px;
+      background: rgba(255, 255, 255, .12);
+      border-radius: 100px;
+      overflow: hidden;
+    }
+
+    .setup-progress-fill {
+      width: 0;
+      height: 100%;
+      background: var(--teal-light);
+      border-radius: 100px;
+      transition: width .12s linear;
+    }
+
+    .setup-skip {
+      margin-top: 26px;
+      background: none;
+      border: none;
+      font-family: var(--body);
+      font-size: 12px;
+      color: rgba(255, 255, 255, .38);
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .setup-skip:hover {
+      color: rgba(255, 255, 255, .65);
+    }
+
+    .setup-skip.hidden {
+      display: none;
+    }
+
+    /* Persistent banner for a session the patient chose to run unverified. */
+    .view-warn {
+      position: absolute;
+      top: 72px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 46;
+      display: none;
+      align-items: flex-start;
+      gap: 10px;
+      max-width: min(92vw, 470px);
+      padding: 10px 18px;
+      border-radius: 10px;
+      background: rgba(251, 191, 36, .95);
+      color: #3a2c05;
+      font-size: 12.5px;
+      font-weight: 600;
+      line-height: 1.5;
+      text-align: left;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, .3);
+    }
+
+    .view-warn.visible {
+      display: flex;
+    }
+
+    /* ── HUD (heads-up display) ──────────────────────────────────────── */
+    .hud {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px;
+    }
+
+    .hud.hidden {
+      display: none;
+    }
+
+    .hud-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    /* Angle readout card */
+    .angle-card {
+      background: rgba(0, 0, 0, .55);
+      backdrop-filter: blur(8px);
+      border-radius: 16px;
+      padding: 16px 22px;
+      text-align: center;
+      min-width: 140px;
+    }
+
+    .angle-value {
+      font-family: var(--mono);
+      font-size: 40px;
+      font-weight: 600;
+      color: var(--white);
+      line-height: 1;
+      transition: color .15s;
+    }
+
+    .angle-value.warning {
+      color: #fbbf24;
+    }
+
+    .angle-value.danger {
+      color: #fca5a5;
+    }
+
+    .angle-sub {
+      font-size: 11px;
+      color: rgba(255, 255, 255, .5);
+      margin-top: 4px;
+      font-family: var(--mono);
+    }
+
+    /* Limit card */
+    .limit-card {
+      background: rgba(0, 0, 0, .55);
+      backdrop-filter: blur(8px);
+      border-radius: 16px;
+      padding: 16px 22px;
+      text-align: center;
+      min-width: 140px;
+    }
+
+    .limit-value {
+      font-family: var(--mono);
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--teal-light);
+      line-height: 1;
+    }
+
+    .limit-sub {
+      font-size: 11px;
+      color: rgba(255, 255, 255, .5);
+      margin-top: 4px;
+      font-family: var(--mono);
+    }
+
+    /* Rep counter (bottom center) */
+    .rep-card {
+      align-self: center;
+      background: rgba(0, 0, 0, .55);
+      backdrop-filter: blur(8px);
+      border-radius: 16px;
+      padding: 14px 32px;
+      text-align: center;
+      pointer-events: auto;
+    }
+
+    .rep-value {
+      font-family: var(--mono);
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--white);
+    }
+
+    .rep-sub {
+      font-size: 11px;
+      color: rgba(255, 255, 255, .5);
+      margin-top: 2px;
+    }
+
+    .set-progress {
+      display: flex;
+      gap: 5px;
+      justify-content: center;
+      margin-top: 8px;
+    }
+
+    .set-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .2);
+    }
+
+    .set-dot.done {
+      background: var(--teal-light);
+    }
+
+    .set-dot.current {
+      background: var(--white);
+    }
+
+    /* Hold timer ring (for isometric exercises) */
+    .hold-ring-wrap {
+      position: relative;
+      width: 90px;
+      height: 90px;
+      margin: 0 auto 6px;
+    }
+
+    .hold-ring-svg {
+      transform: rotate(-90deg);
+    }
+
+    .hold-ring-bg {
+      fill: none;
+      stroke: rgba(255, 255, 255, .15);
+      stroke-width: 6;
+    }
+
+    .hold-ring-fg {
+      fill: none;
+      stroke: var(--teal-light);
+      stroke-width: 6;
+      stroke-linecap: round;
+      transition: stroke-dashoffset .1s linear;
+    }
+
+    .hold-ring-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--white);
+    }
+
+    /* Confidence / tracking quality indicator */
+    .tracking-status {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0, 0, 0, .5);
+      border-radius: 100px;
+      padding: 6px 14px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, .6);
+      pointer-events: none;
+    }
+
+    .tracking-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #22c55e;
+    }
+
+    .tracking-dot.poor {
+      background: #fbbf24;
+    }
+
+    .tracking-dot.lost {
+      background: #ef4444;
+    }
+
+    /* ── SAFETY ALERT — full red screen ──────────────────────────────── */
+    .safety-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(220, 38, 38, 0.75);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 60;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .safety-overlay.active {
+      display: flex;
+      animation: safetyPulse 0.25s ease-in-out infinite alternate;
+    }
+
+    @keyframes safetyPulse {
+      from {
+        background: rgba(220, 38, 38, 0.6);
+      }
+
+      to {
+        background: rgba(220, 38, 38, 0.9);
+      }
+    }
+
+    .safety-icon-big {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+
+    .safety-text-main {
+      color: white;
+      font-family: var(--body);
+      font-size: clamp(24px, 5vw, 40px);
+      font-weight: 800;
+      text-align: center;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+      margin-bottom: 10px;
+    }
+
+    .safety-text-sub {
+      color: rgba(255, 255, 255, 0.95);
+      font-size: 16px;
+      font-family: var(--mono);
+    }
+
+    .safety-angle-readout {
+      margin-top: 20px;
+      font-family: var(--mono);
+      font-size: 48px;
+      font-weight: 700;
+      color: white;
+    }
+
+    /* Paused state (after 500ms sustained breach) */
+    .paused-panel {
+      display: none;
+      margin-top: 24px;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .paused-panel.visible {
+      display: flex;
+    }
+
+    .paused-label {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: rgba(255, 255, 255, .9);
+      background: rgba(0, 0, 0, .25);
+      padding: 6px 16px;
+      border-radius: 100px;
+    }
+
+    .btn-resume {
+      padding: 12px 32px;
+      background: white;
+      border: none;
+      border-radius: 10px;
+      font-family: var(--body);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--red);
+      cursor: pointer;
+      transition: transform .15s;
+    }
+
+    .btn-resume:hover {
+      transform: translateY(-1px) scale(1.02);
+    }
+
+    /* ── Completion panel ────────────────────────────────────────────── */
+    .complete-panel {
+      position: absolute;
+      inset: 0;
+      background: rgba(var(--navy-rgb),.95);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 70;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .complete-panel.visible {
+      display: flex;
+    }
+
+    .complete-icon {
+      font-size: 56px;
+      margin-bottom: 16px;
+    }
+
+    .complete-title {
+      font-family: var(--display);
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 8px;
+    }
+
+    .complete-stats {
+      display: flex;
+      gap: 32px;
+      margin: 24px 0;
+    }
+
+    .complete-stat {
+      text-align: center;
+    }
+
+    .complete-stat-val {
+      font-family: var(--mono);
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--teal-light);
+    }
+
+    .complete-stat-label {
+      font-size: 12px;
+      color: rgba(255, 255, 255, .5);
+      margin-top: 2px;
+    }
+
+    .complete-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .btn-complete-primary {
+      padding: 13px 28px;
+      background: var(--coral-ink);
+      border: none;
+      border-radius: 10px;
+      font-family: var(--body);
+      font-size: 14px;
+      font-weight: 600;
+      color: white;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .btn-complete-secondary {
+      padding: 13px 28px;
+      background: transparent;
+      border: 1.5px solid rgba(255, 255, 255, .25);
+      border-radius: 10px;
+      font-family: var(--body);
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, .8);
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    @media (max-width: 640px) {
+      .topbar {
+        padding: 0 16px;
+      }
+
+      .exercise-title {
+        font-size: 14px;
+      }
+
+      .phase-chip {
+        display: none;
+      }
+
+      .hud {
+        padding: 12px;
+      }
+
+      .angle-card,
+      .limit-card {
+        padding: 10px 14px;
+        min-width: 100px;
+      }
+
+      .angle-value {
+        font-size: 28px;
+      }
+
+      .limit-value {
+        font-size: 20px;
+      }
+
+      .complete-stats {
+        gap: 20px;
+      }
+    }

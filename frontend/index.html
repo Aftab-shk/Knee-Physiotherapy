@@ -5,1093 +5,703 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Knee Rehabilitation, Guided by Your X-ray</title>
+  <meta name="description" content="Knee-Physiotherapy: a personalised knee rehabilitation plan built from your X-ray, with live angle tracking at home.">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="assets/theme.css">
-  <style>
-
-    html {
-      scroll-behavior: smooth;
-    }
-
-    body {
-      font-family: var(--body);
-      color: var(--text);
-      background: var(--white);
-      line-height: 1.7;
-      overflow-x: hidden;
-    }
-
-    /* ── Nav ─────────────────────────────────────────────────────────── */
-    nav {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 100;
-      padding: 18px 40px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      transition: background .3s, box-shadow .3s;
-    }
-
-    nav.solid {
-      background: var(--navy);
-      box-shadow: 0 2px 20px rgba(0, 0, 0, .3);
-    }
-
-    .nav-logo {
-      font-family: var(--display);
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--white);
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .nav-logo-img {
-      width: 32px;
-      height: 32px;
-      object-fit: contain;
-    }
-
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 32px;
-      list-style: none;
-    }
-
-    .nav-links a {
-      color: rgba(255, 255, 255, .75);
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 500;
-      transition: color .2s;
-    }
-
-    .nav-links a:hover {
-      color: var(--white);
-    }
-
-    .nav-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .btn-ghost {
-      padding: 8px 20px;
-      border: 1.5px solid rgba(255, 255, 255, .3);
-      border-radius: 8px;
-      color: var(--white);
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 500;
-      transition: border-color .2s, background .2s;
-    }
-
-    .btn-ghost:hover {
-      border-color: rgba(255, 255, 255, .7);
-      background: rgba(255, 255, 255, .05);
-    }
-
-    .btn-primary {
-      padding: 9px 22px;
-      background: var(--teal);
-      border-radius: 8px;
-      color: var(--white);
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 600;
-      transition: background .2s, transform .15s;
-    }
-
-    .btn-primary:hover {
-      background: var(--teal-light);
-      transform: translateY(-1px);
-    }
-
-    /* ── Hero ────────────────────────────────────────────────────────── */
-    .hero {
-      min-height: 100vh;
-      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 55%, #183344 100%);
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      align-items: center;
-      padding: 120px 80px 80px;
-      gap: 60px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .hero::before {
-      content: '';
-      position: absolute;
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, rgba(var(--teal-rgb), .15) 0%, transparent 70%);
-      top: -100px;
-      right: -100px;
-      pointer-events: none;
-    }
-
-    .hero-content {
-      position: relative;
-      z-index: 1;
-    }
-
-    .hero-eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(var(--teal-rgb), .15);
-      border: 1px solid rgba(var(--teal-rgb), .4);
-      border-radius: 100px;
-      padding: 5px 14px;
-      margin-bottom: 24px;
-      font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-      color: var(--teal-light);
-    }
-
-    .hero-eyebrow-dot {
-      width: 6px;
-      height: 6px;
-      background: var(--teal);
-      border-radius: 50%;
-      animation: pulse 2s ease-in-out infinite;
-    }
-
-    @keyframes pulse {
-
-      0%,
-      100% {
-        opacity: 1;
-        transform: scale(1);
-      }
-
-      50% {
-        opacity: .5;
-        transform: scale(.8);
-      }
-    }
-
-    .hero-title {
-      font-family: var(--display);
-      font-size: clamp(36px, 5vw, 58px);
-      font-weight: 700;
-      color: var(--white);
-      line-height: 1.1;
-      letter-spacing: -.02em;
-      margin-bottom: 20px;
-    }
-
-    .hero-title .accent {
-      color: var(--teal-light);
-    }
-
-    .hero-sub {
-      font-size: 17px;
-      color: rgba(255, 255, 255, .65);
-      max-width: 480px;
-      margin-bottom: 36px;
-      line-height: 1.7;
-    }
-
-    .hero-actions {
-      display: flex;
-      gap: 14px;
-      flex-wrap: wrap;
-    }
-
-    .btn-hero-primary {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 14px 28px;
-      background: var(--teal);
-      border-radius: 10px;
-      color: var(--white);
-      text-decoration: none;
-      font-family: var(--display);
-      font-size: 15px;
-      font-weight: 600;
-      transition: background .2s, transform .15s, box-shadow .2s;
-      box-shadow: 0 4px 20px rgba(var(--teal-rgb), .4);
-    }
-
-    .btn-hero-primary:hover {
-      background: var(--teal-light);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 30px rgba(var(--teal-rgb), .5);
-    }
-
-    .btn-hero-secondary {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 14px 28px;
-      border: 1.5px solid rgba(255, 255, 255, .25);
-      border-radius: 10px;
-      color: var(--white);
-      text-decoration: none;
-      font-size: 15px;
-      font-weight: 500;
-      transition: border-color .2s, background .2s;
-    }
-
-    .btn-hero-secondary:hover {
-      border-color: rgba(255, 255, 255, .6);
-      background: rgba(255, 255, 255, .05);
-    }
-
-    /* ── Angle Gauge (Signature Element) ─────────────────────────────── */
-    .gauge-wrapper {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      position: relative;
-      z-index: 1;
-    }
-
-    .gauge-card {
-      background: rgba(255, 255, 255, .05);
-      border: 1px solid rgba(255, 255, 255, .12);
-      border-radius: 20px;
-      padding: 32px 40px 24px;
-      text-align: center;
-      backdrop-filter: blur(10px);
-      width: 100%;
-      max-width: 380px;
-    }
-
-    .gauge-label {
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: .14em;
-      text-transform: uppercase;
-      color: rgba(255, 255, 255, .45);
-      margin-bottom: 16px;
-    }
-
-    .gauge-svg {
-      width: 100%;
-      max-width: 300px;
-    }
-
-    .gauge-reading {
-      font-family: var(--mono);
-      font-size: 42px;
-      font-weight: 600;
-      color: var(--white);
-      margin: 8px 0 2px;
-      letter-spacing: -.02em;
-    }
-
-    .gauge-reading-label {
-      font-size: 13px;
-      color: var(--teal-light);
-      font-weight: 500;
-    }
-
-    .gauge-meta {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 20px;
-      padding-top: 16px;
-      border-top: 1px solid rgba(255, 255, 255, .08);
-    }
-
-    .gauge-meta-item {
-      text-align: center;
-    }
-
-    .gauge-meta-value {
-      font-family: var(--mono);
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--white);
-    }
-
-    .gauge-meta-key {
-      font-size: 11px;
-      color: rgba(255, 255, 255, .45);
-      text-transform: uppercase;
-      letter-spacing: .08em;
-    }
-
-    .gauge-limit-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(220, 38, 38, .15);
-      border: 1px solid rgba(220, 38, 38, .35);
-      border-radius: 6px;
-      padding: 3px 10px;
-      font-family: var(--mono);
-      font-size: 11px;
-      color: #fca5a5;
-      margin-top: 10px;
-    }
-
-    /* Needle animation */
-    @keyframes sweep {
-      0% {
-        transform: rotate(-90deg);
-      }
-
-      40% {
-        transform: rotate(-15deg);
-      }
-
-      55% {
-        transform: rotate(-15deg);
-      }
-
-      65% {
-        transform: rotate(5deg);
-      }
-
-      /* slightly past limit — triggers "alert" */
-      75% {
-        transform: rotate(-15deg);
-      }
-
-      /* corrects */
-      100% {
-        transform: rotate(-15deg);
-      }
-    }
-
-    .needle-group {
-      transform-origin: 150px 160px;
-      animation: sweep 4s ease-in-out infinite;
-    }
-
-    /* ── Section shared ───────────────────────────────────────────────── */
-    section {
-      padding: 96px 80px;
-    }
-
-    .section-eyebrow {
-      font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: .14em;
-      text-transform: uppercase;
-      color: var(--teal);
-      margin-bottom: 12px;
-    }
-
-    .section-title {
-      font-family: var(--display);
-      font-size: clamp(28px, 4vw, 42px);
-      font-weight: 700;
-      color: var(--navy);
-      line-height: 1.15;
-      letter-spacing: -.02em;
-      margin-bottom: 16px;
-    }
-
-    .section-sub {
-      font-size: 16px;
-      color: var(--slate);
-      max-width: 520px;
-      line-height: 1.7;
-    }
-
-    /* ── How it works ────────────────────────────────────────────────── */
-    .how-it-works {
-      background: var(--off-white);
-    }
-
-    .hiw-header {
-      text-align: center;
-      margin-bottom: 60px;
-    }
-
-    .hiw-header .section-sub {
-      margin: 0 auto;
-    }
-
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 2px;
-      position: relative;
-    }
-
-    .steps::before {
-      content: '';
-      position: absolute;
-      top: 36px;
-      left: 10%;
-      right: 10%;
-      height: 1px;
-      background: linear-gradient(90deg, var(--teal) 0%, var(--teal-light) 100%);
-      z-index: 0;
-    }
-
-    .step {
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 32px 24px;
-      text-align: center;
-      position: relative;
-      z-index: 1;
-      transition: transform .2s, box-shadow .2s;
-    }
-
-    .step:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 40px rgba(var(--navy-rgb), .08);
-    }
-
-    .step-num {
-      width: 52px;
-      height: 52px;
-      background: var(--teal);
-      border-radius: 50%;
-      font-family: var(--mono);
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--white);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 20px;
-      border: 4px solid var(--off-white);
-    }
-
-    .step-icon {
-      font-size: 28px;
-      margin-bottom: 12px;
-      display: block;
-    }
-
-    .step-title {
-      font-family: var(--display);
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--navy);
-      margin-bottom: 8px;
-    }
-
-    .step-desc {
-      font-size: 14px;
-      color: var(--slate);
-      line-height: 1.6;
-    }
-
-    /* ── Safety callout ──────────────────────────────────────────────── */
-    .safety-callout {
-      background: var(--navy);
-      text-align: center;
-      padding: 80px;
-    }
-
-    .safety-callout-inner {
-      max-width: 700px;
-      margin: 0 auto;
-    }
-
-    .safety-icon {
-      font-size: 48px;
-      margin-bottom: 24px;
-      display: block;
-    }
-
-    .safety-title {
-      font-family: var(--display);
-      font-size: clamp(24px, 4vw, 40px);
-      font-weight: 700;
-      color: var(--white);
-      line-height: 1.2;
-      margin-bottom: 16px;
-    }
-
-    .safety-title .red-word {
-      color: #f87171;
-    }
-
-    .safety-desc {
-      font-size: 16px;
-      color: rgba(255, 255, 255, .6);
-      line-height: 1.7;
-      margin-bottom: 32px;
-    }
-
-    .safety-tags {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .safety-tag {
-      padding: 6px 16px;
-      border-radius: 100px;
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: .05em;
-    }
-
-    .safety-tag.teal {
-      background: rgba(var(--teal-rgb), .2);
-      color: var(--teal-light);
-      border: 1px solid rgba(var(--teal-rgb), .4);
-    }
-
-    .safety-tag.red {
-      background: rgba(220, 38, 38, .2);
-      color: #fca5a5;
-      border: 1px solid rgba(220, 38, 38, .4);
-    }
-
-    /* ── Features ────────────────────────────────────────────────────── */
-    .features {
-      background: var(--white);
-    }
-
-    .features-header {
-      margin-bottom: 52px;
-    }
-
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-    }
-
-    .feature-card {
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 28px;
-      transition: border-color .2s, box-shadow .2s;
-    }
-
-    .feature-card:hover {
-      border-color: var(--teal);
-      box-shadow: 0 4px 24px rgba(var(--teal-rgb), .08);
-    }
-
-    .feature-icon {
-      width: 44px;
-      height: 44px;
-      background: rgba(var(--teal-rgb), .1);
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      margin-bottom: 16px;
-    }
-
-    .feature-title {
-      font-family: var(--display);
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--navy);
-      margin-bottom: 8px;
-    }
-
-    .feature-desc {
-      font-size: 14px;
-      color: var(--slate);
-      line-height: 1.65;
-    }
-
-    .feature-tag {
-      display: inline-block;
-      margin-top: 12px;
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      color: var(--teal);
-      background: rgba(var(--teal-rgb), .08);
-      border-radius: 4px;
-      padding: 2px 8px;
-    }
-
-    /* ── Stats ───────────────────────────────────────────────────────── */
-    .stats {
-      background: var(--navy);
-      padding: 64px 80px;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1px;
-      background: rgba(255, 255, 255, .08);
-    }
-
-    .stat {
-      background: var(--navy);
-      padding: 32px;
-      text-align: center;
-    }
-
-    .stat-val {
-      font-family: var(--mono);
-      font-size: 44px;
-      font-weight: 600;
-      color: var(--teal-light);
-      letter-spacing: -.02em;
-      display: block;
-    }
-
-    .stat-label {
-      font-size: 14px;
-      color: rgba(255, 255, 255, .5);
-      margin-top: 4px;
-    }
-
-    /* ── CTA ─────────────────────────────────────────────────────────── */
-    .cta-section {
-      background: linear-gradient(135deg, var(--teal) 0%, var(--blue) 100%);
-      text-align: center;
-      padding: 96px 80px;
-    }
-
-    .cta-title {
-      font-family: var(--display);
-      font-size: clamp(28px, 4vw, 44px);
-      font-weight: 700;
-      color: var(--white);
-      margin-bottom: 14px;
-    }
-
-    .cta-sub {
-      font-size: 17px;
-      color: rgba(255, 255, 255, .8);
-      margin-bottom: 36px;
-    }
-
-    .btn-cta {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      padding: 16px 36px;
-      background: var(--white);
-      border-radius: 10px;
-      color: var(--teal);
-      text-decoration: none;
-      font-family: var(--display);
-      font-size: 16px;
-      font-weight: 700;
-      transition: transform .15s, box-shadow .2s;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, .2);
-    }
-
-    .btn-cta:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 30px rgba(0, 0, 0, .25);
-    }
-
-    /* ── Footer ──────────────────────────────────────────────────────── */
-    footer {
-      background: #070f1e;
-      padding: 48px 80px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 40px;
-      align-items: start;
-    }
-
-    
-    .footer-logo {
-      font-family: var(--display);
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--white);
-      margin-bottom: 10px;
-    }
-
-    .footer-tagline {
-      font-size: 13px;
-      color: rgba(255, 255, 255, .4);
-      line-height: 1.6;
-      max-width: 300px;
-    }
-
-    .footer-disclaimer {
-      font-size: 11px;
-      color: rgba(255, 255, 255, .25);
-      line-height: 1.6;
-      margin-top: 16px;
-      font-style: italic;
-    }
-
-    .footer-links {
-      display: flex;
-      justify-content: flex-end;
-      gap: 40px;
-    }
-
-    .footer-col h5 {
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      color: rgba(255, 255, 255, .35);
-      margin-bottom: 12px;
-    }
-
-    .footer-col ul {
-      list-style: none;
-    }
-
-    .footer-col li {
-      margin-bottom: 8px;
-    }
-
-    .footer-col a {
-      font-size: 13px;
-      color: rgba(255, 255, 255, .5);
-      text-decoration: none;
-      transition: color .2s;
-    }
-
-    .footer-col a:hover {
-      color: var(--white);
-    }
-
-    /* ── Scroll reveal ───────────────────────────────────────────────── */
-    .reveal {
-      opacity: 0;
-      transform: translateY(24px);
-      transition: opacity .6s ease, transform .6s ease;
-    }
-
-    .reveal.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    /* ── Responsive ──────────────────────────────────────────────────── */
-    @media (max-width: 1024px) {
-      .hero {
-        grid-template-columns: 1fr;
-        padding: 100px 40px 60px;
-      }
-
-      .gauge-wrapper {
-        display: none;
-      }
-
-      section {
-        padding: 72px 40px;
-      }
-
-      .steps {
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .steps::before {
-        display: none;
-      }
-
-      .features-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .stats-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-
-      footer {
-        grid-template-columns: 1fr;
-      }
-
-      .footer-links {
-        justify-content: flex-start;
-      }
-    }
-
-    @media (max-width: 640px) {
-      nav {
-        padding: 16px 20px;
-      }
-
-      .nav-links {
-        display: none;
-      }
-
-      .hero {
-        padding: 90px 24px 48px;
-      }
-
-      section {
-        padding: 56px 24px;
-      }
-
-      .steps {
-        grid-template-columns: 1fr;
-      }
-
-      .features-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .stats-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .stats {
-        padding: 48px 24px;
-      }
-
-      .safety-callout,
-      .cta-section {
-        padding: 60px 24px;
-      }
-
-      footer {
-        padding: 40px 24px;
-      }
-    }
-  </style>
+  <!-- Sets .js-motion before first paint; see the file header for why it is not deferred. -->
+  <script src="assets/motion.js"></script>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#f7f7f2">
+  <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="assets/index.css">
 </head>
 
 <body>
+  <!-- Icon sprite (Lucide paths). Referenced below with <use href="#i-…">. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M6 3 20 12 6 21Z"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+    <symbol id="i-zap" viewBox="0 0 24 24"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M22 8c0-2.3-.8-4.3-2-6"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/><path d="M4 2C2.8 3.7 2 5.7 2 8"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+    <symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/><path d="M9 9h.01"/><path d="M15 15h.01"/></symbol>
+    <symbol id="i-clipboard" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></symbol>
+    <symbol id="i-video" viewBox="0 0 24 24"><path d="m22 8-5 4 5 4V8Z"/><rect width="15" height="12" x="2" y="6" rx="2"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.13-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.13a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.13 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.13a.5.5 0 0 1-.96 0z"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="m2 2 20 20"/></symbol>
+  </svg>
+
+  <div class="noise" aria-hidden="true"></div>
 
   <!-- ── Nav ──────────────────────────────────────────────────────────────── -->
-  <nav id="nav">
-    <a href="index.html" class="nav-logo">
-      <img src="logo.png" alt="Knee-Physiotherapy Logo" class="nav-logo-img">
-      Knee-Physiotherapy
-    </a>
-    <ul class="nav-links">
-      <li><a href="#how-it-works">How it works</a></li>
-      <li><a href="#features">Features</a></li>
-      <li><a href="#safety">Safety</a></li>
-    </ul>
-    <div class="nav-actions">
-      <a href="login.html" class="btn-ghost">Log in</a>
-      <a href="login.html" class="btn-primary">Get started</a>
+  <nav class="topbar" id="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="brand">
+        <img src="logo-dark.png" alt="" width="26" height="26">
+        Knee-Physiotherapy
+      </a>
+      <div class="nav-links" id="nav-links">
+        <a href="#how-it-works">How it works</a>
+        <a href="#safety">Safety</a>
+        <a href="#range">Your range</a>
+        <a href="#login" class="mobile-only">Log in</a>
+        <a href="#signup" class="mobile-only">Get started</a>
+      </div>
+      <div class="nav-actions">
+        <a href="#login" class="text-link">Log in</a>
+        <a href="#signup" class="pill pill-dark">Get started</a>
+      </div>
+      <button class="menu-toggle" id="menu-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="nav-links">
+        <svg class="i i-menu"><use href="#i-menu"/></svg>
+        <svg class="i i-close"><use href="#i-x"/></svg>
+      </button>
     </div>
   </nav>
 
-  <!-- ── Hero ─────────────────────────────────────────────────────────────── -->
-  <section class="hero">
-    <div class="hero-content">
-      <div class="hero-eyebrow">
-        <span class="hero-eyebrow-dot"></span>
-        AI-Assisted Knee Rehabilitation
-      </div>
-      <h1 class="hero-title">
-        Recovery guided<br>
-        by your <span class="accent">X-ray</span>
-      </h1>
-      <p class="hero-sub">
-        Upload your knee X-ray. Enter your surgery details. Get a personalised exercise programme — then follow along as
-        the system watches your knee angle in real time and alerts you the moment you go too far.
-      </p>
-      <div class="hero-actions">
-        <a href="login.html" class="btn-hero-primary">
-          Get started free →
-        </a>
-        <a href="#how-it-works" class="btn-hero-secondary">
-          See how it works
-        </a>
-      </div>
-    </div>
-
-    <!-- Angle Gauge — the signature element -->
-    <div class="gauge-wrapper">
-      <div class="gauge-card">
-        <div class="gauge-label">Live Angle Monitor</div>
-
-        <svg class="gauge-svg" viewBox="0 0 300 175" xmlns="http://www.w3.org/2000/svg">
-          <!-- Background arc -->
-          <path d="M 20 160 A 130 130 0 0 1 280 160" fill="none" stroke="var(--navy-mid)" stroke-width="22"
-            stroke-linecap="round" />
-          <!-- Safe zone: 0° to 90° (right to top) -->
-          <path d="M 280 160 A 130 130 0 0 0 150 30" fill="none" stroke="var(--teal)" stroke-width="22"
-            stroke-linecap="round" />
-          <!-- Danger zone: 90° to 180° (top to left) -->
-          <path d="M 150 30 A 130 130 0 0 0 20 160" fill="none" stroke="#dc2626" stroke-width="22"
-            stroke-linecap="round" opacity="0.5" />
-          <!-- Limit marker at 90° -->
-          <line x1="150" y1="18" x2="150" y2="42" stroke="#ffffff" stroke-width="2.5" opacity="0.8" />
-          <text x="150" y="12" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9"
-            fill="rgba(255,255,255,0.5)" letter-spacing="1">X-RAY LIMIT</text>
-          <!-- Degree labels -->
-          <text x="280" y="178" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11"
-            fill="rgba(255,255,255,0.4)">0°</text>
-          <text x="20" y="178" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11"
-            fill="rgba(255,255,255,0.4)">180°</text>
-          <text x="150" y="52" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11"
-            fill="rgba(var(--teal-rgb),0.8)">90°</text>
-          <!-- Needle (animated) -->
-          <g class="needle-group">
-            <line x1="150" y1="160" x2="268" y2="116" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
-            <circle cx="150" cy="160" r="7" fill="#ffffff" />
-            <circle cx="150" cy="160" r="4" fill="var(--teal)" />
-          </g>
-        </svg>
-
-        <div class="gauge-reading" id="gauge-num">67°</div>
-        <div class="gauge-reading-label">Current knee angle</div>
-        <div class="gauge-limit-badge">
-          ⚠ Limit: 90° (KL Grade 2)
-        </div>
-
-        <div class="gauge-meta">
-          <div class="gauge-meta-item">
-            <div class="gauge-meta-value" style="color: var(--blue)">Grade 2</div>
-            <div class="gauge-meta-key">KL Grade</div>
-          </div>
-          <div class="gauge-meta-item">
-            <div class="gauge-meta-value">60/100</div>
-            <div class="gauge-meta-key">Health Score</div>
-          </div>
-          <div class="gauge-meta-item">
-            <div class="gauge-meta-value" style="color: var(--blue)">Phase II</div>
-            <div class="gauge-meta-key">Protocol</div>
-          </div>
+  <main>
+    <!-- ── Hero ─────────────────────────────────────────────────────────── -->
+    <section class="hero pad" id="top">
+      <div class="orbit orbit-one"></div>
+      <div class="orbit orbit-two"></div>
+      <div class="hero-copy-wrap">
+        <div class="eyebrow reveal"><span class="eyebrow-line"></span> AI-assisted knee rehabilitation</div>
+        <h1 class="reveal">Recovery<br>guided by<br><em>your X-ray.</em></h1>
+        <p class="hero-copy reveal">Upload your knee X-ray and your surgery details. Get a personalised exercise plan, then follow along while your webcam watches the knee angle and warns you the moment you go too far.</p>
+        <div class="hero-cta-row reveal">
+          <a href="#signup" class="pill pill-coral">Get started free</a>
+          <a class="play-link" href="#how-it-works"><span class="play-icon"><svg class="i i-fill"><use href="#i-play"/></svg></span> See how it works</a>
         </div>
       </div>
-    </div>
-  </section>
 
-  <!-- ── How it works ──────────────────────────────────────────────────────── -->
-  <section class="how-it-works" id="how-it-works">
-    <div class="hiw-header reveal">
-      <div class="section-eyebrow">Process</div>
-      <h2 class="section-title">Four steps to safer recovery</h2>
-      <p class="section-sub">From X-ray to guided exercise in minutes. Every step is informed by your specific imaging
-        and surgery history.</p>
-    </div>
-
-    <div class="steps">
-      <div class="step reveal">
-        <div class="step-num">1</div>
-        <span class="step-icon">🩻</span>
-        <div class="step-title">Upload your X-ray</div>
-        <p class="step-desc">Photograph or scan your knee X-ray and upload it. Tell us which knee — left, right, or
-          both.</p>
+      <!-- An illustration of the product, not live data. -->
+      <div class="hero-dashboard reveal" aria-label="Example of a daily recovery dashboard">
+        <div class="dashboard-card">
+          <div class="dashboard-head">
+            <div><span class="mini">Today's recovery</span><h3 id="greeting">Good morning <span>✦</span></h3></div>
+            <div class="status-chip"><span class="status-dot"></span> On track</div>
+          </div>
+          <div class="dashboard-grid">
+            <div class="readiness">
+              <div class="ring-wrap">
+                <svg class="ring" viewBox="0 0 140 140" role="img" aria-label="Knee health score 60 out of 100">
+                  <circle class="ring-track" cx="70" cy="70" r="57" />
+                  <circle class="ring-value" cx="70" cy="70" r="57" />
+                </svg>
+                <div class="ring-text"><strong>60</strong><span>/ 100</span></div>
+              </div>
+              <div><span class="mini">Knee health score</span><p class="readiness-note">KL grade 2, from your X-ray.</p></div>
+            </div>
+            <div>
+              <div class="panel-heading"><span>Today's plan</span><span>Phase II</span></div>
+              <div class="plan-progress"><span></span></div>
+              <div class="plan-stats"><strong>2 of 3</strong><span>exercises done</span><b>67%</b></div>
+              <a class="next-session" href="#signup">
+                <div class="exercise-thumb"><span>↗</span></div>
+                <div><span class="mini">Next up · 08 min</span><strong>Heel slides</strong></div>
+                <svg class="i"><use href="#i-arrow"/></svg>
+              </a>
+            </div>
+          </div>
+          <div class="dashboard-footer">
+            <span><svg class="i"><use href="#i-shield"/></svg> Safe limit today</span><strong>90° flexion</strong>
+            <span class="footer-divider"></span>
+            <span><svg class="i"><use href="#i-clock"/></svg> Week 04 after surgery</span>
+          </div>
+        </div>
+        <div class="floating-note note-form"><span class="note-icon"><svg class="i i-fill"><use href="#i-zap"/></svg></span><div><strong>Form looks good</strong><small>Tracked live by webcam</small></div></div>
+        <div class="floating-note note-angle"><span class="angle-number">88°</span><div><small>Current flexion</small><strong>Inside your limit</strong></div><svg class="i"><use href="#i-check"/></svg></div>
       </div>
-      <div class="step reveal">
-        <div class="step-num">2</div>
-        <span class="step-icon">📋</span>
-        <div class="step-title">Enter your surgery details</div>
-        <p class="step-desc">Select your procedure type — ACL reconstruction, TKR, meniscus repair, arthroscopy, or OA
-          management — and how many weeks it's been.</p>
-      </div>
-      <div class="step reveal">
-        <div class="step-num">3</div>
-        <span class="step-icon">🎯</span>
-        <div class="step-title">Get your personalised plan</div>
-        <p class="step-desc">AI grades your X-ray (KL Grade 0–4) and combines it with your recovery stage to prescribe
-          the right exercises — with safe angle limits for each.</p>
-      </div>
-      <div class="step reveal">
-        <div class="step-num">4</div>
-        <span class="step-icon">📹</span>
-        <div class="step-title">Exercise with live oversight</div>
-        <p class="step-desc">The webcam tracks your knee angle in real time. Go past your limit and the screen turns red
-          with an audible alarm — instantly.</p>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- ── Safety callout ────────────────────────────────────────────────────── -->
-  <section class="safety-callout" id="safety">
-    <div class="safety-callout-inner reveal">
-      <span class="safety-icon">🔴</span>
-      <h2 class="safety-title">
-        The moment you exceed the safe limit —<br>
-        your screen turns <span class="red-word">red</span> and the alarm sounds.
-      </h2>
-      <p class="safety-desc">
-        Every exercise has its own angle limit — derived from your X-ray severity and your recovery protocol. The webcam
-        tracker enforces it in real time at under 100ms latency. No delay. No guessing. No re-injury from going a degree
-        too far.
-      </p>
-      <div class="safety-tags">
-        <span class="safety-tag teal">✓ Within safe range</span>
-        <span class="safety-tag red">⚠ Limit exceeded — stop</span>
-        <span class="safety-tag teal">✓ Auto-resumes when corrected</span>
+    <section class="marquee" aria-label="What the programme does">
+      <!-- Two identical halves of five sets each, about 3100px apiece. A half
+           has to be wider than the screen, or the end of the track shows as a
+           gap before the loop. -->
+      <div class="marquee-track">
+        <span>X-RAY INFORMED <i>✦</i></span><span>SAFE ANGLE LIMITS <i>✦</i></span><span>LIVE FORM TRACKING <i>✦</i></span>
+        <span aria-hidden="true">X-RAY INFORMED <i>✦</i></span><span aria-hidden="true">SAFE ANGLE LIMITS <i>✦</i></span><span aria-hidden="true">LIVE FORM TRACKING <i>✦</i></span>
+        <span aria-hidden="true">X-RAY INFORMED <i>✦</i></span><span aria-hidden="true">SAFE ANGLE LIMITS <i>✦</i></span><span aria-hidden="true">LIVE FORM TRACKING <i>✦</i></span>
+        <span aria-hidden="true">X-RAY INFORMED <i>✦</i></span><span aria-hidden="true">SAFE ANGLE LIMITS <i>✦</i></span><span aria-hidden="true">LIVE FORM TRACKING <i>✦</i></span>
+        <span aria-hidden="true">X-RAY INFORMED <i>✦</i></span><span aria-hidden="true">SAFE ANGLE LIMITS <i>✦</i></span><span aria-hidden="true">LIVE FORM TRACKING <i>✦</i></span>
+        <span aria-hidden="true">X-RAY INFORMED <i>✦</i></span><span aria-hidden="true">SAFE ANGLE LIMITS <i>✦</i></span><span aria-hidden="true">LIVE FORM TRACKING <i>✦</i></span>
+        <span aria-hidden="true">X-RAY INFORMED <i>✦</i></span><span aria-hidden="true">SAFE ANGLE LIMITS <i>✦</i></span><span aria-hidden="true">LIVE FORM TRACKING <i>✦</i></span>
+        <span aria-hidden="true">X-RAY INFORMED <i>✦</i></span><span aria-hidden="true">SAFE ANGLE LIMITS <i>✦</i></span><span aria-hidden="true">LIVE FORM TRACKING <i>✦</i></span>
+        <span aria-hidden="true">X-RAY INFORMED <i>✦</i></span><span aria-hidden="true">SAFE ANGLE LIMITS <i>✦</i></span><span aria-hidden="true">LIVE FORM TRACKING <i>✦</i></span>
+        <span aria-hidden="true">X-RAY INFORMED <i>✦</i></span><span aria-hidden="true">SAFE ANGLE LIMITS <i>✦</i></span><span aria-hidden="true">LIVE FORM TRACKING <i>✦</i></span>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- ── CTA ───────────────────────────────────────────────────────────────── -->
-  <section class="cta-section">
-    <div class="reveal">
-      <h2 class="cta-title">Start your safer recovery today</h2>
-      <a href="login.html" class="btn-cta">Get started →</a>
-    </div>
-  </section>
+    <!-- ── How it works ─────────────────────────────────────────────────── -->
+    <section class="pad how-section" id="how-it-works">
+      <div class="section-intro">
+        <div class="reveal"><span class="kicker">01/ How it works</span><h2>Four steps from X-ray<br>to <em>exercise.</em></h2></div>
+        <div class="reveal"><p>Four steps from your imaging to a guided session. Each one uses your own X-ray and surgery history.</p><a class="underlined-link" href="#safety">How we keep you safe <svg class="i"><use href="#i-arrow"/></svg></a></div>
+      </div>
 
-  <!-- ── Footer ────────────────────────────────────────────────────────────── -->
-  <footer>
-    <div class="footer-brand">
+      <div class="flip-stack" id="flip-stack">
+        <div class="flip-sticky">
+          <div class="flip-hint" aria-hidden="true"><span>↓</span><span>Scroll through the flow</span><span>↓</span></div>
+          <div class="flip-stage">
+            <article class="flip-card">
+              <div class="flip-inner" style="background:#a94808;color:#fff7ed">
+                <div class="flip-copy"><div class="flip-number">01</div><div class="flip-bottom"><p class="flip-eyebrow">X-ray upload</p><h3>Start with the image of your knee.</h3><p class="flip-description">Photograph or scan your knee X-ray and upload it. Choose left, right or both. The model grades it on the Kellgren–Lawrence scale, from 0 to 4.</p></div></div>
+                <div class="flip-art" aria-hidden="true"><div class="flip-art-grid"></div><svg class="i"><use href="#i-scan"/></svg></div>
+              </div>
+            </article>
+            <article class="flip-card">
+              <div class="flip-inner" style="background:#067b8f;color:#ecfeff">
+                <div class="flip-copy"><div class="flip-number">02</div><div class="flip-bottom"><p class="flip-eyebrow">Surgery details</p><h3>Add the context behind the movement.</h3><p class="flip-description">Select your procedure: ACL reconstruction, total knee replacement, meniscus repair, arthroscopy or OA management. Then add how many weeks it has been.</p></div></div>
+                <div class="flip-art" aria-hidden="true"><div class="flip-art-grid"></div><svg class="i"><use href="#i-clipboard"/></svg></div>
+              </div>
+            </article>
+            <article class="flip-card">
+              <div class="flip-inner" style="background:#ba075f;color:#fff1f7">
+                <div class="flip-copy"><div class="flip-number">03</div><div class="flip-bottom"><p class="flip-eyebrow">Personalised plan</p><h3>Turn the grade into a plan with limits.</h3><p class="flip-description">Your KL grade and recovery stage set the exercises, the repetitions, and a safe angle limit for each exercise.</p></div></div>
+                <div class="flip-art" aria-hidden="true"><div class="flip-art-grid"></div><svg class="i"><use href="#i-target"/></svg></div>
+              </div>
+            </article>
+            <article class="flip-card">
+              <div class="flip-inner" style="background:#3322a8;color:#f3f1ff">
+                <div class="flip-copy"><div class="flip-number">04</div><div class="flip-bottom"><p class="flip-eyebrow">Live oversight</p><h3>Exercise with a second set of eyes.</h3><p class="flip-description">The webcam tracks your knee angle in real time. Go past your limit and the screen turns red and an alarm sounds, instantly.</p></div></div>
+                <div class="flip-art" aria-hidden="true"><div class="flip-art-grid"></div><svg class="i"><use href="#i-video"/></svg></div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
 
+    <!-- ── Safety ───────────────────────────────────────────────────────── -->
+    <section class="pad protocol-section" id="safety">
+      <div class="protocol-visual">
+        <div class="reveal">
+          <div class="visual-card" aria-label="Illustration of the live tracker">
+            <div class="visual-top"><span class="live-pill"><span></span> LIVE PREVIEW</span><span class="visual-time">00:28</span></div>
+            <div class="skeleton-stage">
+              <div class="skeleton-glow"></div>
+              <div class="pose-person"><span class="thigh thigh-l"></span><span class="thigh thigh-r"></span><span class="shin shin-l"></span><span class="shin shin-r"></span><span class="upper"><span class="head"></span><span class="torso"></span><span class="arm arm-left"></span><span class="arm arm-right"></span></span><span class="knee-dot"></span></div>
+              <div class="floor-line"></div>
+              <div class="angle-tag"><svg class="i"><use href="#i-target"/></svg> <span class="angle-num" aria-hidden="true"></span></div>
+            </div>
+            <div class="visual-foot"><div><span class="mini">Squat</span><strong>Within your limit</strong></div><button type="button" class="pause-button" id="preview-pause" aria-pressed="false" aria-label="Pause the preview"><span></span><span></span></button></div>
+          </div>
+        </div>
+      </div>
+      <div class="protocol-copy">
+        <div class="reveal"><span class="kicker">02/ Safety</span><h2>The tracker warns you<br><em>at your limit.</em></h2></div>
+        <p class="reveal">Every exercise has its own angle limit, set by the severity on your X-ray and your recovery protocol. The webcam tracker watches that limit while you move and warns you if you pass it.</p>
+        <div class="safety-points reveal">
+          <div class="safety-point"><div class="point-icon"><svg class="i"><use href="#i-bell"/></svg></div><div><strong>Screen turns red, alarm sounds</strong><span>As soon as the camera sees you pass the limit.</span></div></div>
+          <div class="safety-point"><div class="point-icon"><svg class="i"><use href="#i-shield"/></svg></div><div><strong>Limits from your imaging</strong><span>Your KL grade sets how far each exercise may bend.</span></div></div>
+          <div class="safety-point"><div class="point-icon"><svg class="i"><use href="#i-reset"/></svg></div><div><strong>Resumes when corrected</strong><span>Bring the knee back under the line and carry on.</span></div></div>
+        </div>
+        <div class="reveal"><a class="outline-link" href="#signup">Start your first session <svg class="i"><use href="#i-arrow"/></svg></a></div>
+      </div>
+    </section>
+
+    <!-- ── Range ────────────────────────────────────────────────────────── -->
+    <section class="pad angle-section" id="range">
+      <div class="angle-copy">
+        <div class="reveal"><span class="kicker">03/ Your range</span><h2>Your limit widens<br><em>as you heal.</em></h2></div>
+        <p class="reveal">Your safe limit widens as you heal. Drag the slider to see how the limit moves between recovery phases.</p>
+        <div class="range-control reveal">
+          <div class="range-label"><label for="angle">Safe flexion limit</label><strong id="angle-value">90°</strong></div>
+          <input type="range" id="angle" min="70" max="120" value="90">
+          <div class="range-scale"><span>70°</span><span>90°</span><span>120°</span></div>
+          <div class="angle-status safe" id="angle-status" aria-live="polite"><span class="status-dot"></span> <span>Protected range</span></div>
+        </div>
+      </div>
+      <div class="angle-card reveal">
+        <div class="angle-card-header"><div><span class="mini">Knee flexion</span><strong>Personalised limit</strong></div><button type="button" id="angle-reset" aria-label="Reset to 90 degrees"><svg class="i"><use href="#i-reset"/></svg></button></div>
+        <div class="angle-dial" aria-hidden="true"><div class="dial-orbit"></div><div class="dial-core"><span class="dial-value" id="dial-value">90°</span><span>safe limit</span></div><div class="dial-pointer" id="dial-pointer"></div></div>
+        <div class="dial-caption"><svg class="i"><use href="#i-info"/></svg><span>Protocols start conservatively and widen with your recovery phase. Your real limit comes from your X-ray and your clinician.</span></div>
+      </div>
+    </section>
+
+    <!-- ── Exercises ────────────────────────────────────────────────────── -->
+    <section class="pad library-section" id="library">
+      <div class="section-intro library-intro">
+        <div class="reveal"><span class="kicker">04/ Exercises</span><h2>See each exercise<br><em>before you do it.</em></h2></div>
+        <div class="reveal"><p>Every exercise in your plan comes with an animated demonstration, so you know the movement before the camera starts.</p><a class="underlined-link" href="animations.html">See the exercise animations <svg class="i"><use href="#i-arrow"/></svg></a></div>
+      </div>
+      <div class="move-grid">
+        <div class="reveal"><a class="move-card" href="animations.html#heel-slides" data-limit="90"><div class="move-art sand"><span>↗</span></div><div class="move-meta"><span>Mobility</span><h3>Heel slides</h3><span class="circle-arrow"><svg class="i"><use href="#i-arrow"/></svg></span></div></a></div>
+        <div class="reveal"><a class="move-card" href="animations.html#quad-sets-isometric" data-limit="5"><div class="move-art mint"><span>◌</span></div><div class="move-meta"><span>Activation</span><h3>Quad sets</h3><span class="circle-arrow"><svg class="i"><use href="#i-arrow"/></svg></span></div></a></div>
+        <div class="reveal"><a class="move-card" href="animations.html#straight-leg-raise" data-limit="5"><div class="move-art lavender"><span>⌁</span></div><div class="move-meta"><span>Strength</span><h3>Straight leg raise</h3><span class="circle-arrow"><svg class="i"><use href="#i-arrow"/></svg></span></div></a></div>
+        <div class="reveal"><a class="move-card" href="animations.html#seated-knee-bend" data-limit="90"><div class="move-art peach"><span>⌂</span></div><div class="move-meta"><span>Mobility</span><h3>Seated knee bend</h3><span class="circle-arrow"><svg class="i"><use href="#i-arrow"/></svg></span></div></a></div>
+      </div>
+    </section>
+
+    <section class="final-cta pad">
+      <div class="cta-shape shape-left"></div><div class="cta-shape shape-right"></div>
+      <div class="reveal"><span class="kicker">A safer next step</span><h2>Your recovery<br><em>has a rhythm.</em></h2><p>Meet it with a plan built from your X-ray.</p><a href="#signup" class="pill pill-coral">Get started</a></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <a href="index.html" class="brand"><img src="logo.png" alt="" width="26" height="26"> Knee-Physiotherapy</a>
+      <div class="footer-copy">X-ray guided knee rehabilitation, at home.</div>
+      <div class="footer-links"><a href="#how-it-works">How it works</a><a href="#safety">Safety</a><a href="animations.html">Exercises</a><a href="#login">Log in</a></div>
+      <div class="footer-end">© 2026 Knee-Physiotherapy · This programme does not replace advice from your surgeon or physiotherapist.</div>
     </div>
   </footer>
 
+  <!-- ── Log in popup ─────────────────────────────────────────────────────
+       Opened by any link to #login or #signup, and by arriving at
+       index.html#login from another page. -->
+  <dialog class="popup" id="auth-dialog" aria-labelledby="card-title">
+    <div class="auth-inner">
+      <button type="button" class="popup-close" id="auth-close" aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button>
+
+      <div class="auth-heading">
+        <span class="auth-spark"><svg class="i"><use href="#i-spark"/></svg></span>
+        <span class="mini" id="card-eyebrow">Your recovery space</span>
+        <h2 id="card-title">Welcome back.</h2>
+        <p id="card-sub">Access your X-ray analysis and exercise programme.</p>
+      </div>
+
+      <p class="signed-in" id="signed-in" hidden><span></span> <a href="progress.html">Open your dashboard</a></p>
+
+      <div class="auth-tabs" role="tablist" aria-label="Log in or create an account">
+        <button class="auth-tab" type="button" role="tab" id="tab-login" aria-selected="true">Log in</button>
+        <button class="auth-tab" type="button" role="tab" id="tab-signup" aria-selected="false">Create account</button>
+      </div>
+
+      <div class="form-error" id="form-error" role="alert">
+        <span aria-hidden="true">⚠</span>
+        <span id="form-error-text"></span>
+      </div>
+
+      <form id="login-form" novalidate>
+        <div class="field hidden" id="name-field">
+          <label class="field-label" for="display-name">Your name <span class="optional">(optional)</span></label>
+          <div class="auth-input">
+            <svg class="i"><use href="#i-user"/></svg>
+            <input class="field-input" type="text" id="display-name" name="display_name" placeholder="How should we call you?"
+              autocomplete="name" maxlength="120">
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="email">Email address</label>
+          <div class="auth-input">
+            <svg class="i"><use href="#i-mail"/></svg>
+            <input class="field-input" type="email" id="email" name="email" placeholder="you@example.com"
+              autocomplete="email">
+          </div>
+          <span class="field-error" id="email-error">Please enter a valid email address.</span>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="password">Password</label>
+          <div class="auth-input">
+            <svg class="i"><use href="#i-lock"/></svg>
+            <input class="field-input" type="password" id="password" name="password" placeholder="Enter your password"
+              autocomplete="current-password">
+            <button type="button" class="password-toggle" id="password-toggle" aria-pressed="false" aria-label="Show password">
+              <svg class="i i-show"><use href="#i-eye"/></svg>
+              <svg class="i i-hide"><use href="#i-eye-off"/></svg>
+            </button>
+          </div>
+          <span class="field-error" id="password-error">Password must be at least 8 characters.</span>
+        </div>
+
+        <a href="reset-password.html" class="forgot" id="forgot-link">Forgot your password?</a>
+
+        <button type="submit" class="btn-login" id="login-btn">
+          <span id="login-btn-text">Log in</span>
+        </button>
+      </form>
+
+      <div class="divider">or</div>
+
+      <button type="button" class="btn-guest" id="guest-btn">
+        Continue as guest <span>Nothing is saved</span>
+      </button>
+
+      <div class="card-footer" id="signup-footer">
+        Don't have an account?
+        <a href="#signup" id="signup-link">Create one — it's free</a>
+      </div>
+
+      <!--
+        Kept accurate as the app changes. It once read "Your data stays on your
+        device", which was false the moment upload.html started POSTing the
+        X-ray. Now that accounts exist, "nothing is saved" would be false too:
+        the grade and the exercise plan ARE stored against an account. The image
+        still is not. Say exactly what is true, and no more.
+      -->
+      <div class="info-strip">
+        <svg class="i" aria-hidden="true"><use href="#i-shield"/></svg>
+        <span>
+          <strong>How your data is handled.</strong>
+          Your X-ray image is graded in memory and discarded — our servers never store it.
+          If you are signed in, the <em>result</em> (grade, safe angle and exercise plan)
+          is saved to your account so you can see your progress, and this browser keeps
+          its own copy of the image so your plan can show it again; as a guest, nothing
+          is kept. Webcam exercise tracking runs entirely in your browser, and no video ever
+          leaves your device.
+        </span>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- One exercise, played in place. Filled from the card that opened it. -->
+  <dialog class="popup ex-popup" id="ex-dialog" aria-labelledby="ex-title">
+    <div class="ex-inner">
+      <button type="button" class="popup-close" id="ex-close" aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button>
+      <span class="mini" id="ex-kind"></span>
+      <h2 id="ex-title"></h2>
+      <div class="ex-stage" id="ex-stage"></div>
+      <a class="underlined-link" id="ex-more" href="animations.html">See it in the full guide <svg class="i"><use href="#i-arrow"/></svg></a>
+    </div>
+  </dialog>
+
   <script>
-    // Nav becomes solid on scroll
+    // Mobile menu.
     const nav = document.getElementById('nav');
-    window.addEventListener('scroll', () => {
-      nav.classList.toggle('solid', window.scrollY > 60);
+    const menuToggle = document.getElementById('menu-toggle');
+    menuToggle.addEventListener('click', () => {
+      const open = nav.classList.toggle('nav-open');
+      menuToggle.setAttribute('aria-expanded', open);
+    });
+    document.getElementById('nav-links').addEventListener('click', (e) => {
+      if (e.target.closest('a')) {
+        nav.classList.remove('nav-open');
+        menuToggle.setAttribute('aria-expanded', 'false');
+      }
     });
 
-    // Scroll reveal with IntersectionObserver
-    const reveals = document.querySelectorAll('.reveal');
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry, i) => {
-        if (entry.isIntersecting) {
-          // Stagger delay for siblings
-          const siblings = Array.from(entry.target.parentElement.querySelectorAll('.reveal'));
-          const idx = siblings.indexOf(entry.target);
-          entry.target.style.transitionDelay = `${idx * 80}ms`;
-          entry.target.classList.add('visible');
-          observer.unobserve(entry.target);
+    // Range preview: slider, dial and status all read one number.
+    const angleInput = document.getElementById('angle');
+    const angleValue = document.getElementById('angle-value');
+    const dialValue = document.getElementById('dial-value');
+    const dialPointer = document.getElementById('dial-pointer');
+    const angleStatus = document.getElementById('angle-status');
+    const setAngle = (deg) => {
+      angleInput.value = deg;
+      angleValue.textContent = dialValue.textContent = deg + '°';
+      angleInput.style.setProperty('--range-position', ((deg - 70) / 50 * 100) + '%');
+      dialPointer.style.transform = `rotate(${(deg - 70) * 1.8 - 45}deg)`;
+      const [cls, label] = deg <= 90 ? ['safe', 'Protected range']
+        : deg <= 110 ? ['watch', 'Building range'] : ['ready', 'Full mobility'];
+      angleStatus.className = 'angle-status ' + cls;
+      angleStatus.lastElementChild.textContent = label;
+    };
+    angleInput.addEventListener('input', () => setAngle(Number(angleInput.value)));
+
+    // Tracker preview: its pause button stops the figure mid-rep.
+    const previewPause = document.getElementById('preview-pause');
+    previewPause.addEventListener('click', () => {
+      const paused = previewPause.getAttribute('aria-pressed') !== 'true';
+      previewPause.setAttribute('aria-pressed', String(paused));
+      document.querySelector('.skeleton-stage').classList.toggle('paused', paused);
+    });
+    document.getElementById('angle-reset').addEventListener('click', () => setAngle(90));
+    setAngle(90);
+
+    // Hero card greets by the visitor's own clock. "Good morning" stays in the
+    // markup for anyone without script.
+    const hour = new Date().getHours();
+    document.getElementById('greeting').firstChild.textContent =
+      (hour >= 5 && hour < 12 ? 'Good morning' : hour >= 12 && hour < 17 ? 'Good afternoon' : 'Good evening') + ' ';
+
+    // Flip stack: as the reader scrolls through the tall stack, each card in
+    // turn tips back and lifts away, revealing the next one underneath.
+    // Only runs under .js-motion; without it the CSS lays the cards out as a
+    // plain list, which is also what a reduced-motion reader gets.
+    (() => {
+      const stack = document.getElementById('flip-stack');
+      if (!document.documentElement.classList.contains('js-motion')) return;
+      const cards = [...stack.querySelectorAll('.flip-card')];
+      const n = cards.length;
+      const seg = 1 / n;
+      const gap = Math.min(24, 72 / Math.max(n - 1, 1));
+      const clamp = (v) => Math.min(1, Math.max(0, v));
+      cards.forEach((card, i) => { card.style.zIndex = n - i; });
+
+      const paint = (p) => cards.forEach((card, i) => {
+        const start = i * seg;
+        const t = clamp((p - start) / seg);            // this card leaving
+        card.style.transform = `translateY(calc(${-118 * t}% + ${i * gap * t}px)) rotateX(${22 * t}deg)`;
+        if (i === 0) return;
+        const u = clamp((p - (start - seg)) / seg);    // rising to the top of the pile
+        card.firstElementChild.style.transform =
+          `translateY(${Math.min(i * 12, 34) * (1 - u)}px) scale(${1 - Math.min(i * .012, .035) * (1 - u)})`;
+      });
+
+      // Eased toward the scroll position rather than pinned to it, so a
+      // flick of the wheel reads as a turn of the page, not a jump.
+      let shown = 0, target = 0, running = false;
+      const tick = () => {
+        shown += (target - shown) * .14;
+        if (Math.abs(target - shown) < .0005) shown = target;
+        paint(shown);
+        running = shown !== target;
+        if (running) requestAnimationFrame(tick);
+      };
+      const measure = () => {
+        const r = stack.getBoundingClientRect();
+        const travel = r.height - innerHeight;
+        // Stop at .86 so the last card stays on screen at the end.
+        target = travel > 0 ? clamp(-r.top / travel) * .86 : 0;
+        if (!running) { running = true; requestAnimationFrame(tick); }
+      };
+      addEventListener('scroll', measure, { passive: true });
+      addEventListener('resize', measure);
+      paint(0);
+      measure();
+    })();
+  </script>
+  <script src="assets/config.js"></script>
+  <script src="assets/api.js"></script>
+  <script src="exercise-animations.js"></script>
+  <script>
+    // Exercise cards: play that one exercise in a popup. The link still opens
+    // the full guide on a Ctrl/Cmd-click, or if the animation cannot load.
+    (() => {
+      const dialog = document.getElementById('ex-dialog');
+      let anim = null;
+      document.querySelector('.move-grid').addEventListener('click', (e) => {
+        const card = e.target.closest('.move-card');
+        if (!card || e.ctrlKey || e.metaKey || !window.PhysioAnimations) return;
+        // The module finds an exercise by its name with the punctuation
+        // dropped, so the link's #heel-slides names "Heel Slides".
+        anim = PhysioAnimations.mount(document.getElementById('ex-stage'),
+          { name: card.hash.slice(1), angleLimit: Number(card.dataset.limit) });
+        if (!anim) return;
+        e.preventDefault();
+        document.getElementById('ex-kind').textContent = card.querySelector('.move-meta > span').textContent;
+        document.getElementById('ex-title').textContent = card.querySelector('h3').textContent;
+        document.getElementById('ex-more').href = card.href;
+        dialog.showModal();
+      });
+      document.getElementById('ex-close').addEventListener('click', () => dialog.close());
+      dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
+      // Stops its animation loop, not just hides it.
+      dialog.addEventListener('close', () => { anim?.destroy(); anim = null; });
+    })();
+  </script>
+  <script>
+    // Log in / create account popup.
+    (() => {
+      const MIN_PASSWORD_LENGTH = 8;   // must match MIN_PASSWORD_LEN in backend/auth.py
+
+      const $ = (id) => document.getElementById(id);
+      const dialog = $('auth-dialog');
+      const form = $('login-form');
+      const emailEl = $('email');
+      const passEl = $('password');
+      const nameEl = $('display-name');
+      const emailErr = $('email-error');
+      const passErr = $('password-error');
+      const loginBtn = $('login-btn');
+      const btnText = $('login-btn-text');
+      const forgotLink = $('forgot-link');
+      const formError = $('form-error');
+      const signedIn = $('signed-in');
+
+      let mode = 'login';   // 'login' | 'signup'
+
+      function clearErrors() {
+        [emailEl, passEl].forEach(el => el.classList.remove('error'));
+        [emailErr, passErr].forEach(el => el.classList.remove('visible'));
+        formError.classList.remove('visible');
+      }
+
+      // textContent, never innerHTML: this string can carry a message from the
+      // server, and the bearer token sits in localStorage on this origin.
+      function showFormError(message) {
+        $('form-error-text').textContent = message;
+        formError.classList.add('visible');
+      }
+
+      function setMode(next) {
+        mode = next;
+        const signup = mode === 'signup';
+
+        $('tab-login').setAttribute('aria-selected', String(!signup));
+        $('tab-signup').setAttribute('aria-selected', String(signup));
+        $('name-field').classList.toggle('hidden', !signup);
+        forgotLink.style.display = signup ? 'none' : '';
+        $('signup-footer').hidden = signup;
+
+        $('card-eyebrow').textContent = signup ? 'Get started' : 'Your recovery space';
+        $('card-title').textContent = signup ? 'Start your plan.' : 'Welcome back.';
+        $('card-sub').textContent = signup
+          ? 'Keep your analyses and track your range of motion week to week.'
+          : 'Access your X-ray analysis and exercise programme.';
+        btnText.textContent = signup ? 'Create account' : 'Log in';
+
+        // Telling the password manager which form this is; otherwise it offers to
+        // fill a saved password into a new-account field.
+        passEl.setAttribute('autocomplete', signup ? 'new-password' : 'current-password');
+        passEl.placeholder = signup
+          ? `At least ${MIN_PASSWORD_LENGTH} characters`
+          : 'Enter your password';
+
+        clearErrors();
+      }
+
+      function openAuth(next) {
+        setMode(next);
+        if (!dialog.open) dialog.showModal();
+        (next === 'signup' ? nameEl : emailEl).focus();
+
+        // Already signed in? Say so rather than presenting only an empty form.
+        signedIn.hidden = true;
+        PhysioAPI.me().then((patient) => {
+          if (!patient) return;
+          signedIn.firstElementChild.textContent = `Signed in as ${patient.display_name || patient.email}.`;
+          signedIn.hidden = false;
+        }).catch(() => { /* backend unreachable; the form still works */ });
+      }
+
+      document.addEventListener('click', (e) => {
+        const link = e.target.closest('a[href="#login"], a[href="#signup"]');
+        if (!link) return;
+        e.preventDefault();
+        openAuth(link.hash.slice(1));
+      });
+      $('auth-close').addEventListener('click', () => dialog.close());
+      // A click on the dimmed backdrop lands on the <dialog> itself.
+      dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
+
+      const passToggle = $('password-toggle');
+      passToggle.addEventListener('click', () => {
+        const show = passEl.type === 'password';
+        passEl.type = show ? 'text' : 'password';
+        passToggle.setAttribute('aria-pressed', String(show));
+        passToggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+      });
+
+      $('tab-login').addEventListener('click', () => setMode('login'));
+      $('tab-signup').addEventListener('click', () => setMode('signup'));
+
+      forgotLink.addEventListener('click', (e) => {
+        const typed = emailEl.value.trim();
+        if (!typed) return;   // plain navigation to the reset page
+        // Carry the address across rather than asking for it a second time.
+        e.preventDefault();
+        window.location.href = `reset-password.html?email=${encodeURIComponent(typed)}`;
+      });
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearErrors();
+
+        const emailVal = emailEl.value.trim();
+        const passVal = passEl.value;
+        let valid = true;
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+          emailEl.classList.add('error');
+          emailErr.classList.add('visible');
+          valid = false;
+        }
+        // Only checked when creating an account. On the login form a short
+        // password is simply a wrong one, and rejecting it here would tell
+        // someone the length of the password they are trying to guess.
+        if (mode === 'signup' && passVal.length < MIN_PASSWORD_LENGTH) {
+          passEl.classList.add('error');
+          passErr.classList.add('visible');
+          valid = false;
+        } else if (mode === 'login' && passVal.length === 0) {
+          passEl.classList.add('error');
+          passErr.classList.add('visible');
+          valid = false;
+        }
+        if (!valid) return;
+
+        loginBtn.classList.add('loading');
+        loginBtn.disabled = true;
+        btnText.textContent = mode === 'signup' ? 'Creating account…' : 'Logging in…';
+
+        try {
+          if (mode === 'signup') {
+            await PhysioAPI.register({
+              email: emailVal,
+              password: passVal,
+              displayName: nameEl.value.trim() || null,
+            });
+          } else {
+            await PhysioAPI.login({ email: emailVal, password: passVal });
+          }
+
+          // Signing in lands on the dashboard, not straight into an upload. A
+          // returning patient opens this app to see how the knee is doing far more
+          // often than to grade a new X-ray, and the dashboard carries the upload
+          // button anyway. The guest route below still goes direct — a guest has no
+          // account, so the dashboard would only bounce them back here.
+          window.location.href = 'progress.html';
+
+        } catch (err) {
+          loginBtn.classList.remove('loading');
+          loginBtn.disabled = false;
+          btnText.textContent = mode === 'signup' ? 'Create account' : 'Log in';
+
+          // 409 is the one failure with an obvious next step, so it gets one.
+          if (err instanceof PhysioAPI.ApiError && err.status === 409) {
+            // setMode() ends in clearErrors(), so it has to run BEFORE the message
+            // is set — the other order wipes the only explanation the user gets and
+            // leaves them typing a new password at an account that already has one.
+            setMode('login');
+            showFormError('An account already exists for that email. Log in with the password you set when you created it.');
+            emailEl.value = emailVal;
+            passEl.focus();
+            return;
+          }
+          showFormError(await PhysioAPI.describeFailure(err));
         }
       });
-    }, { threshold: 0.12 });
-    reveals.forEach(el => observer.observe(el));
 
-    // Animate gauge reading number to match needle
-    const gaugeNum = document.getElementById('gauge-num');
-    let angle = 0;
-    const targets = [67, 67, 67, 88, 92, 67, 67]; // mirrors the CSS animation keyframes
-    const durations = [0, 1600, 2200, 2600, 3000, 3400, 4000];
-    function animateGauge() {
-      const totalDur = 4000;
-      let start = null;
-      function step(ts) {
-        if (!start) start = ts;
-        const elapsed = (ts - start) % totalDur;
-        let currentAngle = 67;
-        for (let i = durations.length - 1; i >= 0; i--) {
-          if (elapsed >= durations[i]) {
-            const nextIdx = Math.min(i + 1, targets.length - 1);
-            const progress = (elapsed - durations[i]) / Math.max(1, durations[nextIdx] - durations[i]);
-            currentAngle = Math.round(targets[i] + (targets[nextIdx] - targets[i]) * Math.min(progress, 1));
-            break;
-          }
-        }
-        gaugeNum.textContent = currentAngle + '°';
-        // Change color if over limit
-        gaugeNum.style.color = currentAngle >= 90 ? '#fca5a5' : '#ffffff';
-        requestAnimationFrame(step);
+      $('guest-btn').addEventListener('click', async () => {
+        // A stale token would otherwise quietly attach itself to a guest
+        // analysis and file it under someone else's account. Awaited because
+        // signing out is a request, and navigating away would cancel it.
+        await PhysioAPI.logout();
+        window.location.href = 'upload.html';
+      });
+
+      // Sent here from another page (a signed-out dashboard, "Back to log in").
+      // The hash is dropped so closing the popup leaves a clean address.
+      if (location.hash === '#login' || location.hash === '#signup') {
+        openAuth(location.hash.slice(1));
+        history.replaceState(null, '', location.pathname + location.search);
       }
-      requestAnimationFrame(step);
+    })();
+  </script>
+  <script>
+    // Installable, and able to open without a connection. The worker caches the
+    // app shell only — never an API response, because a cached prescription is
+    // a cached movement ceiling. See sw.js.
+    // localhost is a secure context too, and gating on https alone meant the
+    // entire offline path went live having never once run in development.
+    const secureEnough = location.protocol === 'https:'
+      || ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+    if ('serviceWorker' in navigator && secureEnough) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {
+          // An app that works is more important than one that works offline.
+        });
+      });
     }
-    animateGauge();
   </script>
 </body>
 

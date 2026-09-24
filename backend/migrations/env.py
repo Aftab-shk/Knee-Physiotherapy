@@ -18,7 +18,16 @@ from db import DATABASE_URL, Base, engine
 
 config = context.config
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    # disable_existing_loggers=False, and it matters a great deal.
+    #
+    # The default is True, which switches off every logger created before this
+    # line. init_db() runs the migrations during application startup, so the
+    # default silenced the entire app for the life of the process: no
+    # "Registered patient", no prescription audit line, no OOD rejection, no
+    # rate-limit warning, and no password-reset link in development — all of it
+    # gone the moment the server finished migrating, with nothing to indicate
+    # logging had stopped.
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = Base.metadata
 

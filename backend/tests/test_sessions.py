@@ -165,7 +165,10 @@ def test_breaches_are_recorded_as_count_and_duration(client, token):
 def test_a_hold_records_what_was_actually_held(client, token):
     r = post_set(
         client, token,
-        exercise_name="Quad Sets", target_reps=None, reps_completed=0,
+        # The catalogue's own name. /sessions/sets refuses anything else, so
+        # "Quad Sets" no longer names an exercise that can be filed against.
+        exercise_name="Quad Sets (Isometric)", angle_limit=5,
+        target_reps=None, reps_completed=0,
         hold_seconds=10, hold_seconds_achieved=10.0, peak_flexion_deg=3.2,
     )
     assert r.json()["sets"][0]["hold_seconds_achieved"] == pytest.approx(10.0)
@@ -280,3 +283,28 @@ def test_sessions_are_newest_first(client, token):
     rows = client.get("/sessions", headers=bearer(token)).json()["sessions"]
     started = [r["started_at"] for r in rows]
     assert started == sorted(started, reverse=True)
+
+
+def test_a_set_naming_an_exercise_nobody_prescribes_is_refused(client, token):
+    """
+    The name is what a clinician reads back. It used to be whatever the browser
+    said, so a session could describe work that exists in no protocol.
+    """
+    r = post_set(client, token, exercise_name="Jumping Off The Roof")
+    assert r.status_code == 422
+    assert "catalogue" in r.json()["detail"]
+
+
+def test_a_set_cannot_report_a_ceiling_above_the_protocol(client, token):
+    """
+    The ceiling is a clinical number and the page is not where it is decided.
+    """
+    r = post_set(client, token, exercise_name="Mini Squat", angle_limit=140)
+    assert r.status_code == 422
+    assert "ceiling" in r.json()["detail"]
+
+
+def test_a_ceiling_below_the_protocol_is_fine(client, token):
+    """A KL-capped patient reports a lower limit than the protocol's, routinely."""
+    r = post_set(client, token, exercise_name="Mini Squat", angle_limit=45)
+    assert r.status_code == 201

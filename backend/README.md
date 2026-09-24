@@ -48,7 +48,7 @@ Open `http://localhost:8000/docs` for the interactive Swagger UI.
 
 ```bash
 # Build
-docker build -t physio-backend .
+docker build -t physio-backend ..   # context is the repo root: the image serves frontend/ too
 
 # Run (demo mode — no weights)
 docker run -p 8000:8000 physio-backend
@@ -190,7 +190,12 @@ training and stored in the checkpoint:
 - **Energy OOD reference** (Liu et al., 2020) — `E(x) = -logsumexp(logits)`,
   low for inputs the model recognises. Validation percentiles become the
   screening thresholds: above p95 warns (`ood_suspected`), beyond p99 plus one
-  inter-percentile spread rejects with a 422.
+  inter-percentile spread rejects with a 422. The gate has a floor as well:
+  energy is a negative log-sum-exp, so an image the network answers with huge
+  activations (a photo, a screenshot) scores far *below* every real film. More
+  than `OOD_FLOOR_SPREADS` (default 8) p50-to-p99 spreads under p50 also
+  rejects — about -7.1 on the shipped checkpoint, where all 1656 test films
+  sit between -3.737 and -1.712.
 
 Both degrade safely. A checkpoint without them serves normally, reports
 `calibrated: false` / `ood_screening: false`, logs a warning at startup, and the

@@ -132,6 +132,7 @@ def init_db() -> None:
         Clinician,
         ExerciseSession,
         ExerciseSet,
+        OutcomeScore,
         Patient,
         Prescription,
         PrescriptionAudit,

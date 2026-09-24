@@ -21,9 +21,11 @@
 (function (global) {
   'use strict';
 
+  // No wrapper of its own: the page supplies the host (#content) and shows or
+  // hides it. A wrapper here once carried id="content" class="hidden" too, which
+  // duplicated the page's id — getElementById found the outer one, unhid it, and
+  // left every chart inside the inner one hidden for good.
   const MARKUP = `
-      <div id="content" class="hidden">
-
         <div class="kpis">
           <div class="kpi">
             <div class="kpi-label">Latest flexion</div>
@@ -45,6 +47,13 @@
             <div id="kpi-sessions"></div>
             <div class="kpi-foot" id="kpi-sessions-foot"></div>
           </div>
+          <!-- Hidden until a questionnaire has been answered. A "No data" tile
+               for something nobody has been offered yet reads as broken. -->
+          <div class="kpi hidden" id="kpi-koos-tile">
+            <div class="kpi-label">How it feels</div>
+            <div id="kpi-koos"></div>
+            <div class="kpi-foot" id="kpi-koos-foot"></div>
+          </div>
         </div>
 
         <div class="card">
@@ -64,6 +73,28 @@
             <div class="tip" id="rom-tip"></div>
           </div>
           <div class="legend" id="rom-legend"></div>
+        </div>
+
+        <!-- The patient's own verdict. Next to range of motion on purpose: the
+             two answer different questions, and the interesting cases are the
+             ones where they disagree. -->
+        <div class="card hidden" id="koos-card">
+          <div class="card-head">
+            <div class="card-title">How your knee feels</div>
+            <div class="card-note" id="koos-note"></div>
+          </div>
+          <div class="card-sub">
+            Your own answers to the KOOS-JR questionnaire, scored 0 to 100 — the same scale
+            a joint registry uses, where higher is better. This is the half of recovery that
+            bending further does not measure.
+          </div>
+          <div class="ex-picker" id="koos-picker" role="group" aria-label="Knee"></div>
+          <div class="chart-wrap" id="koos-wrap">
+            <svg class="chart" id="koos-chart" role="img" aria-labelledby="koos-desc"></svg>
+            <div class="sr-only" id="koos-desc"></div>
+            <div class="tip" id="koos-tip"></div>
+          </div>
+          <div class="legend" id="koos-legend"></div>
         </div>
 
         <div class="card">
@@ -114,8 +145,6 @@
             </table>
           </div>
         </div>
-
-      </div>
 `;
 
   // ── Module state and helpers ─────────────────────────────────────────────
@@ -128,6 +157,7 @@
 
   let latest = null;          // the payload most recently rendered
   let romExercise = null;     // which series the range-of-motion chart is showing
+  let koosSide = null;        // which knee the questionnaire chart is showing
 
   /** Inject the view's markup into `root`. Call once, before render(). */
   function mount(root) {
@@ -135,14 +165,27 @@
     root.innerHTML = MARKUP;
   }
 
+    // A plain "2026-09-12" is a calendar day and is read as one, never through
+    // UTC — new Date('2026-09-12') would land on the 11th west of Greenwich.
+    // A full timestamp (share links, created_at) is a moment, so it is placed
+    // in the reader's own day. Splitting a timestamp on "-" as if it were a day
+    // is what printed "Invalid Date" on the share page.
+    function toDay(value) {
+      const s = String(value);
+      if (s.length > 10) {
+        const t = new Date(s);
+        return new Date(t.getFullYear(), t.getMonth(), t.getDate());
+      }
+      const [y, m, d] = s.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+
     function shortDate(iso) {
-      const [y, m, d] = iso.split('-').map(Number);
-      return new Date(y, m - 1, d).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+      return toDay(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
     }
 
     function longDate(iso) {
-      const [y, m, d] = iso.split('-').map(Number);
-      return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+      return toDay(iso).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
     }
 
     // Every value that reaches the DOM goes through textContent. The bearer
@@ -323,6 +366,181 @@
       }
     }
 
+    // ── How the knee feels: KOOS-JR over time ──────────────────────────────
+    //
+    // Drawn against a fixed 0-100 axis rather than one scaled to the data. The
+    // scale is the instrument's, not this chart's: a series running 44 to 51
+    // auto-scaled would show a dramatic climb, when what actually happened is
+    // seven points on a hundred-point scale — inside what the questionnaire can
+    // reliably tell apart.
+    //
+    // The reference line is the patient's own first score, which is what every
+    // later one is read against. Same visual treatment as the safe-limit line on
+    // the range-of-motion chart: dashed, in axis ink, never competing with the
+    // measurement.
+    function drawOutcome(series) {
+      const svg = $('koos-chart');
+      svg.textContent = '';
+      $('koos-legend').textContent = '';
+
+      const points = series.points;
+      const W = 900, H = 260;
+      const pad = { top: 18, right: 18, bottom: 30, left: 42 };
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+      const innerW = W - pad.left - pad.right;
+      const innerH = H - pad.top - pad.bottom;
+
+      const x = (i) => pad.left + (points.length === 1 ? innerW / 2 : (i / (points.length - 1)) * innerW);
+      const y = (v) => pad.top + innerH - (v / 100) * innerH;
+
+      for (let t = 0; t <= 100; t += 25) {
+        svg.appendChild(svgEl('line', { class: 'grid-line', x1: pad.left, x2: W - pad.right, y1: y(t), y2: y(t) }));
+        const label = svgEl('text', { class: 'axis-text', x: pad.left - 8, y: y(t) + 3.5, 'text-anchor': 'end' });
+        label.textContent = String(t);
+        svg.appendChild(label);
+      }
+
+      // Where they started. Only worth drawing once there is something to
+      // compare against it.
+      if (points.length > 1) {
+        svg.appendChild(svgEl('line', {
+          class: 'limit-line', x1: pad.left, x2: W - pad.right, y1: y(series.baseline), y2: y(series.baseline),
+        }));
+        const tag = svgEl('text', {
+          class: 'limit-label', x: W - pad.right, y: y(series.baseline) - 7, 'text-anchor': 'end',
+        });
+        tag.textContent = `Where you started · ${Math.round(series.baseline)}`;
+        svg.appendChild(tag);
+      }
+
+      const linePath = points.map((p, i) => `${i ? 'L' : 'M'}${x(i)},${y(p.interval_score)}`).join(' ');
+      svg.appendChild(svgEl('path', {
+        class: 'rom-area',
+        d: `${linePath} L${x(points.length - 1)},${y(0)} L${x(0)},${y(0)} Z`,
+      }));
+      svg.appendChild(svgEl('path', { class: 'rom-line', d: linePath }));
+
+      points.forEach((p, i) => {
+        svg.appendChild(svgEl('circle', { class: 'rom-dot', cx: x(i), cy: y(p.interval_score), r: 4 }));
+      });
+
+      const ticks = points.length <= 2 ? points.map((_, i) => i)
+        : [0, Math.floor((points.length - 1) / 2), points.length - 1];
+      for (const i of new Set(ticks)) {
+        const t = svgEl('text', { class: 'axis-text', x: x(i), y: H - 10, 'text-anchor': 'middle' });
+        t.textContent = shortDate(points[i].date);
+        svg.appendChild(t);
+      }
+
+      const cross = svgEl('line', { class: 'crosshair', y1: pad.top, y2: pad.top + innerH, opacity: 0 });
+      svg.appendChild(cross);
+
+      const tip = $('koos-tip');
+      const hit = svgEl('rect', { class: 'hit', x: pad.left, y: pad.top, width: innerW, height: innerH });
+      svg.appendChild(hit);
+
+      const wrap = $('koos-wrap');
+      hit.addEventListener('pointermove', (evt) => {
+        const box = svg.getBoundingClientRect();
+        const px = ((evt.clientX - box.left) / box.width) * W;
+        let best = 0, bestDist = Infinity;
+        points.forEach((_, i) => {
+          const d = Math.abs(x(i) - px);
+          if (d < bestDist) { bestDist = d; best = i; }
+        });
+        const p = points[best];
+
+        cross.setAttribute('x1', x(best));
+        cross.setAttribute('x2', x(best));
+        cross.setAttribute('opacity', 1);
+
+        tip.textContent = '';
+        tip.appendChild(el('div', 'tip-title', longDate(p.date)));
+        const row = el('div', 'tip-row');
+        row.appendChild(el('span', null, 'Score'));
+        row.appendChild(el('span', 'tip-val', `${Math.round(p.interval_score)} / 100`));
+        tip.appendChild(row);
+        if (best > 0) {
+          const move = p.interval_score - series.baseline;
+          const row2 = el('div', 'tip-row');
+          row2.appendChild(el('span', null, 'Since you started'));
+          row2.appendChild(el('span', 'tip-val', `${move >= 0 ? '+' : '−'}${Math.abs(Math.round(move))}`));
+          tip.appendChild(row2);
+        }
+        if (p.weeks_post_op !== null && p.weeks_post_op !== undefined) {
+          tip.appendChild(el('div', 'tip-title', `week ${p.weeks_post_op} after surgery`));
+        }
+
+        const wrapBox = wrap.getBoundingClientRect();
+        tip.style.left = `${(x(best) / W) * box.width}px`;
+        tip.style.top = `${((y(p.interval_score) / H) * box.height) - 12 + (box.top - wrapBox.top)}px`;
+        tip.classList.add('on');
+      });
+
+      hit.addEventListener('pointerleave', () => {
+        cross.setAttribute('opacity', 0);
+        tip.classList.remove('on');
+      });
+
+      $('koos-desc').textContent = points.length === 1
+        ? `KOOS-JR score of ${Math.round(series.latest)} out of 100, recorded on ${points[0].date}. `
+          + 'Higher is better. One answer so far, so there is no trend yet.'
+        : `Line chart of KOOS-JR scores out of 100, where higher is better: `
+          + `${Math.round(series.baseline)} on ${points[0].date} rising or falling to `
+          + `${Math.round(series.latest)} on ${points[points.length - 1].date}. `
+          + series.change_from_baseline.summary;
+
+      const legend = $('koos-legend');
+      const items = [['Your score', 'var(--data)', false]];
+      if (points.length > 1) items.push(['Where you started', 'var(--axis)', true]);
+      for (const [label, colour, dashed] of items) {
+        const item = el('div', 'legend-item');
+        const sw = el('span', 'legend-swatch');
+        sw.style.background = dashed ? 'transparent' : colour;
+        if (dashed) { sw.style.borderTop = `2px dashed ${colour}`; sw.style.height = '0'; sw.style.borderRadius = '0'; }
+        item.appendChild(sw);
+        item.appendChild(el('span', null, label));
+        legend.appendChild(item);
+      }
+    }
+
+    function drawOutcomePicker(seriesList) {
+      const card = $('koos-card');
+      const picker = $('koos-picker');
+      picker.textContent = '';
+
+      if (!seriesList.length) {
+        card.classList.add('hidden');
+        return;
+      }
+      card.classList.remove('hidden');
+
+      // One knee needs no chooser. Two do — KOOS-JR asks about "your knee",
+      // singular, and someone with two bad knees has two different answers.
+      if (seriesList.length > 1) {
+        if (!seriesList.some(s => s.knee_side === koosSide)) koosSide = seriesList[0].knee_side;
+        for (const s of seriesList) {
+          const btn = el('button', 'ex-btn', `${s.knee_side} knee`);
+          btn.type = 'button';
+          btn.setAttribute('aria-pressed', String(s.knee_side === koosSide));
+          btn.addEventListener('click', () => {
+            koosSide = s.knee_side;
+            drawOutcomePicker(seriesList);
+          });
+          picker.appendChild(btn);
+        }
+      } else {
+        koosSide = seriesList[0].knee_side;
+      }
+
+      const chosen = seriesList.find(s => s.knee_side === koosSide);
+      $('koos-note').textContent = chosen.count === 1
+        ? 'first answer'
+        : `${plural(chosen.count, 'answer', 'answers')} · ${chosen.change_from_baseline.summary.toLowerCase()}`;
+      drawOutcome(chosen);
+    }
+
     // ── Consistency: a calendar heatmap. Sequential, one hue, three steps. ──
     function drawHeat(adherence, days) {
       const svg = $('heat-chart');
@@ -359,6 +577,7 @@
       const wrap = $('heat-wrap');
       let lastMonth = null;
       let lastLabelCol = -2;
+      let lastLabel = null;
 
       cells.forEach((cell, i) => {
         const slot = lead + i;
@@ -383,10 +602,16 @@
         if (month !== lastMonth) {
           lastMonth = month;
           if (col > lastLabelCol) {
+            // A three-letter month is wider than one column, so a month that
+            // starts in the very next column would print over the last label
+            // ("JunJul"). The earlier one is only a stub of a few days at the
+            // edge of the range, so it gives way.
+            if (lastLabel && col === lastLabelCol + 1) lastLabel.remove();
             lastLabelCol = col;
             const t = svgEl('text', { class: 'heat-label', x: LEFT + col * (CELL + GAP), y: 8 });
             t.textContent = new Date(`${cell.iso}T00:00:00`).toLocaleDateString(undefined, { month: 'short' });
             svg.appendChild(t);
+            lastLabel = t;
           }
         }
 
@@ -537,7 +762,40 @@
       statValue($('kpi-sessions'), s.sessions, '', '0');
       $('kpi-sessions-foot').textContent = `${plural(s.active_days, 'active day', 'active days')} · ${plural(s.sets, 'set', 'sets')}`;
 
+      // The patient's own verdict. Shown only once there is one — a "No data"
+      // tile for a questionnaire nobody has been offered reads as broken.
+      const outcomes = data.outcome_measures || [];
+      const koosTile = $('kpi-koos-tile');
+      if (s.latest_outcome_score === null || s.latest_outcome_score === undefined) {
+        koosTile.classList.add('hidden');
+      } else {
+        koosTile.classList.remove('hidden');
+        statValue($('kpi-koos'), Math.round(s.latest_outcome_score), '/100', 'No data');
+
+        // The band, not the number again. "58" means nothing to someone reading
+        // it for the first time; "fair" is the part they can act on.
+        const newest = outcomes.length
+          ? outcomes.reduce((a, b) => (Date.parse(a.latest_at) > Date.parse(b.latest_at) ? a : b))
+          : null;
+        const moved = newest && newest.count > 1 ? newest.change_from_baseline : null;
+
+        let foot = s.outcome_band;
+        if (!moved) {
+          foot += ' · your first answer';
+        } else if (moved.direction === 'unchanged') {
+          // The server has already decided this is inside the questionnaire's
+          // own noise. Rendering it as "+3" would invite a conclusion the
+          // instrument cannot support.
+          foot += ' · about where you started';
+        } else {
+          foot += ` · ${Math.abs(Math.round(moved.delta))} `
+            + `${moved.direction === 'declined' ? 'lower' : 'higher'} than when you started`;
+        }
+        $('kpi-koos-foot').textContent = foot;
+      }
+
       drawPicker(data.rom_by_exercise);
+      drawOutcomePicker(outcomes);
       $('adherence-note').textContent = `${plural(s.active_days, 'active day', 'active days')} of ${data.range_days}`;
 
       const unverified = $('unverified-notice');

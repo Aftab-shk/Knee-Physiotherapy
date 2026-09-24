@@ -28,6 +28,8 @@ env/
 **/model/history.json
 **/model/label_map.json
 **/model/predictions.json
+# The whole folder an eval run writes into, not only the files named above.
+**/model/outputs/
 
 # ── Datasets (large — never commit to git) ───────────────────────────────
 data/
@@ -56,3 +58,30 @@ desktop.ini
 
 # ── Docker ────────────────────────────────────────────────────────────────
 *.log
+# Playwright CLI output (may contain credentials)
+.playwright-cli/
+# Local browser-driver config (fake camera device for testing tracker.html).
+.playwright/
+
+# Tool caches. Both write their own .gitignore inside, so this is belt and
+# braces - but it keeps them out of `git status -uall` and out of greps.
+.pytest_cache/
+.ruff_cache/
+
+# Design reference material kept locally, deliberately not part of the app.
+frontend/reference/
+
+# ── Agent skills ─────────────────────────────────────────────────────────
+# Vendored third-party skill packs (ui-ux-pro-max, apple-design and friends):
+# ~257 files of someone else's reference material, re-installable on demand and
+# not this project's source. Only skills/ is ignored — if project-level Claude
+# settings or commands are added later they belong in the repo, shared.
+.claude/skills/
+
+# The skills CLI (`npx skills add ...`) unpacks the real files here and
+# symlinks .claude/skills/ at them. Same call as above: vendored content, not
+# our source. skills-lock.json is deliberately NOT ignored - it pins each
+# skill's origin and content hash, so `npx skills install` reproduces this set
+# from a clean clone. Lockfile tracked, payload ignored, as with any other
+# dependency.
+.agents/skills/

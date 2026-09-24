@@ -1,7 +1,7 @@
 # Training the Knee-OA Classifier
 
 Quick reference for the improved EfficientNet-B4 recipe. For the plain-English
-walkthrough of the whole pipeline, see `../../model_explanation.md`.
+walkthrough of the whole pipeline, see `../../docs/model_explanation.md`.
 
 ## The command
 
@@ -170,7 +170,9 @@ recognises and high for ones it does not. The classifier has five outputs and no
 "not a knee" class, so nothing else stops a chest film or a photo of a wall from
 receiving a confident grade that then sets a movement ceiling. Validation
 percentiles are stored and become the serving thresholds — above p95 warns, well
-beyond p99 rejects with a 422.
+beyond p99 rejects with a 422. Energy far *below* p50 is refused too: that is
+where photos and screenshots land, because the network answers them with huge
+activations (see `outside_energy_range()` in inference.py).
 
 Disable both with `--no_calibrate` (debugging only). A checkpoint trained without
 them still serves: `inference.py` falls back to raw softmax, reports

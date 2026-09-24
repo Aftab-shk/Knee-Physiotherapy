@@ -1,0 +1,59 @@
+/* animations.css — styles for animations.html. Load after assets/theme.css. */
+    /* Palette and type come from assets/theme.css. */
+    body { min-height: 100vh; background: var(--paper); color: var(--ink); font-family: var(--body); }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; }
+    a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--coral); outline-offset: 4px; }
+    .wrap { max-width: 1240px; margin: 0 auto; padding-left: clamp(16px, 5vw, 48px); padding-right: clamp(16px, 5vw, 48px); }
+
+    /* ── Top bar and intro ───────────────────────────────────────────── */
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-top: 26px; padding-bottom: 26px; }
+    .brand { display: inline-flex; align-items: center; gap: 9px; font: 700 17px var(--body); letter-spacing: -.04em; white-space: nowrap; }
+    .brand img { width: 24px; height: 24px; object-fit: contain; }
+    .top-links { display: flex; gap: 24px; color: var(--ink-soft); font-size: 13px; white-space: nowrap; }
+    .top-links a { transition: color .2s ease; }
+    .top-links a:hover { color: var(--coral-dark); }
+
+    .intro { padding-top: 34px; padding-bottom: 34px; }
+    .kicker { color: #778079; font: 500 10px/1.2 var(--mono); letter-spacing: .14em; text-transform: uppercase; }
+    h1 { max-width: 12ch; margin-top: 16px; font: 500 clamp(44px, 6vw, 76px)/.96 var(--display); letter-spacing: -.055em; }
+    h1 em { color: var(--coral); font-style: italic; }
+    .intro p { max-width: 560px; margin-top: 22px; color: var(--ink-soft); font-size: 15px; line-height: 1.65; }
+
+    /* ── Controls ────────────────────────────────────────────────────── */
+    .controls-bar { position: sticky; top: 0; z-index: 5; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: rgba(247, 247, 242, .92); backdrop-filter: blur(10px); }
+    .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; padding-top: 14px; padding-bottom: 14px; }
+    .cap { display: flex; align-items: center; gap: 14px; color: #778079; font: 500 10px var(--mono); letter-spacing: .14em; text-transform: uppercase; }
+    .cap-val { min-width: 62px; color: var(--coral-ink); font: 500 13px var(--mono); letter-spacing: 0; text-transform: none; }
+    .cap input { appearance: none; -webkit-appearance: none; width: 190px; height: 4px; border-radius: 9px; background: linear-gradient(90deg, var(--coral) 0%, var(--coral) var(--range-position, 100%), #e1e6df var(--range-position, 100%), #e1e6df 100%); cursor: pointer; }
+    .cap input::-webkit-slider-thumb { -webkit-appearance: none; width: 19px; height: 19px; border: 4px solid var(--paper); border-radius: 50%; background: var(--coral); box-shadow: 0 0 0 1px var(--coral), 0 4px 8px rgba(56, 69, 60, .22); }
+    .cap input::-moz-range-thumb { width: 13px; height: 13px; border: 4px solid var(--paper); border-radius: 50%; background: var(--coral); box-shadow: 0 0 0 1px var(--coral), 0 4px 8px rgba(56, 69, 60, .22); }
+    .buttons { display: flex; gap: 10px; margin-left: auto; }
+    .pill { padding: 10px 17px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); background: transparent; cursor: pointer; font-size: 12px; font-weight: 600; transition: transform .18s var(--ease-out), background .2s ease, border-color .2s ease; }
+    .pill:hover { transform: translateY(-2px); border-color: #b9cdbd; }
+    .pill:active { transform: scale(.97); }
+    .pill.on { border-color: var(--ink); color: var(--paper); background: var(--ink); }
+
+    /* ── Exercise cards ──────────────────────────────────────────────── */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; padding-top: 28px; padding-bottom: 80px; }
+    .card { padding: 16px; border: 1px solid var(--line); border-radius: 18px; background: var(--card); scroll-margin-top: 96px; transition: border-color .3s ease, box-shadow .3s ease; }
+    /* The exercise a link pointed at, e.g. animations.html#heel-slides. */
+    .card:target { border-color: var(--coral); box-shadow: 0 0 0 3px rgba(255, 128, 106, .22), 0 18px 34px rgba(55, 62, 49, .1); }
+    .card h2 { font: 600 15px var(--body); letter-spacing: -.02em; }
+    .meta { margin: 6px 0 12px; color: #7f8a83; font: 10px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+    .missing { color: var(--red); font: 12px var(--mono); }
+
+    /* The animation module brings its own blue-grey stage; these put it on the
+       paper palette. The accent is the tracker's green, not coral: the knee
+       marker turns amber then red on a breach, and a red resting colour would
+       read as a breach already. */
+    .card .pxa { --pxa-accent: var(--good); --pxa-muted: #c3cbc3; --pxa-prop: #a7b3aa; }
+    .card .pxa-stage { border-color: var(--line); border-radius: 12px; background: linear-gradient(180deg, #fbfbf7 0%, #eef1ea 100%); }
+    .card .pxa-prop-fill { fill: rgba(74, 130, 95, .07); }
+
+    @media (max-width: 640px) {
+      .brand { font-size: 15px; }
+      .top-links { gap: 14px; font-size: 12px; }
+      .buttons { margin-left: 0; }
+      .cap input { width: 150px; }
+    }

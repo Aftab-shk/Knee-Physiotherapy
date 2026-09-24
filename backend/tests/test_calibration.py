@@ -214,6 +214,57 @@ def test_reject_threshold_sits_beyond_p99():
     assert cal["reject_threshold"] > -4.0, "reject must sit beyond p99"
 
 
+def _shipped_calibration():
+    """load_calibration() against the energy reference the shipped checkpoint carries."""
+    from model.inference import load_calibration
+
+    ckpt = {"temperature": 1.3,
+            "energy_ref": {"p50": -2.462, "p95": -2.08, "p99": -1.878}}
+    saved = torch.load
+    try:
+        torch.load = lambda *a, **k: ckpt
+        return load_calibration("ignored")
+    finally:
+        torch.load = saved
+
+
+def test_energy_floor_refuses_images_that_are_not_radiographs():
+    """
+    Junk scores far BELOW the in-distribution band, not above it.
+
+    Every number here was measured on the shipped checkpoint. Before the floor
+    existed the four images below were graded: the portrait as KL 4 at 100%
+    confidence, the landing-page screenshot as KL 2 at 100%.
+    """
+    from model.inference import outside_energy_range
+
+    cal = _shipped_calibration()
+    for name, energy in [("colour portrait", -48285.57),
+                         ("landing-page screenshot", -28651.82),
+                         ("app icon", -4595.98),
+                         ("tutorial screenshot", -215.79)]:
+        assert outside_energy_range(energy, cal), f"{name} must be refused"
+
+
+def test_energy_floor_keeps_every_real_film_on_the_test_split():
+    """The extremes of the 1656-film Kaggle test split, both of which are genuine."""
+    from model.inference import outside_energy_range
+
+    cal = _shipped_calibration()
+    assert cal["floor_threshold"] < -3.737, "lowest genuine film must stay inside"
+    for energy in (-3.737, -2.493, -1.712):
+        assert not outside_energy_range(energy, cal)
+
+
+def test_energy_screening_is_inert_without_a_reference():
+    """A checkpoint with no energy reference must not refuse anything."""
+    from model.inference import outside_energy_range
+
+    cal = {"reject_threshold": None, "floor_threshold": None}
+    assert not outside_energy_range(-48285.57, cal)
+    assert not outside_energy_range(500.0, cal)
+
+
 def test_missing_calibration_degrades_instead_of_pretending():
     """A checkpoint predating calibration must report calibrated=False and
     disable OOD screening, not silently behave as though both are present."""
@@ -230,6 +281,7 @@ def test_missing_calibration_degrades_instead_of_pretending():
     assert cal["calibrated"] is False
     assert cal["reject_threshold"] is None
     assert cal["warn_threshold"] is None
+    assert cal["floor_threshold"] is None
 
 
 def test_model_version_is_derived_from_the_checkpoint():
@@ -249,7 +301,10 @@ def test_model_version_is_derived_from_the_checkpoint():
 def _prescription(**kw):
     base = {
         "kl_grade": 2, "health_score": 60, "max_angle": 90, "confidence": 0.82,
-        "demo_mode": False, "knee_side": "left", "surgery_type": "tkr",
+        # ACL, not TKR: these tests are about how confidence in the KL grade is
+        # worded, and a replaced joint does not use the grade at all — its
+        # rationale says so instead. See test_prosthesis_gate.py.
+        "demo_mode": False, "knee_side": "left", "surgery_type": "acl",
         "weeks_post_op": 3, "model_version": "test",
     }
     base.update(kw)

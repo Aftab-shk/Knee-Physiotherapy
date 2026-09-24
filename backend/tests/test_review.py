@@ -359,6 +359,27 @@ def test_the_patients_history_says_whether_it_was_reviewed(client, linked, presc
     assert row["reviewed_at"] is not None
 
 
+def test_the_patients_history_carries_the_ceiling_they_must_follow(client, linked, prescription):
+    """
+    The stored column is what the model read off the X-ray. Once a clinician has
+    lowered it, that is the number the patient is held to — and this list is what
+    their own screens read, so it must not still be quoting the model.
+    """
+    pat, clin = linked
+    lowered = prescription["max_angle"] - 25
+    review(client, clin, prescription["prescription_id"], ceiling=lowered)
+
+    row = client.get("/me/prescriptions", headers=bearer(pat)).json()["prescriptions"][0]
+    assert row["max_angle"] == lowered, "the patient's history must show the approved ceiling"
+
+
+def test_an_unreviewed_history_row_still_shows_the_models_ceiling(client, linked, prescription):
+    """Nobody has changed it, so the model's number is the one in force."""
+    pat, _ = linked
+    row = client.get("/me/prescriptions", headers=bearer(pat)).json()["prescriptions"][0]
+    assert row["max_angle"] == prescription["max_angle"]
+
+
 def test_the_original_draft_is_never_rewritten(client, linked, prescription):
     """The point of an audit trail is that the original is still there."""
     _, clin = linked
@@ -432,3 +453,45 @@ def test_the_catalogue_carries_what_the_tracker_needs(client):
         # A hold has to say where it is held, or the tracker cannot time it.
         if ex["hold_seconds"]:
             assert ex["hold_target"] in ("straight", "flexed"), ex["name"]
+
+
+# ---------------------------------------------------------------------------
+# Free text a clinician types, that another account is shown
+# ---------------------------------------------------------------------------
+
+def test_markup_in_a_review_is_escaped_before_it_is_stored(client, linked, prescription):
+    """
+    The note, the reason on an exercise and the reason on a ceiling change are
+    all typed by one account and displayed to another. Nothing renders them with
+    innerHTML today, so this is not a live hole — it is the guarantee that the
+    screen which eventually does render them cannot become one.
+    """
+    _, clin = linked
+    pid = prescription["prescription_id"]
+    drafted = first_exercise(prescription)
+
+    r = review(
+        client, clin, pid,
+        note="<script>alert(document.cookie)</script>",
+        ceiling=prescription["max_angle"] - 10,
+        ceiling_reason="tightened <b>after</b> review",
+        decisions=[{
+            "name":        drafted["name"],
+            "action":      "adjust",
+            "angle_limit": drafted["angle_limit"] - 5,
+            "reason":      '<img src=x onerror="alert(1)">',
+        }],
+    )
+    assert r.status_code == 200
+    body = r.json()
+
+    assert body["review_note"] == "&lt;script&gt;alert(document.cookie)&lt;/script&gt;"
+    assert "<img" not in first_exercise(body)["override"]["reason"]
+    assert all("<b>" not in (a["reason"] or "") for a in body["audit"])
+
+    # Nothing raw reached the row the patient's own screen reads back.
+    with SessionLocal() as db:
+        row = db.query(Prescription).one()
+        assert "<script>" not in (row.review_note or "")
+        assert "<img" not in (row.approved_payload or "")
+        assert all("<" not in (a.reason or "") for a in db.query(PrescriptionAudit).all())

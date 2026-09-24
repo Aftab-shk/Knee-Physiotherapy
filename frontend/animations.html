@@ -5,180 +5,46 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Exercise Animations — Knee-Physiotherapy</title>
-  <link rel="icon" href="logo.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
-    rel="stylesheet">
-  <style>
-    :root {
-      --navy: #132733;
-      --navy-mid: #1f3949;
-      --blue: #629bb5;
-      --teal: #447f98;
-      --red: #dc2626;
-      --white: #ffffff;
-      --off-white: #d6ebf3;
-      --border: #dadee1;
-      --slate: #5a7380;
-      --text: #1b2f3a;
-      --mono: 'JetBrains Mono', monospace;
-      --display: 'Space Grotesk', sans-serif;
-      --body: 'Plus Jakarta Sans', sans-serif;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      background: #f4f7f9;
-      color: var(--text);
-      font-family: var(--body);
-    }
-
-    header {
-      background: var(--navy);
-      color: var(--white);
-      padding: 28px 32px;
-    }
-
-    h1 {
-      font-family: var(--display);
-      font-size: 22px;
-      margin: 0 0 6px;
-      letter-spacing: -.01em;
-    }
-
-    header p {
-      margin: 0;
-      font-size: 13px;
-      color: var(--off-white);
-      max-width: 70ch;
-      line-height: 1.6;
-    }
-
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 18px;
-      padding: 16px 32px;
-      background: var(--white);
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      z-index: 5;
-    }
-
-    .controls label {
-      font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: .06em;
-      text-transform: uppercase;
-      color: var(--slate);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    input[type=range] {
-      width: 190px;
-      accent-color: var(--teal);
-    }
-
-    .cap-val {
-      font-weight: 600;
-      color: var(--navy);
-      min-width: 62px;
-    }
-
-    button {
-      font-family: var(--body);
-      font-size: 12px;
-      font-weight: 600;
-      padding: 7px 14px;
-      border-radius: 7px;
-      border: 1px solid var(--border);
-      background: var(--white);
-      color: var(--navy);
-      cursor: pointer;
-    }
-
-    button.on {
-      background: var(--teal);
-      color: var(--white);
-      border-color: var(--teal);
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 18px;
-      padding: 24px 32px 60px;
-    }
-
-    .card {
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px;
-    }
-
-    .card h2 {
-      font-family: var(--display);
-      font-size: 14px;
-      margin: 0 0 2px;
-      color: var(--navy);
-    }
-
-    .meta {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--slate);
-      margin-bottom: 10px;
-      letter-spacing: .04em;
-    }
-
-    .missing {
-      color: var(--red);
-      font-size: 12px;
-      font-family: var(--mono);
-    }
-
-    @media (max-width:640px) {
-
-      header,
-      .controls,
-      .grid {
-        padding-left: 16px;
-        padding-right: 16px;
-      }
-    }
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="assets/theme.css">
+  <meta name="theme-color" content="#f7f7f2">
+  <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
+  <link rel="stylesheet" href="assets/animations.css">
 </head>
 
 <body>
-  <header>
-    <h1>Exercise tutorial animations</h1>
-    <p>Every exercise in <code>backend/exercise_protocols.py</code>, drawn from one articulated figure. Drag the ceiling
-      slider to see what a patient whose X-ray capped their range actually gets shown — the figure bends only as far as
-      their limit allows, and the knee marker turns amber then red exactly as the webcam tracker does.
-      Squats are drawn face-on, since their cue is knee tracking rather than flexion angle.</p>
+  <header class="topbar wrap">
+    <a href="index.html" class="brand"><img src="logo-dark.png" alt="" width="24" height="24"> Knee-Physiotherapy</a>
+    <nav class="top-links" aria-label="Site">
+      <a href="index.html">Home</a>
+      <a href="progress.html">Your dashboard</a>
+    </nav>
   </header>
 
-  <div class="controls">
-    <label>Knee ceiling
-      <input type="range" id="cap" min="5" max="130" value="130">
-      <span class="cap-val" id="cap-val">protocol</span>
-    </label>
-    <button id="toggle" class="on">Pause all</button>
-    <button id="reset">Reset ceiling</button>
+  <section class="intro wrap">
+    <span class="kicker">Exercise guide</span>
+    <h1>See the move <em>before you make it.</em></h1>
+    <p>Every exercise in the programme, drawn from one moving figure. Drag the knee ceiling to see what a
+      capped plan looks like: the figure bends only as far as the limit allows, and the knee marker turns amber,
+      then red, exactly as the webcam tracker does. Squats are drawn face-on, because what matters there is
+      where the knee points, not how far it bends.</p>
+  </section>
+
+  <div class="controls-bar">
+    <div class="controls wrap">
+      <label class="cap">Knee ceiling
+        <input type="range" id="cap" min="5" max="130" value="130">
+        <span class="cap-val" id="cap-val">protocol</span>
+      </label>
+      <div class="buttons">
+        <button id="toggle" class="pill on" type="button">Pause all</button>
+        <button id="reset" class="pill" type="button">Reset ceiling</button>
+      </div>
+    </div>
   </div>
 
-  <div class="grid" id="grid"></div>
+  <main class="grid wrap" id="grid"></main>
 
   <script src="exercise-animations.js"></script>
   <script>
@@ -215,6 +81,8 @@
       const limit = LIMITS[name] ?? null;
       const card = document.createElement('div');
       card.className = 'card';
+      // A link can point at one exercise: "Heel Slides" is #heel-slides.
+      card.id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       const view = PhysioAnimations.get(name)?.kfs[0].view === 'front' ? 'front view' : 'side view';
       card.innerHTML = `<h2>${name}</h2><div class="meta">${view} · ceiling ${limit ?? '—'}°</div>`;
       grid.appendChild(card);
@@ -231,6 +99,7 @@
       const v = +cap.value;
       const atMax = v >= +cap.max;
       capVal.textContent = atMax ? 'protocol' : v + '°';
+      cap.style.setProperty('--range-position', ((v - cap.min) / (cap.max - cap.min) * 100) + '%');
       mounted.forEach(({ anim, limit }) => anim.setLimit(atMax ? limit : Math.min(limit ?? v, v)));
     });
 

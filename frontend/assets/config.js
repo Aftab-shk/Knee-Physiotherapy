@@ -9,7 +9,7 @@
  *   1. ?api=http://host:port        — per-load override, handy for testing
  *   2. window.PHYSIOAI_API_BASE     — set by a <script> before this one loads
  *   3. <meta name="physioai-api">   — per-deployment, no JS needed
- *   4. same host on port 8000       — when served from a real host
+ *   4. this page's own origin      — the API serves these pages
  *   5. http://127.0.0.1:8000        — local development default
  *
  * Load as a classic script before api.js, matching exercise-animations.js:
@@ -52,10 +52,19 @@
     const fromMeta = safeUrl(meta && meta.content);
     if (fromMeta) return fromMeta;
 
-    // Served from a real host: assume the API sits beside it on the API port.
-    // file:// has no hostname, so it falls through to the loopback default.
-    if (loc.hostname && !LOCAL_HOSTS.includes(loc.hostname)) {
-      return `${loc.protocol}//${loc.hostname}:${DEFAULT_PORT}`;
+    // Served over http(s) by anything: the API is the thing serving these
+    // pages, so its origin is this origin.
+    //
+    // This used to guess port 8000 instead, which broke twice over. A page
+    // served on any other port called across origins to a server that might not
+    // be there, and now that the API sends a Content-Security-Policy of
+    // connect-src 'self' the browser blocks the guess outright — correctly,
+    // because a page that talks to another origin for its clinical data is
+    // exactly what that header exists to stop.
+    //
+    // Only file:// falls through: it has no origin to inherit.
+    if (loc.protocol === 'http:' || loc.protocol === 'https:') {
+      return trimSlash(loc.origin || `${loc.protocol}//${loc.host}`);
     }
 
     return FALLBACK;

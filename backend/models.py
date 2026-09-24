@@ -9,6 +9,8 @@ Two tables for now:
   ExerciseSession / ExerciseSet
                  what the webcam tracker measured while the exercise was
                  performed — the readings it used to discard at the end of a set.
+  OutcomeScore   one completed KOOS-JR questionnaire: what the patient says
+                 about the knee, on a scale a registry would recognise.
   ShareLink      a revocable, expiring, read-only window onto one patient's
                  progress, openable by a clinician without an account.
   Clinician      a physiotherapist or surgeon, with a caseload rather than a knee.
@@ -75,6 +77,32 @@ class Patient(Base):
     # own table; this is the thing the protocol selector actually reads.
     surgery_type: Mapped[str | None] = mapped_column(String(16), nullable=True)
 
+
+    # ── Session and credential control ───────────────────────────────────────
+    # Every token carries the version this counter stood at when it was issued,
+    # and a token whose version no longer matches is refused. Bumping it is what
+    # makes "sign out everywhere" and "changing your password ends other
+    # sessions" possible at all: a JWT is otherwise valid until it expires, and
+    # there was no way to take one back.
+    #
+    # A counter rather than a cutoff timestamp, because `iat` is only accurate
+    # to the second: a token issued and revoked inside the same second would
+    # have survived a timestamp comparison. A counter has no clock in it, so
+    # signing out always takes effect immediately.
+    #
+    # And a counter rather than a table of revoked tokens: one column, nothing
+    # to sweep up later, and it revokes at the only granularity that is
+    # actually useful after a password change — all of them.
+    token_version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    # A pending password reset. Only the hash is kept, for the same reason the
+    # password is: this column is a credential while it lives, and a readable
+    # one in a stolen backup would be an account takeover.
+    reset_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    reset_requested_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     care_links: Mapped[list["CareLink"]] = relationship(
         back_populates="patient",
         cascade="all, delete-orphan",
@@ -92,6 +120,14 @@ class Patient(Base):
         # behind would be both wrong and a data-protection problem.
         cascade="all, delete-orphan",
         order_by="Prescription.created_at.desc()",
+    )
+
+    # Oldest first: these are read as a trend, and the first one is the baseline
+    # every later score is compared against.
+    outcome_scores: Mapped[list["OutcomeScore"]] = relationship(
+        back_populates="patient",
+        cascade="all, delete-orphan",
+        order_by="OutcomeScore.recorded_at",
     )
 
     @property
@@ -349,6 +385,73 @@ class ExerciseSet(Base):
         return f"<ExerciseSet {self.set_index} reps={self.reps_completed} peak={self.peak_flexion_deg:.0f}°>"
 
 
+class OutcomeScore(Base):
+    """
+    One completed patient-reported outcome questionnaire.
+
+    Everything else in this file is something the app measured. This is the one
+    row that records what the patient says, which is the only place the question
+    they actually care about — is my knee getting better — is ever answered.
+
+    Both the answers and the score are stored. That is not redundant:
+
+      * `responses` is the evidence. A scoring bug, a corrected lookup table or a
+        second instrument added later can all be recomputed from it, and none of
+        that is possible from a total.
+      * `interval_score` is what gets charted and compared, and it is written
+        once. Deriving it on read would mean a chart silently redrawing itself
+        the day the scoring code changes — including the historical points, which
+        were answered against the old one.
+
+    `weeks_post_op` is a snapshot for the same reason a prescription's is: it is
+    derived from surgery_date, and a patient who corrects that date a year later
+    must not retroactively move every questionnaire they have ever answered to a
+    different point in their recovery.
+    """
+
+    __tablename__ = "outcome_scores"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    patient_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("patients.id", ondelete="CASCADE"), nullable=False
+    )
+
+    # 'koos_jr' today. A column rather than an assumption, because the score
+    # ranges and the direction of "better" differ between instruments, and a
+    # chart that mixed two of them would be meaningless.
+    instrument: Mapped[str] = mapped_column(String(24), nullable=False, default="koos_jr")
+
+    # KOOS-JR asks about "your knee", singular. Someone with two bad knees has
+    # two different answers, and pooling them would average away the difference
+    # that matters — the same reason range of motion is kept per exercise.
+    knee_side: Mapped[str] = mapped_column(String(8), nullable=False, default="right")
+
+    # The seven raw answers, 0-4 each, as a JSON array in item order. Item order
+    # is fixed by outcome_measures.KOOS_JR_ITEMS and is what makes this
+    # array interpretable at all.
+    responses: Mapped[str] = mapped_column(Text, nullable=False)
+
+    raw_sum: Mapped[int] = mapped_column(Integer, nullable=False)
+    # The Rasch-calibrated 0-100 score, where higher is better. Float because the
+    # published lookup table is not integral.
+    interval_score: Mapped[float] = mapped_column(Float, nullable=False)
+
+    # Where in the recovery this was answered, frozen at the time.
+    weeks_post_op: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+    patient: Mapped[Patient] = relationship(back_populates="outcome_scores")
+
+    __table_args__ = (
+        # Every read of this table is "this patient's scores, oldest to newest".
+        Index("ix_outcome_scores_patient_recorded", "patient_id", "recorded_at"),
+    )
+
+    def __repr__(self) -> str:  # pragma: no cover - debugging aid
+        return f"<OutcomeScore {self.instrument} {self.interval_score:.0f}/100 {self.knee_side}>"
+
+
 class ShareLink(Base):
     """
     A read-only window onto one patient's progress, openable without an account.
@@ -436,6 +539,32 @@ class Clinician(Base):
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+    # ── Session and credential control ───────────────────────────────────────
+    # Every token carries the version this counter stood at when it was issued,
+    # and a token whose version no longer matches is refused. Bumping it is what
+    # makes "sign out everywhere" and "changing your password ends other
+    # sessions" possible at all: a JWT is otherwise valid until it expires, and
+    # there was no way to take one back.
+    #
+    # A counter rather than a cutoff timestamp, because `iat` is only accurate
+    # to the second: a token issued and revoked inside the same second would
+    # have survived a timestamp comparison. A counter has no clock in it, so
+    # signing out always takes effect immediately.
+    #
+    # And a counter rather than a table of revoked tokens: one column, nothing
+    # to sweep up later, and it revokes at the only granularity that is
+    # actually useful after a password change — all of them.
+    token_version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    # A pending password reset. Only the hash is kept, for the same reason the
+    # password is: this column is a credential while it lives, and a readable
+    # one in a stolen backup would be an account takeover.
+    reset_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    reset_requested_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     care_links: Mapped[list["CareLink"]] = relationship(
         back_populates="clinician",

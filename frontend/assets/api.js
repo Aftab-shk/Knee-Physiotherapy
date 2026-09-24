@@ -166,7 +166,7 @@
    * POST /analyse-xray — KL grade plus a full rehab prescription.
    * `weeksPostOp` is required by the API unless surgeryType is 'none'.
    */
-  function analyseXray({ file, kneeSide, surgeryType, weeksPostOp }) {
+  function analyseXray({ file, kneeSide, surgeryType, weeksPostOp, imageRight = null, explain = false }) {
     const form = new FormData();
     form.append('image', file);
     form.append('knee_side', kneeSide);
@@ -176,6 +176,12 @@
     if (surgeryType !== 'none' && weeksPostOp !== null && weeksPostOp !== undefined && weeksPostOp !== '') {
       form.append('weeks_post_op', parseInt(weeksPostOp, 10));
     }
+    // Both knees means two films. One X-ray cannot be graded for two joints,
+    // and the server refuses rather than grading it twice.
+    if (kneeSide === 'both' && imageRight) form.append('image_right', imageRight);
+    // Off by default server-side: the overlay costs a backward pass, roughly
+    // doubling inference time, so it is asked for rather than assumed.
+    if (explain) form.append('explain', 'true');
     // No Content-Type header: the browser has to set the multipart boundary.
     return request('/analyse-xray', { method: 'POST', body: form });
   }
@@ -214,13 +220,91 @@
   }
 
   /**
-   * Forget the token.
+   * Sign out, for real.
    *
-   * Local only: the server issues stateless JWTs, so a token that has already
-   * been copied elsewhere stays valid until it expires. Revocation needs a
-   * server-side denylist, which is not built.
+   * This used to only forget the local copy, which meant a token already taken
+   * off the device carried on working for the rest of its fortnight. The server
+   * now bumps the account's token version, so every token issued before this
+   * call stops being accepted — including ones this browser never saw.
+   *
+   * The local token is cleared either way. A network failure here should still
+   * sign you out of the machine you are sitting at.
    */
-  function logout() { setAuthToken(null); }
+  async function logout() {
+    try {
+      if (authToken) await request('/auth/logout', { method: 'POST' });
+    } catch {
+      // Signed out locally regardless; the server-side copy expires on its own.
+    } finally {
+      setAuthToken(null);
+    }
+  }
+
+  /**
+   * Change the password, proving the current one first.
+   *
+   * Every other session ends. The replacement token comes back from the server
+   * already issued against the new version, so the tab doing the changing stays
+   * signed in and every other one does not.
+   */
+  async function changePassword({ currentPassword, newPassword }) {
+    const res = await request('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    setAuthToken(res.access_token);
+    return res;
+  }
+
+  /**
+   * Ask for a reset link.
+   *
+   * Always resolves the same way whether or not the address has an account —
+   * the server refuses to say, and this must not leak it by handling the two
+   * cases differently.
+   */
+  function requestPasswordReset({ email }) {
+    return request('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  /** Set a new password from an emailed link, and sign in with it. */
+  async function resetPassword({ token, newPassword }) {
+    const res = await request('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, new_password: newPassword }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    setAuthToken(res.access_token);
+    return res;
+  }
+
+  /** Everything the server holds about this patient, as a downloadable file. */
+  async function exportMyData() {
+    const res = await fetch(`${cfg.API_BASE}/me/export`, { headers: authHeaders() });
+    if (!res.ok) throw new ApiError('Could not prepare your data.', { status: res.status });
+    return { blob: await res.blob(), filename: `physio-data-${new Date().toISOString().slice(0, 10)}.json` };
+  }
+
+  /**
+   * Delete the account and everything in it. Irreversible, immediately.
+   *
+   * The password is required again because the common way to reach a delete
+   * button is a session somebody left open.
+   */
+  async function deleteMyAccount({ password }) {
+    const res = await request('/me/delete', {
+      method: 'POST',
+      body: JSON.stringify({ password, confirm: 'DELETE' }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    setAuthToken(null);
+    return res;
+  }
 
   /** The signed-in patient, or null if the token is missing or no longer good. */
   async function me() {
@@ -290,6 +374,52 @@
       body: JSON.stringify(body),
       headers: { 'Content-Type': 'application/json' },
     });
+  }
+
+  // ── Patient-reported outcome measures ─────────────────────────────────────
+  //
+  // KOOS-JR: seven questions, scored 0-100 with higher better, on the same scale
+  // a joint registry uses. It is the one figure in this app the patient supplies
+  // rather than the app measuring — and the only one that answers whether the
+  // knee is getting better to live with, which range of motion cannot.
+
+  /**
+   * GET /outcome-measures — the questionnaire itself.
+   *
+   * The item wording lives server-side and is rendered from this response. A
+   * frontend holding its own copy is a frontend that drifts, and a reworded
+   * KOOS-JR is not a KOOS-JR. Works signed out; signing in adds the caveat for
+   * operations the instrument was not validated on.
+   */
+  function getOutcomeInstrument() {
+    return request('/outcome-measures');
+  }
+
+  /**
+   * POST /me/outcome-scores — record a completed questionnaire.
+   *
+   * All seven answers, each 0 (none) to 4 (extreme), in the order the items
+   * arrived. The server refuses a partial form and refuses one answered inside
+   * the minimum interval — a 409, not a validation error, and its `detail` is
+   * written to be shown to the patient as-is.
+   */
+  function recordOutcomeScore({ responses, kneeSide = 'right', instrument = 'koos_jr' }) {
+    return request('/me/outcome-scores', {
+      method: 'POST',
+      body: JSON.stringify({ responses, knee_side: kneeSide, instrument }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  /** GET /me/outcome-scores — your scores, newest first, plus whether another is due. */
+  function myOutcomeScores({ kneeSide = null } = {}) {
+    const q = kneeSide ? `?knee_side=${encodeURIComponent(kneeSide)}` : '';
+    return request(`/me/outcome-scores${q}`);
+  }
+
+  /** GET /clinician/patients/{id}/outcome-scores — read-only, like every clinician view. */
+  function getPatientOutcomeScores(patientId) {
+    return request(`/clinician/patients/${encodeURIComponent(patientId)}/outcome-scores`);
   }
 
   // ── Clinicians ────────────────────────────────────────────────────────────
@@ -499,6 +629,75 @@
     return request(`/me/progress?${q}`);
   }
 
+  /**
+   * GET /me/summary.pdf — the one-page sheet to bring to an appointment.
+   *
+   * Not routed through `request()`, which parses every reply as JSON. The
+   * endpoint needs the Authorization header, so a plain <a href> cannot fetch
+   * it either — hence the blob, and hence `downloadSummary` below rather than
+   * a link the page could have rendered directly.
+   */
+  async function getSummaryPdf({ days = 90, tzOffsetMinutes = -new Date().getTimezoneOffset() } = {}) {
+    const q = new URLSearchParams({
+      days: String(days),
+      tz_offset_minutes: String(tzOffsetMinutes),
+    });
+    const url = `${cfg.API_BASE}/me/summary.pdf?${q}`;
+
+    let response;
+    try {
+      response = await fetch(url, { headers: authHeaders() });
+    } catch (err) {
+      throw new ApiError('Failed to fetch', { cause: err });
+    }
+    if (!response.ok) {
+      throw new ApiError(`Server error ${response.status}`, { status: response.status });
+    }
+
+    return {
+      blob: await response.blob(),
+      // The server names the file — it knows the patient's name and the date the
+      // figures were generated for, and those two should not be guessed at twice.
+      filename: filenameFrom(response.headers.get('Content-Disposition')),
+    };
+  }
+
+  /**
+   * Pull the filename out of a Content-Disposition header, preferring the
+   * RFC 5987 form, which is the only one that can carry a name outside ASCII.
+   */
+  function filenameFrom(header, fallback = 'physio-summary.pdf') {
+    if (!header) return fallback;
+
+    const encoded = /filename\*=UTF-8''([^;]+)/i.exec(header);
+    if (encoded) {
+      try { return decodeURIComponent(encoded[1]); } catch { /* fall through */ }
+    }
+    const plain = /filename="([^"]*)"/i.exec(header);
+    return (plain && plain[1]) || fallback;
+  }
+
+  /**
+   * Fetch the summary and hand it to the browser as a download.
+   *
+   * The object URL is revoked on the next frame rather than immediately: Safari
+   * has to have started the download before the URL stops resolving.
+   */
+  async function downloadSummary(options) {
+    const { blob, filename } = await getSummaryPdf(options);
+    const href = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = href;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(href), 0);
+
+    return filename;
+  }
+
   global.PhysioAPI = {
     ApiError,
     get baseUrl() { return cfg.API_BASE; },
@@ -507,6 +706,11 @@
     register,
     login,
     logout,
+    changePassword,
+    requestPasswordReset,
+    resetPassword,
+    exportMyData,
+    deleteMyAccount,
     me,
     myPrescriptions,
     setSurgery,
@@ -514,6 +718,12 @@
     recordReport,
     mySessions,
     getProgress,
+    getSummaryPdf,
+    downloadSummary,
+    getOutcomeInstrument,
+    recordOutcomeScore,
+    myOutcomeScores,
+    getPatientOutcomeScores,
     clinicianRegister,
     clinicianLogin,
     clinicianMe,

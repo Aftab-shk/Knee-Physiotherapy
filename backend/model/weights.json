@@ -2,8 +2,8 @@
   "filename": "best_model.pth",
   "arch": "efficientnet_b4",
   "img_size": 380,
-  "note": "Set 'url' to a GitHub Release asset, then run: python backend/model/fetch_weights.py",
-  "url": "",
+  "url": "https://github.com/Aftab-shk/Knee-Physiotherapy/releases/download/weights-v2/best_model.pth",
   "size_bytes": 70979667,
-  "sha256": "5393f2c324e3d9cc26bb9641e8543f981a0b2a754ae3a5e56ad3f93f04ad9c57"
+  "sha256": "5393f2c324e3d9cc26bb9641e8543f981a0b2a754ae3a5e56ad3f93f04ad9c57",
+  "note": "Release asset for tag weights-v2. Fetch with: python backend/model/fetch_weights.py - the sha256 below is checked after download. Set WEIGHTS_URL to override the url without editing this file."
 }

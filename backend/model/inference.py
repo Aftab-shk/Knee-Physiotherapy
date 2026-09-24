@@ -249,6 +249,27 @@ class KneeClassifier:
         kl_grade = self.idx_to_grade[pred_idx]
         confidence = float(probs[pred_idx])
 
+        # The whole distribution, keyed by KL grade rather than model index —
+        # the two are not the same, and a checkpoint is free to order its classes
+        # however it was trained.
+        #
+        # Worth surfacing because the model was trained with an ordinal loss: the
+        # mass next to the winner is not noise, it is the model saying the answer
+        # is nearby. "Probably 2, possibly 3" is both truer and more useful than
+        # "Grade 2, moderate confidence", especially where the difference between
+        # 2 and 3 is a 30-degree difference in what someone is allowed to bend to.
+        by_grade = {self.idx_to_grade[i]: float(probs[i]) for i in range(len(probs))}
+        grade_probabilities = [round(by_grade.get(g, 0.0), 4) for g in range(5)]
+
+        # How much probability sits within one grade of the winner. The
+        # checkpoint reports 95.3% within-one-grade accuracy against 70.3%
+        # exact, so this is the number that actually describes how confident the
+        # reading is at the scale the ceiling changes.
+        neighbourhood = sum(
+            grade_probabilities[g] for g in (kl_grade - 1, kl_grade, kl_grade + 1)
+            if 0 <= g <= 4
+        )
+
         warn_t = self.calibration["warn_threshold"]
         reject_t = self.calibration["reject_threshold"]
 
@@ -258,10 +279,12 @@ class KneeClassifier:
             "max_angle":         KL_MAX_ANGLE[kl_grade],
             "confidence":        round(confidence, 3),
             "confidence_band":   confidence_band(confidence),
+            "grade_probabilities": grade_probabilities,
+            "within_one_grade":  round(neighbourhood, 3),
             "calibrated":        self.calibration["calibrated"],
             "energy":            round(energy, 3),
             "ood_suspected":     warn_t is not None and energy > warn_t,
-            "ood_reject":        reject_t is not None and energy > reject_t,
+            "ood_reject":        outside_energy_range(energy, self.calibration),
             "ood_screened":      reject_t is not None,
             "demo_mode":         False,
         }
@@ -282,12 +305,31 @@ class KneeClassifier:
         # Confidence varies 0.62–0.88 based on digest
         confidence = 0.62 + (digest % 27) / 100.0
 
+        # A distribution shaped like a real one — mass on the winner, the rest
+        # spilling onto its neighbours as an ordinal model's would — so the
+        # frontend has something correctly shaped to draw. It is arithmetic on a
+        # hash, not a probability, which is why `calibrated` stays false and the
+        # UI leads with the demo banner.
+        remainder = 1.0 - confidence
+        weights = [1.0 / (1 + 2 * abs(g - kl_grade)) if g != kl_grade else 0.0 for g in range(5)]
+        total = sum(weights) or 1.0
+        grade_probabilities = [
+            round(confidence if g == kl_grade else remainder * weights[g] / total, 4)
+            for g in range(5)
+        ]
+        neighbourhood = sum(
+            grade_probabilities[g] for g in (kl_grade - 1, kl_grade, kl_grade + 1)
+            if 0 <= g <= 4
+        )
+
         return {
             "kl_grade":        kl_grade,
             "health_score":    KL_HEALTH_SCORE[kl_grade],
             "max_angle":       KL_MAX_ANGLE[kl_grade],
             "confidence":      round(confidence, 3),
             "confidence_band": confidence_band(confidence),
+            "grade_probabilities": grade_probabilities,
+            "within_one_grade":  round(neighbourhood, 3),
             # Demo confidence is a hash, not a probability. Never claim it is
             # calibrated, and never claim an OOD screen ran.
             "calibrated":      False,
@@ -342,6 +384,22 @@ def _derive_model_version(ckpt: dict) -> str:
     return "_".join(parts)
 
 
+def outside_energy_range(energy: float, calibration: dict) -> bool:
+    """
+    Is this energy score outside the band real knee films occupy?
+
+    Both ends matter. Too high is a degenerate or near-blank image; too low is
+    an image the network answers with runaway activations, which is what a
+    photograph or a screenshot does. Inert while the checkpoint carries no
+    energy reference, which is also why the upper bound decides that.
+    """
+    high = calibration.get("reject_threshold")
+    low = calibration.get("floor_threshold")
+    if high is None:
+        return False
+    return energy > high or (low is not None and energy < low)
+
+
 def load_calibration(checkpoint_path: str) -> dict:
     """
     Read the temperature and OOD energy reference fitted on the validation split
@@ -357,13 +415,68 @@ def load_calibration(checkpoint_path: str) -> dict:
 
     reject_threshold = None
     warn_threshold = None
+    floor_threshold = None
     if energy_ref.get("p99") is not None and energy_ref.get("p50") is not None:
         p50, p95, p99 = energy_ref["p50"], energy_ref.get("p95", energy_ref["p99"]), energy_ref["p99"]
+        # p95 by design, so about 1 genuine film in 20 carries the "unusual image"
+        # note. Measured on the 1656 films of the Kaggle test split: 5.25%. A QA
+        # report that it "flags nearly everything" came from synthetic test images,
+        # which really are unusual; on real films it does what it says.
         warn_threshold = p95
-        # One full inter-percentile spread beyond p99: far into the tail for a
-        # genuine radiograph, while still catching inputs the model has no
-        # business grading at all.
-        reject_threshold = p99 + max(p99 - p50, 1e-3)
+        # How far past p99 an image has to score before it is refused outright,
+        # measured in p50-to-p99 spreads.
+        #
+        # This was a hard-coded 1.0, which put the bar at -1.31 for the shipped
+        # checkpoint. Nothing reaches that. A chest film scored -1.71, random
+        # noise -1.71, a blank white image -1.52; all were graded, and the chest
+        # film came back as a healthy knee with a 120-degree ceiling. A gate that
+        # cannot fire is not a gate.
+        #
+        # 0.5 puts the bar at -1.571 for the shipped checkpoint. Checked on the
+        # 1656 films of the Kaggle test split, which the model never trained on:
+        # none of them was refused. The highest-scoring genuine film sat at -1.653,
+        # so any margin above about 0.34 refuses nothing on that set.
+        #
+        # Be clear about how weak this gate is, because the old value hid it. A
+        # chest radiograph scores -1.71 on this checkpoint and random noise
+        # -1.71, both sitting comfortably inside the range real knee films
+        # occupy. Catching those would mean a threshold near -1.72 — a margin of
+        # about 0.21. This used to say that throws away more than 1% of genuine
+        # studies; measured on the real test split it refuses 1 film in 1656
+        # (0.06%). So tightening is far cheaper than was assumed. What stops it
+        # is the other side of the ledger: one chest film and one noise image,
+        # each 0.01 past that line, are not evidence that the next chest film
+        # would be caught too. A patient whose own X-ray is refused cannot use
+        # the app at all, while a misread one is held to a cautious ceiling by
+        # build_prescription(), so this still errs towards letting images through
+        # until there is a set of negatives to measure against.
+        #
+        # So: this rejects blank, uniform and near-degenerate uploads, most of
+        # which the contrast check in image_checks.py already catches. It is not
+        # protection against the wrong body part, and nothing downstream should
+        # be written as though it were. Tuning it into something that is needs a
+        # labelled out-of-distribution set, which is why it is an environment
+        # variable and why every rejection logs its energy.
+        margin = float(os.getenv("OOD_REJECT_MARGIN", "0.5"))
+        reject_threshold = p99 + max(margin * (p99 - p50), 1e-3)
+
+        # The other side of the same gate, and the side that was open.
+        #
+        # Energy is minus a log-sum-exp of the logits, so an image the network
+        # answers with enormous activations scores very NEGATIVE, not positive.
+        # Only the upper bound existed, so those sailed through. Measured on the
+        # shipped checkpoint: a colour portrait scored -48285 and came back KL 4
+        # at 100% confidence, a screenshot of this app's own landing page -28651
+        # and came back KL 2 at 100%, an app icon -4595, a screenshot of a
+        # tutorial dialog -215.
+        #
+        # All 1656 films of the Kaggle test split sit between -3.737 and -1.712,
+        # p50 -2.493. Eight p50-to-p99 spreads below p50 puts the floor near
+        # -7.1: about three spreads clear of the lowest genuine film, and orders
+        # of magnitude above the junk. Nothing on that split is refused by it,
+        # and every image listed above is.
+        floor_spreads = float(os.getenv("OOD_FLOOR_SPREADS", "8"))
+        floor_threshold = p50 - max(floor_spreads * (p99 - p50), 1e-3)
 
     return {
         "temperature":      temperature,
@@ -371,6 +484,7 @@ def load_calibration(checkpoint_path: str) -> dict:
         "energy_ref":       energy_ref,
         "warn_threshold":   warn_threshold,
         "reject_threshold": reject_threshold,
+        "floor_threshold":  floor_threshold,
         "ece":              (ckpt.get("calibration") or {}).get("ece_after"),
     }
 

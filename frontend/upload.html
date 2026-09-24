@@ -6,1239 +6,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Analyse X-ray — Knee-Physiotherapy</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="assets/theme.css">
-  <style>
-
-    html {
-      scroll-behavior: smooth;
-    }
-
-    body {
-      font-family: var(--body);
-      color: var(--text);
-      background: var(--off-white);
-      min-height: 100vh;
-    }
-
-    /* ── Top nav ─────────────────────────────────────────────────────── */
-    .topnav {
-      background: var(--navy);
-      padding: 0 40px;
-      height: 60px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: 0 1px 0 rgba(255, 255, 255, .05);
-    }
-
-    /* Used by the progress link, which only appears for a signed-in patient. */
-    .hidden { display: none !important; }
-
-    .nav-logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      text-decoration: none;
-    }
-
-    .nav-logo-img {
-      width: 30px;
-      height: 30px;
-      object-fit: contain;
-    }
-
-    .nav-logo-text {
-      font-family: var(--display);
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--white);
-    }
-
-    .nav-steps {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .nav-step {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-family: var(--mono);
-      font-size: 12px;
-      color: rgba(255, 255, 255, .4);
-    }
-
-    .nav-step.active {
-      color: var(--teal-light);
-    }
-
-    .nav-step.done {
-      color: rgba(255, 255, 255, .6);
-    }
-
-    .nav-step-num {
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      border: 1.5px solid currentColor;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
-    }
-
-    .nav-step.active .nav-step-num {
-      background: var(--teal);
-      border-color: var(--teal);
-      color: var(--white);
-    }
-
-    .nav-step.done .nav-step-num {
-      background: rgba(255, 255, 255, .15);
-      border-color: transparent;
-    }
-
-    .nav-step-sep {
-      width: 24px;
-      height: 1px;
-      background: rgba(255, 255, 255, .15);
-    }
-
-    .nav-right {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
-
-    .nav-home {
-      font-size: 13px;
-      color: rgba(255, 255, 255, .5);
-      text-decoration: none;
-      transition: color .2s;
-    }
-
-    .nav-home:hover {
-      color: var(--white);
-    }
-
-    /* ── Page layout ─────────────────────────────────────────────────── */
-    .page {
-      max-width: 860px;
-      margin: 0 auto;
-      padding: 40px 24px 80px;
-    }
-
-    /* ── Demo banner ─────────────────────────────────────────────────── */
-    .demo-banner {
-      display: none;
-      align-items: center;
-      gap: 12px;
-      background: #fef3c7;
-      border: 1px solid #f59e0b;
-      border-radius: 10px;
-      padding: 12px 18px;
-      margin-bottom: 24px;
-      font-size: 14px;
-      color: #92400e;
-    }
-
-    .demo-banner.visible {
-      display: flex;
-    }
-
-    /* ── Upload panel ────────────────────────────────────────────────── */
-    .upload-panel {
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 1px 4px rgba(var(--navy-rgb), .05);
-    }
-
-    .panel-header {
-      padding: 24px 28px 0;
-    }
-
-    .panel-title {
-      font-family: var(--display);
-      font-size: 20px;
-      font-weight: 600;
-      color: var(--navy);
-      margin-bottom: 4px;
-    }
-
-    .panel-sub {
-      font-size: 14px;
-      color: var(--slate);
-    }
-
-    .panel-divider {
-      height: 1px;
-      background: var(--border);
-      margin: 20px 0;
-    }
-
-    .panel-body {
-      padding: 0 28px 28px;
-    }
-
-    /* ── Drop zone ───────────────────────────────────────────────────── */
-    .drop-zone {
-      border: 2px dashed var(--border);
-      border-radius: 12px;
-      padding: 40px 24px;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color .2s, background .2s;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .drop-zone:hover,
-    .drop-zone.drag-over {
-      border-color: var(--teal);
-      background: rgba(var(--teal-rgb), .03);
-    }
-
-    .drop-zone.has-file {
-      border-color: var(--teal);
-      background: rgba(var(--teal-rgb), .04);
-    }
-
-    .drop-icon {
-      font-size: 36px;
-      margin-bottom: 12px;
-      display: block;
-    }
-
-    .drop-title {
-      font-family: var(--display);
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--navy);
-      margin-bottom: 6px;
-    }
-
-    .drop-sub {
-      font-size: 13px;
-      color: var(--slate);
-    }
-
-    .drop-sub span {
-      color: var(--teal);
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .drop-input {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
-      width: 100%;
-      height: 100%;
-    }
-
-    .drop-preview {
-      display: none;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .drop-preview.visible {
-      display: flex;
-    }
-
-    .drop-preview-img {
-      width: 72px;
-      height: 72px;
-      object-fit: cover;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-    }
-
-    .drop-preview-info {
-      text-align: left;
-    }
-
-    .drop-preview-name {
-      font-family: var(--mono);
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--navy);
-      margin-bottom: 3px;
-    }
-
-    .drop-preview-size {
-      font-size: 12px;
-      color: var(--slate);
-    }
-
-    .drop-preview-change {
-      font-size: 12px;
-      color: var(--teal);
-      cursor: pointer;
-      text-decoration: underline;
-      margin-top: 4px;
-    }
-
-    /* ── Form fields ─────────────────────────────────────────────────── */
-    .fields-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-top: 20px;
-    }
-
-    .field-full {
-      grid-column: 1 / -1;
-    }
-
-    .field {}
-
-    /* ── Derived weeks-post-op ────────────────────────────────────────
-       Shown in place of the number input once a surgery date is on file. */
-    .derived-weeks {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 11px 14px;
-      border: 1px solid rgba(var(--teal-rgb), .35);
-      border-radius: 10px;
-      background: rgba(var(--teal-rgb), .08);
-    }
-
-    .derived-weeks-value {
-      font-family: var(--mono);
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--teal);
-    }
-
-    .derived-weeks-from {
-      font-size: 12px;
-      color: var(--slate);
-    }
-
-    .link-button {
-      background: none;
-      border: none;
-      padding: 0;
-      font-family: var(--body);
-      font-size: 12px;
-      color: var(--teal);
-      text-decoration: underline;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    .link-button:hover { color: var(--navy); }
-
-    .remember-date {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      margin-top: 8px;
-      font-size: 12px;
-      color: var(--slate);
-    }
-
-    .field.hidden,
-    .remember-date.hidden,
-    .derived-weeks.hidden { display: none; }
-
-    .field-label {
-      display: block;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--navy);
-      margin-bottom: 7px;
-    }
-
-    .field-required {
-      color: var(--teal);
-      margin-left: 2px;
-    }
-
-    .field-select,
-    .field-input-num {
-      width: 100%;
-      padding: 10px 14px;
-      background: var(--white);
-      border: 1.5px solid var(--border);
-      border-radius: 9px;
-      font-family: var(--body);
-      font-size: 14px;
-      color: var(--text);
-      outline: none;
-      transition: border-color .2s;
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-      padding-right: 32px;
-    }
-
-    .field-input-num {
-      background-image: none;
-      padding-right: 14px;
-    }
-
-    .field-select:focus,
-    .field-input-num:focus {
-      border-color: var(--teal);
-    }
-
-    .field-select:disabled,
-    .field-input-num:disabled {
-      background: #f1f5f9;
-      color: #94a3b8;
-      cursor: not-allowed;
-    }
-
-    /* Knee side radio buttons */
-    .knee-options {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-    }
-
-    .knee-opt {
-      position: relative;
-    }
-
-    .knee-opt input {
-      position: absolute;
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
-    .knee-opt-label {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      padding: 12px 8px;
-      border: 1.5px solid var(--border);
-      border-radius: 9px;
-      cursor: pointer;
-      transition: border-color .2s, background .2s;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--slate);
-      text-align: center;
-    }
-
-    .knee-opt-label .opt-icon {
-      font-size: 22px;
-    }
-
-    .knee-opt input:checked+.knee-opt-label {
-      border-color: var(--teal);
-      background: rgba(var(--teal-rgb), .06);
-      color: var(--teal);
-    }
-
-    .knee-opt-label:hover {
-      border-color: var(--teal);
-      color: var(--navy);
-    }
-
-    /* ── Submit button ───────────────────────────────────────────────── */
-    .submit-wrap {
-      margin-top: 24px;
-    }
-
-    .btn-submit {
-      width: 100%;
-      padding: 14px;
-      background: var(--teal);
-      border: none;
-      border-radius: 10px;
-      font-family: var(--display);
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--white);
-      cursor: pointer;
-      transition: background .2s, transform .15s, box-shadow .2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      box-shadow: 0 3px 12px rgba(var(--teal-rgb), .25);
-    }
-
-    .btn-submit:hover {
-      background: var(--teal-light);
-      transform: translateY(-1px);
-    }
-
-    .btn-submit:disabled {
-      background: #94a3b8;
-      box-shadow: none;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .btn-disclaimer {
-      text-align: center;
-      margin-top: 10px;
-      font-size: 12px;
-      color: var(--slate);
-    }
-
-    /* ── Loading ─────────────────────────────────────────────────────── */
-    .loading-panel {
-      display: none;
-      text-align: center;
-      padding: 60px 24px;
-    }
-
-    .loading-panel.visible {
-      display: block;
-    }
-
-    .loading-spinner {
-      width: 48px;
-      height: 48px;
-      border: 3px solid var(--border);
-      border-top-color: var(--teal);
-      border-radius: 50%;
-      animation: spin .8s linear infinite;
-      margin: 0 auto 20px;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    .loading-title {
-      font-family: var(--display);
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--navy);
-      margin-bottom: 8px;
-    }
-
-    .loading-sub {
-      font-size: 14px;
-      color: var(--slate);
-    }
-
-    .loading-steps {
-      display: flex;
-      justify-content: center;
-      gap: 24px;
-      margin-top: 24px;
-    }
-
-    .loading-step {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-family: var(--mono);
-      font-size: 11px;
-      color: #94a3b8;
-    }
-
-    .loading-step.active {
-      color: var(--teal);
-    }
-
-    .loading-step.done {
-      color: #22c55e;
-    }
-
-    .loading-step-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: currentColor;
-    }
-
-    .loading-step.active .loading-step-dot {
-      animation: pulse 1s ease infinite;
-    }
-
-    @keyframes pulse {
-
-      0%,
-      100% {
-        opacity: 1
-      }
-
-      50% {
-        opacity: .3
-      }
-    }
-
-    /* ── Error panel ─────────────────────────────────────────────────── */
-    .error-panel {
-      display: none;
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-      border-radius: 12px;
-      padding: 20px 24px;
-      margin-top: 20px;
-    }
-
-    .error-panel.visible {
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-    }
-
-    .error-icon {
-      font-size: 20px;
-      flex-shrink: 0;
-    }
-
-    .error-title {
-      font-family: var(--display);
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--red);
-      margin-bottom: 4px;
-    }
-
-    .error-desc {
-      font-size: 13px;
-      color: #7f1d1d;
-    }
-
-    .error-retry {
-      margin-top: 8px;
-      font-size: 13px;
-      color: var(--red);
-      text-decoration: underline;
-      cursor: pointer;
-      background: none;
-      border: none;
-      padding: 0;
-      font-family: var(--body);
-    }
-
-    /* ── Results ─────────────────────────────────────────────────────── */
-    .results {
-      display: none;
-      margin-top: 24px;
-      animation: fadeIn .4s ease;
-    }
-
-    .results.visible {
-      display: block;
-    }
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(12px)
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0)
-      }
-    }
-
-    /* Summary cards row */
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    .summary-card {
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 18px 16px;
-      text-align: center;
-    }
-
-    .summary-card-value {
-      font-family: var(--mono);
-      font-size: 28px;
-      font-weight: 600;
-      display: block;
-      margin-bottom: 4px;
-    }
-
-    .summary-card-label {
-      font-size: 12px;
-      color: var(--slate);
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      font-family: var(--mono);
-    }
-
-    .conf-high {
-      color: #16a34a;
-    }
-
-    .conf-moderate {
-      color: #b45309;
-    }
-
-    .conf-low {
-      color: var(--red);
-    }
-
-    .confidence-note {
-      display: none;
-      margin-top: 14px;
-      background: #fffbeb;
-      border: 1px solid #fde68a;
-      border-radius: 12px;
-      padding: 12px 16px;
-    }
-
-    .confidence-note.visible {
-      display: block;
-    }
-
-    .confidence-note-item {
-      font-size: 13px;
-      color: #78350f;
-      line-height: 1.7;
-    }
-
-    .confidence-note-item + .confidence-note-item {
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px solid #fde68a;
-    }
-
-    .kl-0 {
-      color: #16a34a;
-    }
-
-    .kl-1 {
-      color: #65a30d;
-    }
-
-    .kl-2 {
-      color: #d97706;
-    }
-
-    .kl-3 {
-      color: #ea580c;
-    }
-
-    .kl-4 {
-      color: var(--red);
-    }
-
-    /* Rationale + phase box */
-    .rationale-box {
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-left: 4px solid var(--teal);
-      border-radius: 0 12px 12px 0;
-      padding: 20px 24px;
-      margin-bottom: 20px;
-    }
-
-    .rationale-phase {
-      font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-      color: var(--teal);
-      margin-bottom: 6px;
-    }
-
-    .rationale-goal {
-      font-family: var(--display);
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--navy);
-      margin-bottom: 8px;
-    }
-
-    .rationale-text {
-      font-size: 14px;
-      color: var(--slate);
-      line-height: 1.7;
-    }
-
-    /* Exercises section */
-    .exercises-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 14px;
-    }
-
-    .exercises-title {
-      font-family: var(--display);
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--navy);
-    }
-
-    .exercises-count {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--slate);
-      background: var(--off-white);
-      border-radius: 100px;
-      padding: 3px 12px;
-    }
-
-    .exercise-card {
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow: hidden;
-      margin-bottom: 10px;
-      transition: box-shadow .2s;
-    }
-
-    .exercise-card:hover {
-      box-shadow: 0 2px 12px rgba(var(--navy-rgb), .06);
-    }
-
-    .exercise-header {
-      padding: 16px 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .exercise-header-left {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .exercise-num {
-      width: 30px;
-      height: 30px;
-      background: var(--off-white);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--slate);
-      flex-shrink: 0;
-    }
-
-    .exercise-name {
-      font-family: var(--display);
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--navy);
-    }
-
-    .exercise-desc {
-      font-size: 13px;
-      color: var(--slate);
-      margin-top: 2px;
-    }
-
-    .exercise-header-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-shrink: 0;
-    }
-
-    .exercise-reps {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--slate);
-      white-space: nowrap;
-    }
-
-    .angle-badge {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 600;
-      padding: 3px 9px;
-      border-radius: 5px;
-      white-space: nowrap;
-    }
-
-    .angle-badge.normal {
-      background: rgba(var(--teal-rgb), .1);
-      color: var(--teal);
-      border: 1px solid rgba(var(--teal-rgb), .25);
-    }
-
-    .angle-badge.capped {
-      background: rgba(245, 158, 11, .1);
-      color: #d97706;
-      border: 1px solid rgba(245, 158, 11, .3);
-    }
-
-    .exercise-chevron {
-      font-size: 12px;
-      color: #94a3b8;
-      transition: transform .2s;
-      margin-left: 4px;
-    }
-
-    .exercise-card.open .exercise-chevron {
-      transform: rotate(180deg);
-    }
-
-    .exercise-body {
-      display: none;
-      padding: 0 20px 20px;
-      border-top: 1px solid var(--border);
-    }
-
-    .exercise-card.open .exercise-body {
-      display: block;
-    }
-
-    .exercise-body-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      padding-top: 16px;
-    }
-
-    .ex-section-title {
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-      color: var(--slate);
-      margin-bottom: 8px;
-    }
-
-    .instructions-list {
-      list-style: none;
-      padding: 0;
-    }
-
-    .instructions-list li {
-      display: flex;
-      gap: 10px;
-      font-size: 13px;
-      color: var(--text);
-      margin-bottom: 8px;
-      line-height: 1.55;
-    }
-
-    .instructions-list li::before {
-      content: counter(step);
-      counter-increment: step;
-      width: 20px;
-      height: 20px;
-      background: var(--teal);
-      border-radius: 50%;
-      color: var(--white);
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
-
-    .instructions-list {
-      counter-reset: step;
-    }
-
-    /* Withheld exercises — hidden unless the ceiling screened something out */
-    .excluded-section {
-      display: none;
-      margin-top: 28px;
-    }
-
-    .excluded-section.visible {
-      display: block;
-    }
-
-    .excluded-title {
-      font-family: var(--display);
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--navy);
-    }
-
-    .excluded-intro {
-      font-size: 13px;
-      color: var(--slate);
-      line-height: 1.7;
-      margin-bottom: 14px;
-      max-width: 68ch;
-    }
-
-    .excluded-item {
-      background: #fff7ed;
-      border: 1px solid #fed7aa;
-      border-radius: 12px;
-      padding: 14px 16px;
-      margin-bottom: 10px;
-    }
-
-    .excluded-item-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 6px;
-    }
-
-    .excluded-item-name {
-      font-weight: 600;
-      color: #9a3412;
-      font-size: 15px;
-    }
-
-    .excluded-badge {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: #9a3412;
-      background: #ffedd5;
-      border-radius: 100px;
-      padding: 3px 10px;
-      white-space: nowrap;
-    }
-
-    .excluded-item-reason {
-      font-size: 13px;
-      color: #7c2d12;
-      line-height: 1.7;
-    }
-
-    .caution-box {
-      margin-top: 12px;
-      grid-column: 1 / -1;
-      background: #fff7ed;
-      border: 1px solid #fed7aa;
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: 13px;
-      color: #9a3412;
-      display: flex;
-      gap: 8px;
-    }
-
-    .btn-start-exercise {
-      grid-column: 1 / -1;
-      margin-top: 16px;
-      width: 100%;
-      padding: 12px;
-      background: var(--navy);
-      border: none;
-      border-radius: 9px;
-      font-family: var(--display);
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--white);
-      cursor: pointer;
-      transition: background .2s, transform .15s;
-    }
-
-    .btn-start-exercise:hover {
-      background: var(--teal);
-      transform: translateY(-1px);
-    }
-
-    /* Tutorial + Start sit on one row; Start keeps the visual weight. */
-    .exercise-actions {
-      grid-column: 1 / -1;
-      margin-top: 16px;
-      display: flex;
-      gap: 10px;
-    }
-
-    .exercise-actions .btn-start-exercise {
-      margin-top: 0;
-      flex: 1;
-    }
-
-    .btn-tutorial {
-      padding: 12px 18px;
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      font-family: var(--display);
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--navy);
-      cursor: pointer;
-      white-space: nowrap;
-      transition: border-color .2s, color .2s, transform .15s;
-    }
-
-    .btn-tutorial:hover {
-      border-color: var(--teal);
-      color: var(--teal);
-      transform: translateY(-1px);
-    }
-
-    /* Tutorial modal */
-    .tut-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(var(--navy-rgb), .55);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
-      padding: 20px;
-    }
-
-    .tut-overlay.open {
-      display: flex;
-    }
-
-    .tut-modal {
-      background: var(--white);
-      border-radius: 14px;
-      width: min(520px, 100%);
-      max-height: 90vh;
-      overflow-y: auto;
-      padding: 22px;
-    }
-
-    .tut-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-    }
-
-    .tut-title {
-      font-family: var(--display);
-      font-size: 18px;
-      color: var(--navy);
-      margin: 0;
-    }
-
-    .tut-close {
-      background: none;
-      border: none;
-      font-size: 24px;
-      line-height: 1;
-      color: var(--slate);
-      cursor: pointer;
-      padding: 0 4px;
-    }
-
-    .tut-close:hover {
-      color: var(--navy);
-    }
-
-    .tut-desc {
-      font-size: 13px;
-      color: var(--slate);
-      margin: 6px 0 16px;
-      line-height: 1.5;
-    }
-
-    .tut-steps {
-      margin-top: 18px;
-    }
-
-    @media (max-width:640px) {
-      .exercise-actions {
-        flex-direction: column;
-      }
-    }
-
-    /* Disclaimer */
-    .disclaimer-box {
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px 20px;
-      margin-top: 16px;
-      font-size: 12px;
-      color: var(--slate);
-      line-height: 1.6;
-      display: flex;
-      gap: 10px;
-    }
-
-    .disclaimer-icon {
-      font-size: 16px;
-      flex-shrink: 0;
-    }
-
-    /* ── New analysis button ──────────────────────────────────────────── */
-    .new-analysis-bar {
-      display: flex;
-      justify-content: center;
-      margin-top: 24px;
-    }
-
-    .btn-new {
-      padding: 12px 28px;
-      background: var(--white);
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      font-family: var(--display);
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--navy);
-      cursor: pointer;
-      transition: border-color .2s, box-shadow .2s;
-    }
-
-    .btn-new:hover {
-      border-color: var(--teal);
-      box-shadow: 0 2px 12px rgba(var(--teal-rgb), .12);
-    }
-
-    @media (max-width: 768px) {
-      .topnav {
-        padding: 0 20px;
-      }
-
-      .nav-steps {
-        display: none;
-      }
-
-      .fields-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .summary-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .exercise-body-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .page {
-        padding: 24px 16px 60px;
-      }
-    }
-  </style>
+  <!-- Sets .js-motion before first paint; see the file header for why it is not deferred. -->
+  <script src="assets/motion.js"></script>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#f7f7f2">
+  <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="assets/upload.css">
 </head>
 
 <body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 13v8"/><path d="M4 14.9A7 7 0 1 1 15.7 8h1.8a4.5 4.5 0 0 1 2.5 8.2"/><path d="m8 17 4-4 4 4"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
+  </svg>
 
   <!-- Top nav -->
   <nav class="topnav">
     <a href="index.html" class="nav-logo">
-      <img src="logo.png" alt="Knee-Physiotherapy Logo" class="nav-logo-img">
+      <img src="logo-dark.png" alt="" class="nav-logo-img" width="24" height="24">
       <span class="nav-logo-text">Knee-Physiotherapy</span>
     </a>
     <div class="nav-steps">
@@ -1253,8 +45,8 @@
       </div>
     </div>
     <div class="nav-right">
-      <a href="progress.html" class="nav-home hidden" id="progress-link">Your progress</a>
-      <a href="index.html" class="nav-home">← Home</a>
+      <a href="progress.html" class="nav-home hidden" id="progress-link">Your dashboard</a>
+      <a href="index.html" class="nav-home"><svg class="i"><use href="#i-back"/></svg> Home</a>
     </div>
   </nav>
 
@@ -1266,12 +58,29 @@
       logic (exercise selection, angle limits) runs normally.
     </div>
 
+    <!-- Shown when this page opens the plan stored against the account rather
+         than one graded a moment ago. -->
+    <div class="saved-banner" id="saved-banner">
+      <span aria-hidden="true">✔</span>
+      <div>
+        <strong id="saved-banner-title">Your current plan</strong>
+        <span id="saved-banner-text"></span>
+      </div>
+    </div>
+
     <!-- Upload panel -->
     <div class="upload-panel" id="upload-panel">
       <div class="panel-header">
-        <div class="panel-title">Analyse your knee X-ray</div>
-        <div class="panel-sub">Upload an X-ray and enter your surgery details to receive your personalised exercise
-          plan.</div>
+        <div>
+          <span class="mini-label">Diagnostic X-ray</span>
+          <h1 class="panel-title">Analyse your knee <span style="white-space:nowrap">X-ray</span></h1>
+          <p class="panel-sub">Upload an X-ray and enter your surgery details to receive your personalised exercise
+            plan.</p>
+        </div>
+        <!-- True as stated: the server grades the image in memory and discards
+             it. A signed-in browser keeps its own copy (see keepXray), which is
+             why this says "on our servers" rather than just "Not stored". -->
+        <div class="secure-chip"><svg class="i"><use href="#i-shield"/></svg> Not stored on our servers</div>
       </div>
       <div class="panel-divider"></div>
       <div class="panel-body">
@@ -1280,7 +89,7 @@
         <div class="drop-zone" id="drop-zone">
           <input type="file" class="drop-input" id="file-input" accept="image/jpeg,image/png,image/jpg">
           <div id="drop-idle">
-            <span class="drop-icon">🩻</span>
+            <span class="drop-icon"><svg class="i"><use href="#i-upload"/></svg></span>
             <div class="drop-title">Drop your knee X-ray here</div>
             <p class="drop-sub">Drag and drop, or <span onclick="document.getElementById('file-input').click()">browse
                 to upload</span>. JPEG or PNG, up to 10 MB.</p>
@@ -1295,6 +104,25 @@
           </div>
         </div>
 
+        <!-- The other knee. Hidden unless "both" is chosen: one film cannot
+             be graded for two joints, and grading it twice would be a lie. -->
+        <div class="drop-zone secondary hidden" id="drop-zone-right">
+          <input type="file" class="drop-input" id="file-input-right" accept="image/jpeg,image/png,image/jpg">
+          <div id="drop-idle-right">
+            <span class="drop-side-label">Right knee</span>
+            <div class="drop-title">Drop your right knee X-ray here</div>
+            <p class="drop-sub">The one above is your left. Each knee is graded on its own.</p>
+          </div>
+          <div class="drop-preview" id="drop-preview-right">
+            <img class="drop-preview-img" id="preview-img-right" src="" alt="Right knee X-ray preview">
+            <div class="drop-preview-info">
+              <div class="drop-preview-name" id="preview-name-right">—</div>
+              <div class="drop-preview-size" id="preview-size-right">—</div>
+              <div class="drop-preview-change" onclick="clearFileRight()">Change file</div>
+            </div>
+          </div>
+        </div>
+
         <!-- Form fields -->
         <div class="fields-grid">
 
@@ -1305,21 +133,18 @@
               <label class="knee-opt">
                 <input type="radio" name="knee_side" value="left" id="knee-left">
                 <span class="knee-opt-label">
-                  <span class="opt-icon">🦵</span>
                   Left knee
                 </span>
               </label>
               <label class="knee-opt">
-                <input type="radio" name="knee_side" value="right" id="knee-right" checked>
+                <input type="radio" name="knee_side" value="right" id="knee-right">
                 <span class="knee-opt-label">
-                  <span class="opt-icon">🦵</span>
                   Right knee
                 </span>
               </label>
               <label class="knee-opt">
                 <input type="radio" name="knee_side" value="both" id="knee-both">
                 <span class="knee-opt-label">
-                  <span class="opt-icon">🦵</span>
                   Both knees
                 </span>
               </label>
@@ -1379,7 +204,7 @@
         <!-- Submit -->
         <div class="submit-wrap" id="submit-wrap">
           <button class="btn-submit" id="submit-btn" disabled>
-            Analyse X-ray →
+            Analyse X-ray
           </button>
           <div class="btn-disclaimer">
 
@@ -1390,7 +215,7 @@
 
     <!-- Loading panel (replaces upload panel during analysis) -->
     <div class="loading-panel" id="loading-panel">
-      <div class="loading-spinner"></div>
+      <div class="spinner loading-spinner"></div>
       <div class="loading-title">Analysing your X-ray…</div>
       <div class="loading-sub">This usually takes 2–4 seconds.</div>
       <div class="loading-steps">
@@ -1413,6 +238,8 @@
     <div class="results" id="results">
 
       <!-- Summary cards -->
+      <div class="side-tabs hidden" id="side-tabs" role="tablist" aria-label="Which knee"></div>
+
       <div class="summary-grid" id="summary-grid"></div>
 
       <!-- Confidence caveats: low band / OOD image / uncalibrated model -->
@@ -1420,6 +247,40 @@
 
       <!-- Phase + rationale -->
       <div class="rationale-box" id="rationale-box"></div>
+
+      <div class="dist hidden" id="dist">
+        <div class="dist-title">How sure the model was</div>
+        <p class="dist-sub" id="dist-sub"></p>
+        <div class="dist-rows" id="dist-rows"></div>
+        <div class="dist-foot" id="dist-foot"></div>
+      </div>
+
+      <div class="looked hidden" id="looked">
+        <div class="looked-head">
+          <div class="looked-title">Where the model looked</div>
+        </div>
+        <p class="looked-sub">
+          The warm areas are what pushed the grade. This does not explain the decision —
+          it shows which part of the image drove it. If the heat sits on the joint, the
+          reading is at least looking at the right thing; if it sits on a label or the
+          edge of the film, treat the grade with suspicion and say so to your
+          physiotherapist.
+        </p>
+        <div class="looked-stage">
+          <img id="looked-xray" alt="Your uploaded X-ray">
+          <img class="looked-heat" id="looked-heat" alt="Heat map of the regions that most influenced the grade">
+        </div>
+        <div class="looked-controls">
+          <label for="looked-opacity">Overlay</label>
+          <input type="range" id="looked-opacity" min="0" max="100" value="70"
+            aria-label="Overlay strength">
+        </div>
+        <div class="looked-scale">
+          <span>less influence</span>
+          <span class="looked-bar" aria-hidden="true"></span>
+          <span>more</span>
+        </div>
+      </div>
 
       <!-- Exercises -->
       <div class="exercises-header">
@@ -1457,6 +318,11 @@
     </div>
 
   </div><!-- /page -->
+
+  <footer class="upload-footer">
+    <span><svg class="i" aria-hidden="true"><use href="#i-info"/></svg> This tool supports your home routine and does not replace a clinical diagnosis.</span>
+    <a href="index.html">Back to home</a>
+  </footer>
 
   <!-- Tutorial modal. One instance, reused: the animation is mounted on open
        and destroyed on close so instances do not accumulate. -->
@@ -1519,6 +385,68 @@
       reader.readAsDataURL(file);
       validateForm();
     }
+
+    // ── The second knee ────────────────────────────────────────────────────
+    let selectedFileRight = null;
+    const dropZoneRight = document.getElementById('drop-zone-right');
+    const fileInputRight = document.getElementById('file-input-right');
+
+    function setFileRight(file) {
+      if (!file) return;
+      if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+        showError('Invalid file type', 'Please upload a JPEG or PNG image.');
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        showError('File too large', 'Please upload an image under 10 MB.');
+        return;
+      }
+      selectedFileRight = file;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        document.getElementById('preview-img-right').src = e.target.result;
+        document.getElementById('preview-name-right').textContent = file.name;
+        document.getElementById('preview-size-right').textContent = formatBytes(file.size);
+        document.getElementById('drop-idle-right').style.display = 'none';
+        document.getElementById('drop-preview-right').classList.add('visible');
+        dropZoneRight.classList.add('has-file');
+      };
+      reader.readAsDataURL(file);
+      validateForm();
+    }
+
+    function clearFileRight() {
+      selectedFileRight = null;
+      fileInputRight.value = '';
+      document.getElementById('drop-idle-right').style.display = 'block';
+      document.getElementById('drop-preview-right').classList.remove('visible');
+      dropZoneRight.classList.remove('has-file');
+      validateForm();
+    }
+
+    fileInputRight.addEventListener('change', (e) => setFileRight(e.target.files[0]));
+    dropZoneRight.addEventListener('dragover', (e) => {
+      e.preventDefault(); dropZoneRight.classList.add('drag-over');
+    });
+    dropZoneRight.addEventListener('dragleave', () => dropZoneRight.classList.remove('drag-over'));
+    dropZoneRight.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZoneRight.classList.remove('drag-over');
+      setFileRight(e.dataTransfer.files[0]);
+    });
+
+    /** Show or hide the second drop zone as the knee choice changes. */
+    function syncBilateral() {
+      const both = document.querySelector('input[name="knee_side"]:checked')?.value === 'both';
+      dropZoneRight.classList.toggle('hidden', !both);
+      document.getElementById('drop-idle').querySelector('.drop-title').textContent =
+        both ? 'Drop your left knee X-ray here' : 'Drop your knee X-ray here';
+      if (!both) clearFileRight();
+      validateForm();
+    }
+
+    document.querySelectorAll('input[name="knee_side"]')
+      .forEach(r => r.addEventListener('change', syncBilateral));
 
     function clearFile() {
       selectedFile = null;
@@ -1663,9 +591,12 @@
 
     // ── Form validation ────────────────────────────────────────────────────
     function validateForm() {
-      const hasFile = !!selectedFile;
+      const side = document.querySelector('input[name="knee_side"]:checked')?.value;
+      // Both knees means both films. The server refuses otherwise, and finding
+      // that out after the upload would be a poor way to learn it.
+      const hasFile = !!selectedFile && (side !== 'both' || !!selectedFileRight);
       const hasSurgery = !!surgeryEl.value;
-      const kneeChecked = !!document.querySelector('input[name="knee_side"]:checked');
+      const kneeChecked = !!side;
       const weeksOk = surgeryEl.value === 'none' || surgeryEl.value === '' ||
         (weeksEl.value !== '' && parseInt(weeksEl.value) >= 0);
       submitBtn.disabled = !(hasFile && hasSurgery && kneeChecked && weeksOk);
@@ -1696,9 +627,14 @@
           kneeSide: kneeSide,
           surgeryType: surgeryType,
           weeksPostOp: weeksVal,
+          imageRight: kneeSide === 'both' ? selectedFileRight : null,
+          // Worth the extra second here: this is the one screen where someone
+          // is deciding whether to believe the grade.
+          explain: true,
         });
 
         hideLoading();
+        if (data.prescription_id) keepXray(data.prescription_id, selectedFile, selectedFileRight);
         renderResults(data);
 
       } catch (err) {
@@ -1723,8 +659,206 @@
     }
 
     // ── Render results ─────────────────────────────────────────────────────
+    // The analysis as returned, and which knee is currently on screen. For a
+    // bilateral result the two knees have different grades, different ceilings
+    // and different exercise limits, so "the results" is genuinely two answers.
+    let lastAnalysis = null;
+    let shownSide = null;
+
+    /**
+     * Merge one side's readings over the flat response.
+     *
+     * The flat fields carry the more restricted knee, so rendering them for the
+     * better knee would understate what it is allowed to do. Everything not
+     * specific to a side — the phase, the rationale, the disclaimer — is shared.
+     */
+    function viewForSide(data, side) {
+      if (!data.bilateral || !side) return data;
+      const chosen = data.sides.find(s => s.knee_side === side);
+      return chosen ? { ...data, ...chosen } : data;
+    }
+
+    function renderSideTabs(data) {
+      const tabs = document.getElementById('side-tabs');
+      tabs.innerHTML = '';
+
+      if (!data.bilateral) {
+        tabs.classList.add('hidden');
+        return;
+      }
+
+      for (const side of data.sides) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'side-tab';
+        btn.setAttribute('role', 'tab');
+        btn.setAttribute('aria-selected', String(side.knee_side === shownSide));
+
+        const name = document.createElement('span');
+        name.textContent = side.knee_side === 'left' ? 'Left knee' : 'Right knee';
+
+        // The number that differs is the one worth showing on the tab itself.
+        const limit = document.createElement('span');
+        limit.className = 'side-tab-limit';
+        limit.textContent = `grade ${side.kl_grade} · safe to ${side.max_angle}°`;
+
+        btn.append(name, limit);
+        btn.addEventListener('click', () => {
+          shownSide = side.knee_side;
+          renderResults(lastAnalysis);
+        });
+        tabs.appendChild(btn);
+      }
+      tabs.classList.remove('hidden');
+    }
+
+    // ── Coming back from the tracker ───────────────────────────────────────
+    // Starting an exercise leaves this page, and coming back loaded an empty
+    // upload form: the only route to the second exercise in the plan was to
+    // upload the same X-ray again, which also filed another prescription
+    // against the account. The analysis is kept for the tab session so the
+    // plan is still here on return.
+    //
+    // sessionStorage, not localStorage: it dies with the tab, so nobody is
+    // shown a movement ceiling from last week. A new analysis overwrites it and
+    // "Analyse a different X-ray" clears it. The heat map is not restored — it
+    // is drawn over the uploaded file, which the browser no longer has.
+    const PLAN_KEY = 'physioai_last_analysis';
+
+    function rememberPlan(data) {
+      try { sessionStorage.setItem(PLAN_KEY, JSON.stringify(data)); }
+      catch { /* storage full or blocked; the plan just is not kept */ }
+    }
+
+    function forgetPlan() {
+      try { sessionStorage.removeItem(PLAN_KEY); } catch { /* nothing to clear */ }
+    }
+
+    function restorePlan() {
+      let data = null;
+      try {
+        // Only for someone coming back from an exercise. Opening this page to
+        // grade a new film should still open on the form, not on an old plan,
+        // and that key is written by launchTracker() and by nothing else.
+        if (!sessionStorage.getItem('physioai_current_exercise')) return;
+        data = JSON.parse(sessionStorage.getItem(PLAN_KEY) || 'null');
+      } catch { forgetPlan(); }
+      if (!data || !data.exercise_list) return false;
+      document.getElementById('upload-panel').style.display = 'none';
+      renderResults(data);
+      return true;
+    }
+
+    // ── The X-ray, kept on this device ─────────────────────────────────────
+    // The server keeps the reading and the heat map, but never the image, so a
+    // plan reopened on a later visit had a heat map with nothing to lay it on.
+    // The file is kept here instead: in this browser's IndexedDB, keyed by the
+    // prescription it produced. It never leaves the device. Another browser, a
+    // private window or cleared site data simply shows the plan without it.
+    const XRAY_DB = 'physioai-xrays';
+    let keptFiles = null;   // { file, fileRight } read back for a reopened plan
+
+    function xrayStore(mode) {
+      return new Promise((resolve, reject) => {
+        const open = indexedDB.open(XRAY_DB, 1);
+        open.onupgradeneeded = () => open.result.createObjectStore('xrays');
+        open.onsuccess = () => resolve(open.result.transaction('xrays', mode).objectStore('xrays'));
+        open.onerror = () => reject(open.error);
+      });
+    }
+
+    async function keepXray(prescriptionId, file, fileRight) {
+      try { (await xrayStore('readwrite')).put({ file, fileRight }, prescriptionId); }
+      catch { /* storage blocked: the plan still reopens, without the picture */ }
+    }
+
+    async function findXray(prescriptionId) {
+      try {
+        const store = await xrayStore('readonly');
+        return await new Promise((resolve) => {
+          const get = store.get(prescriptionId);
+          get.onsuccess = () => resolve(get.result || null);
+          get.onerror = () => resolve(null);
+        });
+      } catch { return null; }
+    }
+
+    // After a plan is drawn without the file in hand (back from the tracker, or
+    // reopened from the account), look for the copy kept on this device.
+    async function showKeptXray() {
+      if (selectedFile || !lastAnalysis || !lastAnalysis.prescription_id) return;
+      keptFiles = await findXray(lastAnalysis.prescription_id);
+      if (keptFiles) renderExplanation(viewForSide(lastAnalysis, shownSide));
+    }
+
+    // ── The plan from a previous visit ─────────────────────────────────────
+    // The tab-session copy above dies with the tab, so signing in the next day
+    // used to open an empty form: the only route back to the exercises was to
+    // upload the same X-ray again, filing a second prescription for one knee.
+    // A signed-in patient's plan is already on the server, so read it back.
+    //
+    // Still not localStorage: this is fetched per visit, so a plan a clinician
+    // has since changed arrives changed, and a deleted account has nothing to
+    // read. The date is stated on the page, because a ceiling from six weeks
+    // ago belongs to a phase the patient may have left.
+    //
+    // Only for upload.html?view=plan, the dashboard's "My plan". Its "Upload an
+    // X-ray" opens this page plain, and someone who asked to upload gets the form.
+    async function loadSavedPlan() {
+      if (!window.PhysioAPI || !PhysioAPI.isSignedIn()) return;
+      if (new URLSearchParams(location.search).get('view') !== 'plan') return;
+      try {
+        const { prescriptions } = await PhysioAPI.myPrescriptions({ limit: 1 });
+        const latest = prescriptions && prescriptions[0];
+        if (!latest) return;
+
+        const saved = await PhysioAPI.getMyPrescription(latest.id);
+        // The stored payload predates its own row, so it carries no id. The
+        // tracker needs one to file each set against the right prescription.
+        const data = Object.assign({}, saved.payload, { prescription_id: saved.id });
+        if (!data.exercise_list) return;
+
+        document.getElementById('upload-panel').style.display = 'none';
+        renderResults(data);
+        showSavedBanner(saved.created_at);
+        showKeptXray();
+      } catch {
+        // Offline, or the session expired: the upload form is still there.
+      }
+    }
+
+    function showSavedBanner(createdAt) {
+      const when = new Date(createdAt);
+      const days = Math.floor((Date.now() - when.getTime()) / 86400000);
+      const date = when.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+      const weeks = Math.floor(days / 7);
+      const banner = document.getElementById('saved-banner');
+
+      document.getElementById('saved-banner-title').textContent =
+        `Your plan from your X-ray on ${date}`;
+      document.getElementById('saved-banner-text').textContent = weeks >= 4
+        ? `That was ${weeks} weeks ago, so this plan was built for an earlier stage of your recovery. Analyse a new X-ray, or ask your physiotherapist, before working to these limits.`
+        : 'Start any exercise below. Analyse a new X-ray whenever your knee has moved on.';
+      banner.classList.toggle('stale', weeks >= 4);
+      banner.classList.add('visible');
+    }
+
     function renderResults(data) {
+      rememberPlan(data);
+      lastAnalysis = data;
       currentPrescriptionId = data.prescription_id || null;
+
+      // Default to the more restricted knee — the same one the flat fields
+      // describe, so nothing changes meaning between first paint and a tap.
+      if (data.bilateral && !data.sides.some(s => s.knee_side === shownSide)) {
+        shownSide = data.sides.reduce((a, b) => (a.max_angle <= b.max_angle ? a : b)).knee_side;
+      }
+
+      renderSideTabs(data);
+      data = viewForSide(data, shownSide);
+
+      renderDistribution(data);
+      renderExplanation(data);
 
       // Update nav steps
       document.getElementById('step1-indicator').className = 'nav-step done';
@@ -1864,6 +998,120 @@
     // above, and they are not interchangeable: the model can be unsure (low
     // band), the number itself can be unvalidated (uncalibrated), or the image
     // can be outside what the model was trained on (OOD).
+    /**
+     * Show the Grad-CAM overlay, if one came back.
+     *
+     * Absent in demo mode, and absent whenever the overlay could not be
+     * produced — the analysis is the point and the picture is a courtesy, so a
+     * missing one is simply not mentioned rather than explained away.
+     */
+    function renderExplanation(data) {
+      const panel = document.getElementById('looked');
+      // Both knees means two films, and the heat map belongs to the one on
+      // screen: the right tab used to draw the right knee's heat over the left
+      // knee's film. A single right-knee upload has no fileRight and uses file.
+      const files = selectedFile ? { file: selectedFile, fileRight: selectedFileRight } : keptFiles;
+      const image = files && ((data.knee_side === 'right' && files.fileRight) || files.file);
+      if (!data.explanation || !image) {
+        panel.classList.add('hidden');
+        return;
+      }
+
+      const xray = document.getElementById('looked-xray');
+      xray.src = URL.createObjectURL(image);
+
+      const heat = document.getElementById('looked-heat');
+      heat.src = data.explanation;
+
+      const slider = document.getElementById('looked-opacity');
+      const apply = () => { heat.style.opacity = String(slider.value / 100); };
+      slider.oninput = apply;
+      apply();
+
+      panel.classList.remove('hidden');
+    }
+
+    const GRADE_NAMES = ['Normal', 'Doubtful', 'Minimal', 'Moderate', 'Severe'];
+
+    /**
+     * Draw the probability the model assigned to every grade.
+     *
+     * A single confidence number collapses this to its largest bar. That hides
+     * the two cases worth seeing: a model that is torn between adjacent grades
+     * (common, and mostly harmless — the answer is nearby) and one whose mass is
+     * scattered across the scale (rare, and a reason to distrust the reading).
+     */
+    function renderDistribution(data) {
+      const panel = document.getElementById('dist');
+      const probs = data.grade_probabilities || [];
+
+      // Nothing to draw is not an error — an older stored analysis has no
+      // distribution, and a bar chart of zeroes would be a lie.
+      if (probs.length !== 5 || probs.every(p => !p)) {
+        panel.classList.add('hidden');
+        return;
+      }
+
+      const chosen = data.kl_grade;
+      const peak = Math.max(...probs);
+      const rows = document.getElementById('dist-rows');
+      rows.innerHTML = '';
+
+      probs.forEach((p, grade) => {
+        const row = document.createElement('div');
+        row.className = 'dist-row'
+          + (grade === chosen ? ' chosen' : '')
+          + (Math.abs(grade - chosen) === 1 ? ' neighbour' : '');
+
+        const label = document.createElement('div');
+        label.className = 'dist-label';
+        label.textContent = `Grade ${grade} · ${GRADE_NAMES[grade]}`;
+
+        const track = document.createElement('div');
+        track.className = 'dist-track';
+        const fill = document.createElement('div');
+        fill.className = 'dist-fill';
+        // Scaled to the tallest bar, not to 1.0: at 30% top confidence every
+        // bar would otherwise be a stub and the shape would be unreadable.
+        fill.style.width = `${peak > 0 ? (p / peak) * 100 : 0}%`;
+        track.appendChild(fill);
+
+        const value = document.createElement('div');
+        value.className = 'dist-value';
+        value.textContent = `${(p * 100).toFixed(0)}%`;
+
+        row.append(label, track, value);
+        rows.appendChild(row);
+      });
+
+      const near = Math.round((data.within_one_grade || 0) * 100);
+      const runnerUp = probs
+        .map((p, g) => ({ p, g }))
+        .filter(x => x.g !== chosen)
+        .sort((a, b) => b.p - a.p)[0];
+
+      document.getElementById('dist-sub').textContent =
+        `The model settled on grade ${chosen}, but it considered all five. `
+        + (runnerUp && runnerUp.p > 0.15
+          ? `Grade ${runnerUp.g} was its next best answer, at ${(runnerUp.p * 100).toFixed(0)}%.`
+          : 'The rest carried little weight.');
+
+      // The number that describes the reading at the scale the ceiling moves:
+      // adjacent grades are 15-30° apart, distant ones are a different plan.
+      const foot = document.getElementById('dist-foot');
+      foot.innerHTML = '';
+      const strong = document.createElement('strong');
+      strong.textContent = `${near}% within one grade. `;
+      foot.appendChild(strong);
+      foot.appendChild(document.createTextNode(
+        near >= 85
+          ? 'Even if the exact grade is off by one, the safe ceiling would barely move.'
+          : 'The model is spread across the scale here — worth having a physiotherapist confirm the ceiling before relying on it.'
+      ));
+
+      panel.classList.remove('hidden');
+    }
+
     function renderConfidenceNote(data) {
       const box = document.getElementById('confidence-note');
       const notes = [];
@@ -1953,6 +1201,10 @@
     let currentPrescriptionId = null;
 
     function launchTracker(exercise, kneeSide, phaseLabel) {
+      // 'both' is not a leg. The tracker picks landmarks from one side, so it
+      // gets the knee whose limits are being shown — which is also the knee
+      // whose angle_limit is on this exercise.
+      if (kneeSide === 'both') kneeSide = shownSide || 'right';
       sessionStorage.setItem('physioai_current_exercise', JSON.stringify(exercise));
       sessionStorage.setItem('physioai_knee_side', kneeSide);
       sessionStorage.setItem('physioai_phase_label', phaseLabel);
@@ -2047,6 +1299,11 @@
     }
 
     function resetForm() {
+      shownSide = null;
+      lastAnalysis = null;
+      forgetPlan();
+      // The exercise handover belongs to the plan being replaced.
+      try { sessionStorage.removeItem('physioai_current_exercise'); } catch { /* nothing to clear */ }
       // Reset all UI
       clearFile();
       surgeryEl.value = '';
@@ -2056,6 +1313,9 @@
       document.getElementById('results').classList.remove('visible');
       document.getElementById('upload-panel').style.display = 'block';
       document.getElementById('demo-banner').classList.remove('visible');
+      document.getElementById('saved-banner').classList.remove('visible');
+      keptFiles = null;
+      history.replaceState(null, '', location.pathname);
       hideError();
       validateForm();
 
@@ -2064,6 +1324,27 @@
       document.getElementById('step2-indicator').className = 'nav-step';
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Back from the tracker: show the plan they left rather than a blank form.
+    // Failing that, a signed-in patient gets the plan saved against the account.
+    if (restorePlan()) showKeptXray();
+    else loadSavedPlan();
+  </script>
+  <script>
+    // Installable, and able to open without a connection. The worker caches the
+    // app shell only — never an API response, because a cached prescription is
+    // a cached movement ceiling. See sw.js.
+    // localhost is a secure context too, and gating on https alone meant the
+    // entire offline path went live having never once run in development.
+    const secureEnough = location.protocol === 'https:'
+      || ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+    if ('serviceWorker' in navigator && secureEnough) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {
+          // An app that works is more important than one that works offline.
+        });
+      });
     }
   </script>
 </body>

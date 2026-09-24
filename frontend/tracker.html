@@ -6,847 +6,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Exercise Tracker — Knee-Physiotherapy</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="assets/theme.css">
-  <style>
-
-    html,
-    body {
-      height: 100%;
-    }
-
-    body {
-      font-family: var(--body);
-      color: var(--text);
-      background: var(--navy);
-      overflow: hidden;
-    }
-
-    /* ── Top bar ─────────────────────────────────────────────────────── */
-    .topbar {
-      height: 56px;
-      background: rgba(0, 0, 0, .3);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 24px;
-      position: relative;
-      z-index: 50;
-    }
-
-    .topbar-left {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .back-btn {
-      color: rgba(255, 255, 255, .7);
-      text-decoration: none;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: color .2s;
-    }
-
-    .back-btn:hover {
-      color: var(--white);
-    }
-
-    .exercise-title {
-      font-family: var(--display);
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--white);
-    }
-
-    .topbar-right {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .phase-chip {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--teal-light);
-      background: rgba(var(--teal-rgb),.15);
-      border: 1px solid rgba(var(--teal-rgb),.3);
-      border-radius: 100px;
-      padding: 4px 12px;
-    }
-
-    /* ── Main stage ──────────────────────────────────────────────────── */
-    .stage {
-      position: relative;
-      width: 100%;
-      height: calc(100vh - 56px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #000;
-    }
-
-    #video {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transform: scaleX(-1);
-      /* mirror like a real mirror */
-    }
-
-    #overlay-canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      transform: scaleX(-1);
-      pointer-events: none;
-    }
-
-    /* ── Pre-start overlay ───────────────────────────────────────────── */
-    .pre-start {
-      position: absolute;
-      inset: 0;
-      background: rgba(var(--navy-rgb),.92);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 40;
-      text-align: center;
-      padding: 24px;
-    }
-
-    .pre-start.hidden {
-      display: none;
-    }
-
-    .pre-start-icon {
-      font-size: 56px;
-      margin-bottom: 20px;
-    }
-
-    .pre-start-title {
-      font-family: var(--display);
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--white);
-      margin-bottom: 10px;
-    }
-
-    .pre-start-desc {
-      font-size: 15px;
-      color: rgba(255, 255, 255, .6);
-      max-width: 420px;
-      line-height: 1.7;
-      margin-bottom: 28px;
-    }
-
-    .pre-start-limit {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(var(--teal-rgb),.15);
-      border: 1px solid rgba(var(--teal-rgb),.35);
-      border-radius: 10px;
-      padding: 10px 20px;
-      font-family: var(--mono);
-      font-size: 14px;
-      color: var(--teal-light);
-      margin-bottom: 28px;
-    }
-
-    .btn-start-cam {
-      padding: 14px 32px;
-      background: var(--teal);
-      border: none;
-      border-radius: 10px;
-      font-family: var(--display);
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--white);
-      cursor: pointer;
-      transition: background .2s, transform .15s;
-    }
-
-    .btn-start-cam:hover {
-      background: var(--teal-light);
-      transform: translateY(-1px);
-    }
-
-    /* ── Pain and exertion ────────────────────────────────────────────
-       A row of eleven buttons rather than a slider: a slider has to be dragged
-       to a value the patient then has to read back, while these are one tap and
-       the chosen number stays legible. 0–10 is the Numeric Pain Rating Scale and
-       Borg CR10 both, so the same control serves both questions. */
-    .rating-block {
-      width: 100%;
-      max-width: 460px;
-      margin: 0 auto 20px;
-      text-align: left;
-    }
-
-    .rating-label {
-      font-size: 13px;
-      font-weight: 600;
-      color: rgba(255, 255, 255, .85);
-      margin-bottom: 3px;
-    }
-
-    .rating-hint {
-      font-size: 11.5px;
-      color: rgba(255, 255, 255, .4);
-      margin-bottom: 10px;
-    }
-
-    .rating-scale {
-      display: grid;
-      grid-template-columns: repeat(11, 1fr);
-      gap: 4px;
-    }
-
-    .rating-btn {
-      padding: 8px 0;
-      border: 1px solid rgba(255, 255, 255, .16);
-      border-radius: 7px;
-      background: rgba(255, 255, 255, .05);
-      font-family: var(--mono);
-      font-size: 12px;
-      color: rgba(255, 255, 255, .65);
-      cursor: pointer;
-      transition: background .15s, color .15s, border-color .15s;
-    }
-
-    .rating-btn:hover {
-      background: rgba(255, 255, 255, .12);
-      color: var(--white);
-    }
-
-    .rating-btn[aria-pressed="true"] {
-      background: var(--teal);
-      border-color: var(--teal-light);
-      color: var(--white);
-      font-weight: 600;
-    }
-
-    .rating-btn:focus-visible {
-      outline: 2px solid var(--teal-light);
-      outline-offset: 2px;
-    }
-
-    .rating-ends {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 5px;
-      font-size: 10.5px;
-      color: rgba(255, 255, 255, .35);
-    }
-
-    /* Every rating is optional. Saying so where it is asked stops it reading as
-       a form to be completed before the camera will start. */
-    .rating-optional {
-      font-size: 11px;
-      color: rgba(255, 255, 255, .32);
-      text-align: center;
-      margin-bottom: 14px;
-    }
-
-    .cam-permission-note {
-      margin-top: 16px;
-      font-size: 12px;
-      color: rgba(255, 255, 255, .4);
-    }
-
-    /* ── Loading state (model downloading) ──────────────────────────── */
-    .model-loading {
-      position: absolute;
-      inset: 0;
-      background: rgba(var(--navy-rgb),.92);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 45;
-    }
-
-    .model-loading.hidden {
-      display: none;
-    }
-
-    .loading-spinner-cam {
-      width: 44px;
-      height: 44px;
-      border: 3px solid rgba(255, 255, 255, .15);
-      border-top-color: var(--teal);
-      border-radius: 50%;
-      animation: spin .8s linear infinite;
-      margin-bottom: 18px;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    .model-loading-text {
-      color: rgba(255, 255, 255, .6);
-      font-size: 14px;
-    }
-
-    /* ── Camera setup gate ───────────────────────────────────────────── */
-    /* A knee angle computed from 2D landmarks is only valid when the camera
-       sees the leg side-on. Square to the camera, femur and tibia project onto
-       nearly the same line and a knee bent to 90 degrees reads close to 0 — the
-       ceiling is never crossed and the alarm never fires. This overlay holds
-       the session until the view is verified, and returns if it is lost. */
-    .setup-overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(var(--navy-rgb),.92);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 44;
-      text-align: center;
-      padding: 24px;
-    }
-
-    .setup-overlay.hidden {
-      display: none;
-    }
-
-    .setup-icon {
-      font-size: 48px;
-      margin-bottom: 18px;
-    }
-
-    .setup-title {
-      font-family: var(--display);
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--white);
-      margin-bottom: 10px;
-    }
-
-    .setup-hint {
-      font-size: 14px;
-      color: rgba(255, 255, 255, .55);
-      max-width: 400px;
-      line-height: 1.7;
-      margin-bottom: 22px;
-    }
-
-    .setup-status {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 46px;
-      max-width: 430px;
-      padding: 12px 22px;
-      border-radius: 10px;
-      font-family: var(--mono);
-      font-size: 13px;
-      line-height: 1.5;
-      color: var(--teal-light);
-      background: rgba(var(--teal-rgb),.15);
-      border: 1px solid rgba(var(--teal-rgb),.35);
-    }
-
-    .setup-status.blocked {
-      color: #fbbf24;
-      background: rgba(251, 191, 36, .12);
-      border-color: rgba(251, 191, 36, .35);
-    }
-
-    .setup-progress {
-      width: 220px;
-      height: 4px;
-      margin-top: 20px;
-      background: rgba(255, 255, 255, .12);
-      border-radius: 100px;
-      overflow: hidden;
-    }
-
-    .setup-progress-fill {
-      width: 0;
-      height: 100%;
-      background: var(--teal-light);
-      border-radius: 100px;
-      transition: width .12s linear;
-    }
-
-    .setup-skip {
-      margin-top: 26px;
-      background: none;
-      border: none;
-      font-family: var(--body);
-      font-size: 12px;
-      color: rgba(255, 255, 255, .38);
-      text-decoration: underline;
-      cursor: pointer;
-    }
-
-    .setup-skip:hover {
-      color: rgba(255, 255, 255, .65);
-    }
-
-    .setup-skip.hidden {
-      display: none;
-    }
-
-    /* Persistent banner for a session the patient chose to run unverified. */
-    .view-warn {
-      position: absolute;
-      top: 72px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 46;
-      display: none;
-      align-items: flex-start;
-      gap: 10px;
-      max-width: min(92vw, 470px);
-      padding: 10px 18px;
-      border-radius: 10px;
-      background: rgba(251, 191, 36, .95);
-      color: #3a2c05;
-      font-size: 12.5px;
-      font-weight: 600;
-      line-height: 1.5;
-      text-align: left;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, .3);
-    }
-
-    .view-warn.visible {
-      display: flex;
-    }
-
-    /* ── HUD (heads-up display) ──────────────────────────────────────── */
-    .hud {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      z-index: 30;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: 20px;
-    }
-
-    .hud.hidden {
-      display: none;
-    }
-
-    .hud-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-    }
-
-    /* Angle readout card */
-    .angle-card {
-      background: rgba(0, 0, 0, .55);
-      backdrop-filter: blur(8px);
-      border-radius: 16px;
-      padding: 16px 22px;
-      text-align: center;
-      min-width: 140px;
-    }
-
-    .angle-value {
-      font-family: var(--mono);
-      font-size: 40px;
-      font-weight: 600;
-      color: var(--white);
-      line-height: 1;
-      transition: color .15s;
-    }
-
-    .angle-value.warning {
-      color: #fbbf24;
-    }
-
-    .angle-value.danger {
-      color: #fca5a5;
-    }
-
-    .angle-sub {
-      font-size: 11px;
-      color: rgba(255, 255, 255, .5);
-      margin-top: 4px;
-      font-family: var(--mono);
-    }
-
-    /* Limit card */
-    .limit-card {
-      background: rgba(0, 0, 0, .55);
-      backdrop-filter: blur(8px);
-      border-radius: 16px;
-      padding: 16px 22px;
-      text-align: center;
-      min-width: 140px;
-    }
-
-    .limit-value {
-      font-family: var(--mono);
-      font-size: 28px;
-      font-weight: 600;
-      color: var(--teal-light);
-      line-height: 1;
-    }
-
-    .limit-sub {
-      font-size: 11px;
-      color: rgba(255, 255, 255, .5);
-      margin-top: 4px;
-      font-family: var(--mono);
-    }
-
-    /* Rep counter (bottom center) */
-    .rep-card {
-      align-self: center;
-      background: rgba(0, 0, 0, .55);
-      backdrop-filter: blur(8px);
-      border-radius: 16px;
-      padding: 14px 32px;
-      text-align: center;
-      pointer-events: auto;
-    }
-
-    .rep-value {
-      font-family: var(--mono);
-      font-size: 22px;
-      font-weight: 600;
-      color: var(--white);
-    }
-
-    .rep-sub {
-      font-size: 11px;
-      color: rgba(255, 255, 255, .5);
-      margin-top: 2px;
-    }
-
-    .set-progress {
-      display: flex;
-      gap: 5px;
-      justify-content: center;
-      margin-top: 8px;
-    }
-
-    .set-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, .2);
-    }
-
-    .set-dot.done {
-      background: var(--teal-light);
-    }
-
-    .set-dot.current {
-      background: var(--white);
-    }
-
-    /* Hold timer ring (for isometric exercises) */
-    .hold-ring-wrap {
-      position: relative;
-      width: 90px;
-      height: 90px;
-      margin: 0 auto 6px;
-    }
-
-    .hold-ring-svg {
-      transform: rotate(-90deg);
-    }
-
-    .hold-ring-bg {
-      fill: none;
-      stroke: rgba(255, 255, 255, .15);
-      stroke-width: 6;
-    }
-
-    .hold-ring-fg {
-      fill: none;
-      stroke: var(--teal-light);
-      stroke-width: 6;
-      stroke-linecap: round;
-      transition: stroke-dashoffset .1s linear;
-    }
-
-    .hold-ring-text {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: var(--mono);
-      font-size: 22px;
-      font-weight: 600;
-      color: var(--white);
-    }
-
-    /* Confidence / tracking quality indicator */
-    .tracking-status {
-      position: absolute;
-      bottom: 20px;
-      right: 20px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(0, 0, 0, .5);
-      border-radius: 100px;
-      padding: 6px 14px;
-      font-size: 11px;
-      color: rgba(255, 255, 255, .6);
-      pointer-events: none;
-    }
-
-    .tracking-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #22c55e;
-    }
-
-    .tracking-dot.poor {
-      background: #fbbf24;
-    }
-
-    .tracking-dot.lost {
-      background: #ef4444;
-    }
-
-    /* ── SAFETY ALERT — full red screen ──────────────────────────────── */
-    .safety-overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(220, 38, 38, 0.75);
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 60;
-      text-align: center;
-      padding: 24px;
-    }
-
-    .safety-overlay.active {
-      display: flex;
-      animation: safetyPulse 0.25s ease-in-out infinite alternate;
-    }
-
-    @keyframes safetyPulse {
-      from {
-        background: rgba(220, 38, 38, 0.6);
-      }
-
-      to {
-        background: rgba(220, 38, 38, 0.9);
-      }
-    }
-
-    .safety-icon-big {
-      font-size: 64px;
-      margin-bottom: 16px;
-    }
-
-    .safety-text-main {
-      color: white;
-      font-family: var(--display);
-      font-size: clamp(24px, 5vw, 40px);
-      font-weight: 800;
-      text-align: center;
-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-      margin-bottom: 10px;
-    }
-
-    .safety-text-sub {
-      color: rgba(255, 255, 255, 0.95);
-      font-size: 16px;
-      font-family: var(--mono);
-    }
-
-    .safety-angle-readout {
-      margin-top: 20px;
-      font-family: var(--mono);
-      font-size: 48px;
-      font-weight: 700;
-      color: white;
-    }
-
-    /* Paused state (after 500ms sustained breach) */
-    .paused-panel {
-      display: none;
-      margin-top: 24px;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .paused-panel.visible {
-      display: flex;
-    }
-
-    .paused-label {
-      font-family: var(--mono);
-      font-size: 13px;
-      color: rgba(255, 255, 255, .9);
-      background: rgba(0, 0, 0, .25);
-      padding: 6px 16px;
-      border-radius: 100px;
-    }
-
-    .btn-resume {
-      padding: 12px 32px;
-      background: white;
-      border: none;
-      border-radius: 10px;
-      font-family: var(--display);
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--red);
-      cursor: pointer;
-      transition: transform .15s;
-    }
-
-    .btn-resume:hover {
-      transform: translateY(-1px) scale(1.02);
-    }
-
-    /* ── Completion panel ────────────────────────────────────────────── */
-    .complete-panel {
-      position: absolute;
-      inset: 0;
-      background: rgba(var(--navy-rgb),.95);
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 70;
-      text-align: center;
-      padding: 24px;
-    }
-
-    .complete-panel.visible {
-      display: flex;
-    }
-
-    .complete-icon {
-      font-size: 56px;
-      margin-bottom: 16px;
-    }
-
-    .complete-title {
-      font-family: var(--display);
-      font-size: 26px;
-      font-weight: 700;
-      color: var(--white);
-      margin-bottom: 8px;
-    }
-
-    .complete-stats {
-      display: flex;
-      gap: 32px;
-      margin: 24px 0;
-    }
-
-    .complete-stat {
-      text-align: center;
-    }
-
-    .complete-stat-val {
-      font-family: var(--mono);
-      font-size: 28px;
-      font-weight: 600;
-      color: var(--teal-light);
-    }
-
-    .complete-stat-label {
-      font-size: 12px;
-      color: rgba(255, 255, 255, .5);
-      margin-top: 2px;
-    }
-
-    .complete-actions {
-      display: flex;
-      gap: 12px;
-      margin-top: 12px;
-    }
-
-    .btn-complete-primary {
-      padding: 13px 28px;
-      background: var(--teal);
-      border: none;
-      border-radius: 10px;
-      font-family: var(--display);
-      font-size: 14px;
-      font-weight: 600;
-      color: white;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-    }
-
-    .btn-complete-secondary {
-      padding: 13px 28px;
-      background: transparent;
-      border: 1.5px solid rgba(255, 255, 255, .25);
-      border-radius: 10px;
-      font-family: var(--body);
-      font-size: 14px;
-      font-weight: 500;
-      color: rgba(255, 255, 255, .8);
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-    }
-
-    @media (max-width: 640px) {
-      .topbar {
-        padding: 0 16px;
-      }
-
-      .exercise-title {
-        font-size: 14px;
-      }
-
-      .phase-chip {
-        display: none;
-      }
-
-      .hud {
-        padding: 12px;
-      }
-
-      .angle-card,
-      .limit-card {
-        padding: 10px 14px;
-        min-width: 100px;
-      }
-
-      .angle-value {
-        font-size: 28px;
-      }
-
-      .limit-value {
-        font-size: 20px;
-      }
-
-      .complete-stats {
-        gap: 20px;
-      }
-    }
-  </style>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#24322f">
+  <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="assets/tracker.css">
 </head>
 
 <body>
@@ -858,6 +26,10 @@
       <span class="exercise-title" id="exercise-title-text">Loading exercise…</span>
     </div>
     <div class="topbar-right">
+      <button class="voice-toggle" type="button" id="voice-toggle" aria-pressed="true">
+        <span id="voice-icon" aria-hidden="true">🔊</span>
+        <span id="voice-label">Voice on</span>
+      </button>
       <span class="phase-chip" id="phase-chip-text">—</span>
     </div>
   </div>
@@ -886,7 +58,7 @@
       </div>
       <div class="rating-optional">Optional — skip it and start whenever you like.</div>
 
-      <button class="btn-start-cam" id="start-cam-btn">Enable camera &amp; start →</button>
+      <button class="btn-start-cam" id="start-cam-btn">Enable camera &amp; start</button>
       <div class="cam-permission-note">Your browser will ask for camera permission. Nothing is uploaded or recorded.
       </div>
     </div>
@@ -952,7 +124,8 @@
             </svg>
             <div class="hold-ring-text" id="hold-ring-text">0s</div>
           </div>
-          <div class="rep-sub">HOLD — SET <span id="hold-set-current">1</span> OF <span id="hold-set-target">3</span>
+          <div class="rep-sub">HOLD <span id="hold-rep-current">0</span> / <span id="hold-rep-target">1</span>
+            — SET <span id="hold-set-current">1</span> OF <span id="hold-set-target">3</span>
           </div>
         </div>
       </div>
@@ -974,6 +147,29 @@
       <div class="paused-panel" id="paused-panel">
         <div class="paused-label">⏸ Session paused — angle exceeded limit for over 500ms</div>
         <button class="btn-resume" id="resume-btn">I've corrected my position — Resume</button>
+      </div>
+    </div>
+
+    <!-- Only shown when the device actually has more than one camera. -->
+    <button class="cam-switch" type="button" id="cam-switch">
+      <span aria-hidden="true">🔄</span>
+      <span id="cam-switch-label">Switch camera</span>
+    </button>
+
+    <!-- Form coaching. Amber, and never in place of the safety alarm. -->
+    <div class="form-tip" id="form-tip">
+      <span aria-hidden="true">👀</span>
+      <span id="form-tip-text"></span>
+    </div>
+
+    <!-- Rest between sets -->
+    <div class="rest-overlay" id="rest-overlay">
+      <div class="rest-label">Rest</div>
+      <div class="rest-count" id="rest-count">45</div>
+      <div class="rest-next" id="rest-next"></div>
+      <div class="rest-actions">
+        <button class="btn-rest" type="button" id="rest-add">+15s</button>
+        <button class="btn-rest primary" type="button" id="rest-skip">Skip rest</button>
       </div>
     </div>
 
@@ -1023,6 +219,7 @@
        already there by the time the module below executes. -->
   <script src="assets/config.js"></script>
   <script src="assets/api.js"></script>
+  <script src="assets/voice.js"></script>
 
   <!-- MediaPipe Tasks Vision (Pose Landmarker) — loaded from CDN -->
   <script type="module">
@@ -1043,6 +240,10 @@
       calcAnkleAngle,
     } from "./assets/pose-gate.js";
 
+    // Whether the movement is coming from the right place, as opposed to how far
+    // it went. See the module header for why knee valgus is not in here.
+    import { assessForm, captureBaseline, createFormMonitor } from "./assets/form-check.js";
+
     // ── Load exercise data passed from upload.html ─────────────────────────
     const exerciseData = JSON.parse(sessionStorage.getItem('physioai_current_exercise') || 'null');
     const kneeSide = sessionStorage.getItem('physioai_knee_side') || 'right';
@@ -1053,50 +254,102 @@
     // reads.
     const idx = landmarkIndices(kneeSide);
 
-    // Fallback demo data if page opened directly without navigating from upload.html
-    const exercise = exerciseData || {
-      name: "Mini Squat",
-      description: "Partial squat to 45–60° for safe quad loading.",
+    // Opened directly, with no prescription to work from.
+    //
+    // There used to be a "Mini Squat, 60°" fallback here so the page always had
+    // something to show. A ceiling is not a placeholder: 60° is 15° past what a
+    // KL 4 knee is allowed, and the alarm would happily sit quiet through all of
+    // it while the badge said "Demo mode". Nothing invents a limit any more —
+    // without a prescription there is no session, and ?demo=1 is the way to see
+    // the tracker work, held to the most cautious limit in the catalogue.
+    const demoRequested = new URLSearchParams(location.search).get("demo") === "1";
+    const DEMO_EXERCISE = {
+      name: "Quad Sets (Isometric)",
+      description: "Demonstration only — not a prescription. Tighten the thigh with the knee straight.",
       target_reps: 10,
       target_sets: 3,
-      angle_limit: 60,
-      hold_seconds: null,
+      angle_limit: 5,
+      hold_seconds: 10,
       tracked_joint: "knee",
-      hold_target: null,
+      hold_target: "straight",
       start_angle: null,
       hold_angle: null,
       angle_capped: false,
     };
+    const exercise = exerciseData || (demoRequested ? DEMO_EXERCISE : null);
+
+    if (!exercise) {
+      // Stop before anything reads exercise.angle_limit.
+      document.getElementById("pre-start-exercise-name").textContent = "No exercise selected";
+      document.getElementById("pre-start-desc").textContent =
+        "Your safe bending limit comes from your X-ray, so there is nothing to track yet. "
+        + "Analyse an X-ray to get your plan, then start an exercise from there.";
+      const startBtn = document.getElementById("start-cam-btn");
+      startBtn.textContent = "Analyse an X-ray";
+      startBtn.addEventListener("click", () => { location.href = "upload.html"; });
+      document.getElementById("pre-start-limit").textContent = "—";
+      document.getElementById("exercise-title-text").textContent = "No exercise selected";
+      throw new Error("tracker opened without a prescription");
+    }
 
     // Older cached sessionStorage payloads predate these fields — default them
     // so a stale tab can't fall back to the broken "bent past 15°" behaviour.
     const trackedJoint = exercise.tracked_joint || "knee";
     const holdTarget = exercise.hold_target || (exercise.hold_seconds ? "flexed" : null);
 
+    // The lowest limit the camera can hold anyone to. MediaPipe does not put
+    // hip, knee and ankle on one line even when the leg is locked straight:
+    // standing still on a webcam read 8-11° (measured 2026-09-23), so the 5°
+    // limit on Quad Sets and Straight Leg Raise alarmed and paused a straight
+    // leg. An alarm that goes off for nothing teaches the patient to ignore it.
+    // Must stay under 45°, the lowest X-ray ceiling (KL 4), or it would lift a
+    // real one. Kept here rather than in pose-gate.js: that file is served
+    // cache-first, and an old copy without it would make the limit NaN.
+    const CAMERA_LIMIT_FLOOR = 20;
+
+    // The limit the alarm actually enforces. Only differs from the prescription
+    // for the straight-leg exercises and Ankle Pumps. The recorded set still
+    // carries the prescribed exercise.angle_limit.
+    const alarmLimit = Math.max(exercise.angle_limit, CAMERA_LIMIT_FLOOR);
+
     // Angle the patient must reach and hold. Defaults to the safety limit, but
     // Seated Knee Extension is performed sitting at ~90° (its ceiling) while the
     // goal is to extend to 45° — there the two numbers are genuinely different.
     const holdAngle = (exercise.hold_angle ?? null) !== null
       ? exercise.hold_angle
-      : exercise.angle_limit;
+      : alarmLimit;
 
     const isHoldMode = !!exercise.hold_seconds;
+
+    // How many holds make up one set.
+    //
+    // Every isometric in the catalogue prescribes repeats: Quad Sets is 10
+    // holds of 10 s, three times; Straight Leg Raise 10 raises of 2 s. The
+    // tracker used to end the set after the FIRST hold, so a patient doing as
+    // they were told finished three raises instead of thirty — a tenth of the
+    // prescription, recorded as a completed session. Defaults to 1 for a stale
+    // sessionStorage payload with no target_reps in it.
+    const holdsPerSet = isHoldMode ? (exercise.target_reps || 1) : 0;
 
     document.getElementById('exercise-title-text').textContent = exercise.name;
     document.getElementById('phase-chip-text').textContent = rehabPhase || 'Demo mode';
     document.getElementById('pre-start-exercise-name').textContent = exercise.name;
     document.getElementById('pre-start-desc').textContent = exercise.description;
     document.getElementById('pre-start-limit').textContent =
-      `⚠ Safe angle limit: ${exercise.angle_limit}°` +
+      `⚠ Safe angle limit: ${alarmLimit}°` +
       (exercise.angle_capped ? ' (reduced by your X-ray)' : '') +
+      (alarmLimit > exercise.angle_limit
+        ? ` (your plan says ${exercise.angle_limit}°, finer than a camera can measure, so keep the knee straight)`
+        : '') +
       // Only worth saying when the hold target isn't just the limit itself.
-      (isHoldMode && holdAngle !== exercise.angle_limit
+      (isHoldMode && holdAngle !== alarmLimit
         ? ` · hold ${holdTarget === 'straight' ? 'at or under' : 'at'} ${holdAngle}°`
         : '');
-    document.getElementById('limit-readout').textContent = `${exercise.angle_limit}°`;
+    document.getElementById('limit-readout').textContent = `${alarmLimit}°`;
     document.getElementById('rep-target').textContent = exercise.target_reps;
     document.getElementById('set-target').textContent = exercise.target_sets;
     document.getElementById('hold-set-target').textContent = exercise.target_sets;
+    document.getElementById('hold-rep-target').textContent = holdsPerSet;
 
     if (isHoldMode) {
       document.getElementById('rep-mode').style.display = 'none';
@@ -1210,7 +463,7 @@
     const setupSkip = document.getElementById('setup-skip');
     const viewWarn = document.getElementById('view-warn');
 
-    safetySubText.textContent = `Your knee is past the safe limit of ${exercise.angle_limit}°`;
+    safetySubText.textContent = `Your knee is past the safe limit of ${alarmLimit}°`;
 
     // ── State ───────────────────────────────────────────────────────────────
     let poseLandmarker = null;
@@ -1222,7 +475,6 @@
     let currentSet = 1;
     let repStage = 'EXTENDED'; // EXTENDED -> FLEXING -> FLEXED -> EXTENDING -> EXTENDED
     let holdStartTime = null;
-    let holdSetComplete = 0;
 
     let breachStartTime = null;       // when the angle first exceeded the limit
     let isPaused = false;
@@ -1348,6 +600,72 @@
 
     const AUTO_PAUSE_MS = 500;
 
+    // ── Form ─────────────────────────────────────────────────────────────────
+    // Everything form-check measures is relative to how the patient was
+    // positioned to begin with, so the baseline is taken at the end of
+    // calibration — when they are set up, still, and about to start.
+    let formBaseline = null;
+    const formMonitor = createFormMonitor();
+    let formTipTimer = null;
+
+    function showFormTip(text) {
+      const tip = document.getElementById('form-tip');
+      document.getElementById('form-tip-text').textContent = text;
+      tip.classList.add('visible');
+      clearTimeout(formTipTimer);
+      // Cleared on a timer rather than when the fault stops: a correction the
+      // patient is in the middle of acting on should not vanish as they do it.
+      formTipTimer = setTimeout(() => tip.classList.remove('visible'), 5000);
+    }
+
+    function hideFormTip() {
+      clearTimeout(formTipTimer);
+      document.getElementById('form-tip').classList.remove('visible');
+    }
+
+    // ── Spoken cues ──────────────────────────────────────────────────────────
+    // What to say is decided in assets/voice.js; this only remembers what has
+    // already been said. Without that, a rep counter that flickers would make
+    // the coach stutter, and a breach lasting four seconds would repeat "ease
+    // off" at frame rate.
+    const spokenThisSet = new Set();
+
+    function say(cue) {
+      if (!cue || !window.PhysioVoice) return;
+      if (spokenThisSet.has(cue.key)) return;
+      spokenThisSet.add(cue.key);
+      PhysioVoice.speak(cue.text, { interrupt: Boolean(cue.interrupt) });
+    }
+
+    /** A new set, or a resumed one: everything is worth saying again. */
+    function resetSpeech() {
+      spokenThisSet.clear();
+    }
+
+    const voiceToggle = document.getElementById('voice-toggle');
+
+    function paintVoiceToggle() {
+      const on = window.PhysioVoice ? PhysioVoice.isEnabled() : false;
+      voiceToggle.setAttribute('aria-pressed', String(on));
+      document.getElementById('voice-icon').textContent = on ? '🔊' : '🔇';
+      document.getElementById('voice-label').textContent = on ? 'Voice on' : 'Voice off';
+    }
+
+    voiceToggle.addEventListener('click', () => {
+      if (!window.PhysioVoice) return;
+      PhysioVoice.setEnabled(!PhysioVoice.isEnabled());
+      paintVoiceToggle();
+      // Confirm out loud when switching on, so the patient knows it worked
+      // without having to look at the button they just pressed.
+      if (PhysioVoice.isEnabled()) PhysioVoice.speak('Voice on.');
+    });
+
+    if (window.PhysioVoice && !PhysioVoice.supported()) {
+      // Nothing to toggle if the browser cannot speak.
+      voiceToggle.style.display = 'none';
+    }
+    paintVoiceToggle();
+
     // ── Web Audio API — programmatic beep, no audio files needed ───────────
     function startAlarm() {
       if (alarmInterval) return;
@@ -1401,21 +719,124 @@
     let rafId = null;
     let trackingStopped = false;
 
+    // Which camera. The front one lets the patient read the setup guidance
+    // while they position themselves; the rear one is usually sharper once the
+    // phone is propped and they have stepped back. Remembered, because whichever
+    // works in someone's front room will work there again tomorrow.
+    let facingMode = 'user';
+    try {
+      facingMode = localStorage.getItem('physioai_camera') || 'user';
+    } catch { /* storage unavailable; the default is fine */ }
+
     async function startCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 960, height: 720, facingMode: 'user' },
+          // `ideal`, not `exact`: a laptop has no environment-facing camera, and
+          // an exact constraint would fail outright rather than falling back.
+          video: { width: { ideal: 960 }, height: { ideal: 720 }, facingMode: { ideal: facingMode } },
           audio: false,
         });
         cameraStream = stream;
         video.srcObject = stream;
         await new Promise(resolve => { video.onloadedmetadata = resolve; });
         video.play();
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        syncCanvasToVideo();
+        await offerCameraSwitch();
+        requestWakeLock();
       } catch (err) {
         alert('Camera access is required for exercise tracking. Please allow camera access and reload the page.');
         throw err;
+      }
+    }
+
+    /**
+     * Match the overlay canvas to the video.
+     *
+     * Called again on rotation: the track's dimensions change when a phone turns,
+     * and a canvas still sized for portrait draws the skeleton in the wrong place
+     * — which is the overlay a patient uses to check they are framed correctly.
+     */
+    function syncCanvasToVideo() {
+      if (!video.videoWidth || !video.videoHeight) return;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+    }
+
+    let orientationTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(orientationTimer);
+      // Debounced: a rotation fires resize repeatedly, and the track's new
+      // dimensions are not available on the first of them.
+      orientationTimer = setTimeout(syncCanvasToVideo, 250);
+    });
+
+    /** Show the switcher only if there is something to switch to. */
+    async function offerCameraSwitch() {
+      const button = document.getElementById('cam-switch');
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cameras = devices.filter(d => d.kind === 'videoinput');
+        if (cameras.length > 1) button.classList.add('visible');
+      } catch { /* no permission to enumerate; leave it hidden */ }
+    }
+
+    document.getElementById('cam-switch').addEventListener('click', async () => {
+      facingMode = facingMode === 'user' ? 'environment' : 'user';
+      try { localStorage.setItem('physioai_camera', facingMode); } catch { /* not remembered */ }
+
+      // Release the old track before asking for another: some phones will not
+      // hand out the second camera while the first is still open.
+      if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 960 }, height: { ideal: 720 }, facingMode: { ideal: facingMode } },
+          audio: false,
+        });
+        cameraStream = stream;
+        video.srcObject = stream;
+        await new Promise(resolve => { video.onloadedmetadata = resolve; });
+        video.play();
+        syncCanvasToVideo();
+      } catch {
+        showFormTip('Could not switch camera. Carrying on with the current one.');
+      }
+
+      // A different camera is a different viewpoint, so everything measured
+      // against the old one has to be taken again.
+      formBaseline = null;
+      formMonitor.reset();
+      resetAngleBuffers();
+      if (trackerState === 'TRACKING') {
+        // Back through the gate: the new camera may not be side-on at all.
+        trackerState = 'CALIBRATING';
+        sessionActive = false;
+        goodFrames = 0;
+        calibrationStartedAt = performance.now();
+        setupOverlay.classList.remove('hidden');
+        hud.classList.add('hidden');
+      }
+    });
+
+    // Keeping the screen on. A phone that sleeps mid-set stops the camera, and
+    // the patient finds out when they get up to look at it.
+    let wakeLock = null;
+
+    async function requestWakeLock() {
+      if (!('wakeLock' in navigator)) return;
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+      } catch { /* denied or unsupported; the session still runs */ }
+    }
+
+    // The lock is dropped whenever the tab is hidden, so it has to be retaken.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && !trackingStopped) requestWakeLock();
+    });
+
+    function releaseWakeLock() {
+      if (wakeLock) {
+        wakeLock.release().catch(() => {});
+        wakeLock = null;
       }
     }
 
@@ -1426,6 +847,11 @@
     // every frame until the tab closed.
     function releaseCamera() {
       trackingStopped = true;
+      // A countdown still ticking, or a queued utterance, would outlive the page
+      // the patient has already left.
+      clearInterval(restTimer);
+      restTimer = null;
+      if (window.PhysioVoice) PhysioVoice.cancel();
       if (rafId !== null) {
         cancelAnimationFrame(rafId);
         rafId = null;
@@ -1434,6 +860,8 @@
         cameraStream.getTracks().forEach(track => track.stop());
         cameraStream = null;
       }
+      releaseWakeLock();
+      document.getElementById('cam-switch').classList.remove('visible');
       video.srcObject = null;
       if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
@@ -1445,6 +873,23 @@
       angleHistory.push(newAngle);
       if (angleHistory.length > SMOOTHING_FRAMES) angleHistory.shift();
       return angleHistory.reduce((a, b) => a + b, 0) / angleHistory.length;
+    }
+
+    // What gets written down, as opposed to what drives the alarm.
+    //
+    // A five-frame mean is the right input for the alarm and the rep counter:
+    // it rides out landmark jitter. It is the wrong thing to *record*, because
+    // it also flattens the real thing. A knee that snapped to 120 degrees was
+    // being filed at 67, and a clinician reading that history sees a range the
+    // patient never reached. A median of three throws away a single bad frame
+    // just as well while following an actual movement, so the peak below is the
+    // peak that happened.
+    let peakHistory = [];
+    function peakAngle(newAngle) {
+      peakHistory.push(newAngle);
+      if (peakHistory.length > 3) peakHistory.shift();
+      const sorted = [...peakHistory].sort((a, b) => a - b);
+      return sorted[Math.floor(sorted.length / 2)];
     }
 
     // Separate buffer — the counting joint may differ from the knee, and
@@ -1473,6 +918,7 @@
     function resetAngleBuffers() {
       angleHistory = [];
       countAngleHistory = [];
+      peakHistory = [];
       repStage = 'EXTENDED';
       anklePhase = 'DORSI';
       holdStartTime = null;
@@ -1486,10 +932,21 @@
       goodFrames = 0;
       badFrames = 0;
       resetAngleBuffers();
+      resetSpeech();
+      formMonitor.reset();
       if (!setMetrics) startSetMetrics();
       setupOverlay.classList.add('hidden');
       hud.classList.remove('hidden');
       viewWarn.classList.toggle('visible', !viewVerified);
+
+      // Said once the view is verified rather than on the button press: this is
+      // the moment the patient can actually start, and they are already looking
+      // away from the screen by now.
+      if (window.PhysioVoice) {
+        PhysioVoice.speak(isHoldMode
+          ? `Hold for ${exercise.hold_seconds} seconds when you are ready.`
+          : `Ready. ${exercise.target_reps} reps, ${exercise.target_sets} sets.`);
+      }
     }
 
     function suspendForView(view) {
@@ -1512,6 +969,11 @@
       // Blank rather than freeze the readout — a stale number looks live.
       angleReadout.textContent = '—';
       angleReadout.className = 'angle-value';
+      // Tracking has stopped: a posture note from the last good frame would be
+      // advice about a position nobody can see any more.
+      hideFormTip();
+      formMonitor.reset();
+      formBaseline = null;
 
       setupIcon.textContent = '⏸';
       setupTitle.textContent = 'Tracking paused';
@@ -1561,7 +1023,7 @@
 
     // ── Safety state machine ─────────────────────────────────────────────────
     function handleSafetyCheck(angle) {
-      const overLimit = angle > exercise.angle_limit;
+      const overLimit = angle > alarmLimit;
       markBreach(overLimit);
 
       if (overLimit) {
@@ -1569,6 +1031,9 @@
           safetyOverlay.classList.add('active');
           startAlarm();
           alertCount++;
+          // The reason this feature exists. A red screen behind someone looking
+          // at their own knee is an alarm that has already failed.
+          say(PhysioVoice ? PhysioVoice.cueForBreach(alarmLimit) : null);
         }
         safetyAngleReadout.textContent = Math.round(angle) + '°';
 
@@ -1583,6 +1048,11 @@
         // Cleared — reset immediately, no lag
         breachStartTime = null;
         if (!isPaused) {
+          if (safetyOverlay.classList.contains('active')) {
+            spokenThisSet.delete('breach');
+            say(PhysioVoice ? PhysioVoice.cueForBreachCleared() : null);
+            spokenThisSet.delete('breach-clear');
+          }
           safetyOverlay.classList.remove('active');
           stopAlarm();
         }
@@ -1593,6 +1063,8 @@
       isPaused = false;
       sessionActive = true;
       breachStartTime = null;
+      // The breach warning is worth hearing again if it happens again.
+      resetSpeech();
       // Start the movement cycle cleanly: the patient stopped mid-rep, so
       // leaving repStage where it was can complete a rep they never finished,
       // and the smoothing buffers still hold pre-breach angles.
@@ -1600,6 +1072,7 @@
       holdStartTime = null;
       angleHistory = [];
       countAngleHistory = [];
+      peakHistory = [];
       pausedPanel.classList.remove('visible');
       safetyOverlay.classList.remove('active');
       stopAlarm();
@@ -1613,6 +1086,7 @@
     function countRep() {
       currentRep++;
       document.getElementById('rep-current').textContent = currentRep;
+      say(PhysioVoice ? PhysioVoice.cueForRep(currentRep, exercise.target_reps) : null);
       if (currentRep >= exercise.target_reps) {
         completeSet();
       }
@@ -1622,7 +1096,7 @@
     // limit — the old absolute `angle < 15` return threshold was always true
     // for low-limit exercises, so reps fired on pose noise.
     function updateKneeReps(angle) {
-      const flexedThreshold = exercise.angle_limit * 0.7;
+      const flexedThreshold = alarmLimit * 0.7;
       const returnThreshold = Math.max(flexedThreshold * 0.35, 4);
 
       if (repStage === 'EXTENDED' && angle > flexedThreshold * 0.4) {
@@ -1658,12 +1132,93 @@
       }
     }
 
+    // ── Rest between sets ────────────────────────────────────────────────────
+    // There was no gap before: the counter reset and the next set began whenever
+    // the patient happened to move, so the reps after a hard set were performed
+    // tired and recorded as though they were not. A rest is part of the
+    // prescription.
+    //
+    // Forty-five seconds is a conventional default for the low-load rehab work
+    // these protocols describe. It can be extended or skipped in one tap —
+    // insisting on it would only teach people to close the tab.
+    const REST_SECONDS = 45;
+
+    let restRemaining = 0;
+    let restTimer = null;
+
+    const restOverlay = document.getElementById('rest-overlay');
+    const restCount = document.getElementById('rest-count');
+    const restNext = document.getElementById('rest-next');
+
+    function paintRest() {
+      restCount.textContent = String(Math.max(0, Math.ceil(restRemaining)));
+      const left = exercise.target_sets - currentSet;
+      restNext.textContent = left === 1
+        ? 'One set left after this'
+        : `${left} sets left after this`;
+    }
+
+    function startRest() {
+      // A correction about the set just finished is not useful during the rest.
+      hideFormTip();
+      restRemaining = REST_SECONDS;
+      paintRest();
+      restOverlay.classList.add('visible');
+      // Counting reps or timing a hold while the patient is deliberately still
+      // would record a set they are not performing.
+      sessionActive = false;
+
+      clearInterval(restTimer);
+      restTimer = setInterval(() => {
+        restRemaining -= 1;
+        paintRest();
+        say(window.PhysioVoice
+          ? PhysioVoice.cueForRest(restRemaining, exercise.target_sets - currentSet)
+          : null);
+        if (restRemaining <= 0) endRest();
+      }, 1000);
+    }
+
+    function endRest() {
+      clearInterval(restTimer);
+      restTimer = null;
+      restOverlay.classList.remove('visible');
+
+      // Everything a fresh set needs: clean angle buffers, a rep stage that has
+      // not half-completed, and a clean slate for what has been said.
+      resetAngleBuffers();
+      resetSpeech();
+      formMonitor.reset();
+      // The patient may have shifted during the rest, so the reference they are
+      // measured against has to be taken again rather than assumed.
+      formBaseline = null;
+      sessionActive = trackerState === 'TRACKING';
+    }
+
+    document.getElementById('rest-skip').addEventListener('click', () => {
+      restRemaining = 0;
+      endRest();
+    });
+
+    document.getElementById('rest-add').addEventListener('click', () => {
+      restRemaining += 15;
+      paintRest();
+      // The countdown cues for the seconds just passed become sayable again.
+      for (const key of [...spokenThisSet]) {
+        if (key.startsWith('rest-')) spokenThisSet.delete(key);
+      }
+    });
+
     function completeSet() {
       recordSet(currentSet, currentRep);
 
       const dots = document.querySelectorAll('#set-progress .set-dot');
       if (dots[currentSet - 1]) dots[currentSet - 1].classList.add('done');
       if (dots[currentSet - 1]) dots[currentSet - 1].classList.remove('current');
+
+      say(window.PhysioVoice
+        ? PhysioVoice.cueForSetComplete(currentSet, exercise.target_sets, REST_SECONDS)
+        : null);
 
       if (currentSet >= exercise.target_sets) {
         finishExercise();
@@ -1673,7 +1228,11 @@
       currentRep = 0;
       document.getElementById('rep-current').textContent = 0;
       document.getElementById('set-current').textContent = currentSet;
+      document.getElementById('hold-rep-current').textContent = 0;
+      document.getElementById('hold-set-current').textContent = currentSet;
       if (dots[currentSet - 1]) dots[currentSet - 1].classList.add('current');
+
+      startRest();
     }
 
     // ── Hold timer (isometric exercises) ────────────────────────────────────
@@ -1701,16 +1260,26 @@
         const progress = Math.min(1, elapsed / exercise.hold_seconds);
         holdRingFg.style.strokeDashoffset = RING_CIRC * (1 - progress);
 
+        say(window.PhysioVoice
+          ? PhysioVoice.cueForHold(remaining, exercise.hold_seconds)
+          : null);
+
         if (remaining <= 0) {
+          // One finished hold is one rep. The set ends when the prescribed
+          // number of them is done, and completeSet() then files the set,
+          // starts the rest and finishes the exercise exactly as it does for
+          // reps — so a hold and a squat now count the same way.
           if (setMetrics) setMetrics.holdSecondsAchieved = exercise.hold_seconds;
-          recordSet(holdSetComplete + 1, 0);
-          holdSetComplete++;
+          currentRep++;
           holdStartTime = null;
           holdRingFg.style.strokeDashoffset = RING_CIRC;
-          document.getElementById('hold-set-current').textContent = Math.min(holdSetComplete + 1, exercise.target_sets);
+          holdRingText.textContent = '0s';
+          document.getElementById('hold-rep-current').textContent = currentRep;
 
-          if (holdSetComplete >= exercise.target_sets) {
-            finishExercise();
+          if (currentRep >= holdsPerSet) {
+            completeSet();
+          } else {
+            say(PhysioVoice ? PhysioVoice.cueForRep(currentRep, holdsPerSet) : null);
           }
         }
       } else {
@@ -1724,10 +1293,16 @@
     // ── Finish ────────────────────────────────────────────────────────────────
     function finishExercise() {
       sessionActive = false;
+      hideFormTip();
+      clearInterval(restTimer);
+      restTimer = null;
+      restOverlay.classList.remove('visible');
       stopAlarm();
+      if (window.PhysioVoice) PhysioVoice.cancel();
       releaseCamera();
+      const doneReps = (currentSet - 1) * (isHoldMode ? holdsPerSet : exercise.target_reps) + currentRep;
       document.getElementById('complete-reps').textContent =
-        isHoldMode ? `${holdSetComplete} sets` : `${(currentSet - 1) * exercise.target_reps + currentRep}`;
+        isHoldMode ? `${doneReps} holds` : `${doneReps}`;
       document.getElementById('complete-max-angle').textContent = Math.round(maxAngleReached) + '°';
       document.getElementById('complete-alerts').textContent = alertCount;
       completePanel.classList.add('visible');
@@ -1766,10 +1341,41 @@
       });
     }
 
+    // ── A feed that has stopped arriving ─────────────────────────────────────
+    // Everything below runs off new camera frames, so when they stop the loop
+    // simply does nothing: the last angle stays on screen under a green
+    // "Tracking" badge, and the safety check stops being made at all. Measured:
+    // with the camera stopped mid-set the HUD held 57 degrees while the knee
+    // went past its 90 degree ceiling, and the alarm never sounded.
+    //
+    // A webcam unplugged, a lens cover, another app taking the camera, or the
+    // OS revoking it all look like this. A frozen picture has to read as lost
+    // tracking, which is what suspendForView() already says and does.
+    let lastFrameAt = 0;
+
+    function handleFeedStall() {
+      trackingDot.className = 'tracking-dot lost';
+      trackingLabel.textContent = 'Camera feed lost';
+      const view = {
+        code: 'no-pose',
+        message: 'The camera has stopped sending pictures. Check it is still connected, uncovered, and not in use by another app.',
+      };
+      if (trackerState === 'TRACKING') {
+        suspendForView(view);
+      } else if (trackerState === 'CALIBRATING') {
+        goodFrames = 0;
+        setupStatus.textContent = view.message;
+        setupStatus.classList.add('blocked');
+        setupProgressFill.style.width = '0%';
+      }
+    }
+
     // ── Main render loop ─────────────────────────────────────────────────────
     function renderLoop() {
+      const now = performance.now();
       if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
         lastVideoTime = video.currentTime;
+        lastFrameAt = now;
         const result = poseLandmarker.detectForVideo(video, performance.now());
 
         const lm = (result.landmarks && result.landmarks[0]) || null;
@@ -1789,7 +1395,14 @@
           ? POSE_GATE.SPREAD_RECOVER
           : POSE_GATE.SPREAD_OK;
 
-        const view = assessView(lm, world, idx, { spreadCeiling, trackedJoint });
+        // The frame's shape. MediaPipe normalises x by width and y by height,
+        // so without this every angle below is distorted by the camera rather
+        // than by the knee — see squareUp() in pose-gate.js.
+        const aspect = (video.videoWidth && video.videoHeight)
+          ? video.videoWidth / video.videoHeight
+          : 1;
+
+        const view = assessView(lm, world, idx, { spreadCeiling, trackedJoint, aspect });
 
         // A patient who overrode the gate keeps tracking regardless of the
         // side-on tests, but the visibility and framing checks still apply:
@@ -1801,8 +1414,10 @@
         if (trackerState === 'CALIBRATING') {
           runCalibration(view, passes);
         } else if (trackerState === 'TRACKING' || trackerState === 'SUSPENDED') {
-          runSession(lm, view, passes);
+          runSession(lm, view, passes, aspect);
         }
+      } else if (lastFrameAt && now - lastFrameAt > POSE_GATE.FEED_STALL_MS) {
+        handleFeedStall();
       }
 
       // finishExercise() calls releaseCamera() from *inside* this loop, so the
@@ -1812,7 +1427,7 @@
       }
     }
 
-    function runSession(lm, view, passes) {
+    function runSession(lm, view, passes, aspect) {
       // A safety breach outranks the view gate. The patient has been told to
       // stop and has to acknowledge it; swapping that red screen for a camera
       // hint would let a real breach go unacknowledged.
@@ -1852,21 +1467,40 @@
 
       // Safety is ALWAYS judged at the knee — angle_limit is a knee flexion
       // ceiling even when reps are counted at another joint.
-      const kneeAngle = smoothAngle(calcKneeAngle(hip, knee, ankle));
-      maxAngleReached = Math.max(maxAngleReached, kneeAngle);
-      sampleFrame(kneeAngle, view.visibility);
+      const rawKneeAngle = calcKneeAngle(hip, knee, ankle, aspect);
+      const kneeAngle = smoothAngle(rawKneeAngle);
+      // The alarm and the counter run on kneeAngle; the record keeps the peak.
+      const recordedAngle = peakAngle(rawKneeAngle);
+      maxAngleReached = Math.max(maxAngleReached, recordedAngle);
+      sampleFrame(recordedAngle, view.visibility);
 
       // The angle that drives rep/hold counting.
       const countAngle = trackingAnkle
-        ? smoothCountAngle(calcAnkleAngle(knee, ankle, foot))
+        ? smoothCountAngle(calcAnkleAngle(knee, ankle, foot, aspect))
         : kneeAngle;
 
       angleReadout.textContent = Math.round(kneeAngle) + '\u00B0';
       angleReadout.className = 'angle-value' +
-        (kneeAngle > exercise.angle_limit ? ' danger' :
-          kneeAngle > exercise.angle_limit * 0.85 ? ' warning' : '');
+        (kneeAngle > alarmLimit ? ' danger' :
+          kneeAngle > alarmLimit * 0.85 ? ' warning' : '');
 
       handleSafetyCheck(kneeAngle);
+
+      // Form is assessed after safety, and never instead of it. A posture note
+      // must not compete with "you are past your limit" — which is why the two
+      // look different and only one of them speaks over the other.
+      if (formBaseline === null) formBaseline = captureBaseline(lm);
+      if (formBaseline && !isPaused) {
+        const { faults } = assessForm(lm, formBaseline, {
+          holdTarget,
+          kneeAngle,
+          exerciseName: exercise.name,
+        });
+        for (const fault of formMonitor.update(faults)) {
+          showFormTip(fault.message);
+          say({ key: `form-${fault.code}`, text: fault.message });
+        }
+      }
 
       if (isHoldMode) {
         updateHoldTimer(countAngle);
@@ -1907,6 +1541,22 @@
       }
     });
 
+  </script>
+  <script>
+    // Installable, and able to open without a connection. The worker caches the
+    // app shell only — never an API response, because a cached prescription is
+    // a cached movement ceiling. See sw.js.
+    // localhost is a secure context too, and gating on https alone meant the
+    // entire offline path went live having never once run in development.
+    const secureEnough = location.protocol === 'https:'
+      || ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+    if ('serviceWorker' in navigator && secureEnough) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {
+          // An app that works is more important than one that works offline.
+        });
+      });
+    }
   </script>
 </body>
 

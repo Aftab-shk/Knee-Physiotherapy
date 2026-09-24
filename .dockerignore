@@ -1,0 +1,66 @@
+# The build context is the repository root. Without this the ~70 MB checkpoint,
+# the datasets and every local virtualenv land in the image. Weights are mounted
+# at runtime instead:
+#   docker run -v /path/to/weights:/weights -e MODEL_PATH=/weights/best_model.pth …
+
+# Model weights + training artefacts
+backend/model/*.pt
+backend/model/*.pth
+backend/model/*.pth.*
+backend/model/*.onnx
+backend/model/*.safetensors
+backend/model/training_curves.png
+backend/model/confusion_matrix*.png
+backend/model/*_report.json
+backend/model/history.json
+backend/model/label_map.json
+backend/model/predictions.json
+
+# Datasets
+data/
+combined/
+archive/
+*.zip
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+physio-env/
+venv/
+env/
+pe/
+.pytest_cache/
+.ruff_cache/
+
+# The development database. A deployment uses DATABASE_URL; shipping this file
+# would ship whatever accounts happened to be on the developer's laptop.
+backend/physio.db
+backend/physio.db-*
+
+# Tests are not needed in the runtime image
+backend/tests/
+frontend/tests/
+
+# Repository furniture — none of it is served or imported
+.git/
+.gitignore
+.github/
+.agents/
+.claude/
+.vscode/
+.idea/
+.playwright/
+.playwright-cli/
+docs/
+graphify-out/
+*.md
+
+# Environment / secrets
+.env
+.env.local
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini

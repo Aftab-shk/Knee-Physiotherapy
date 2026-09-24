@@ -15,6 +15,11 @@ from typing import Optional
 from exercise_protocols import get_phase
 from kl_constants import KL_DESCRIPTIONS, KL_HEALTH_SCORE, KL_MAX_ANGLE  # noqa: F401
 
+# The most range an X-ray the model could not read confidently is allowed to
+# grant. Grade 2's ceiling: the middle of the scale, and the point past which a
+# knee is being trusted with load on the strength of a coin-flip reading.
+UNCERTAIN_READ_CEILING = KL_MAX_ANGLE[2]
+
 DISCLAIMER = (
     "⚠️ This output is for informational purposes only and is not a substitute "
     "for professional medical advice. Always consult your physiotherapist or "
@@ -155,7 +160,10 @@ def _build_rationale(
     # is not one — stating "82% confident" next to a movement restriction claims
     # a precision this model has not demonstrated.
     if calibrated:
-        confidence_str = f"{CONFIDENCE_PHRASES[confidence_band]} ({int(confidence * 100)}% calibrated confidence)"
+        # round(), not int(): the summary card in upload.html rounds, and 0.336
+        # showing as 34% beside prose saying 33% reads as two different numbers
+        # for the same thing.
+        confidence_str = f"{CONFIDENCE_PHRASES[confidence_band]} ({round(confidence * 100)}% calibrated confidence)"
     else:
         confidence_str = CONFIDENCE_PHRASES[confidence_band]
 
@@ -217,6 +225,101 @@ def _build_rationale(
 # Public functions
 # ---------------------------------------------------------------------------
 
+# Surgery types where the joint surface has been replaced, so a Kellgren-Lawrence
+# grade — a measure of wear on a *native* joint — describes something that is no
+# longer there.
+REPLACED_JOINT_SURGERIES = frozenset({"tkr"})
+
+
+def kl_applies(surgery_type: str) -> bool:
+    """
+    Whether an X-ray-derived KL grade should set this patient's ceiling.
+
+    It should not for a replaced joint. The classifier is trained on native
+    knees, so a post-arthroplasty radiograph is out of distribution: whatever
+    grade comes back describes wear on a joint surface that has been removed.
+    The number is not merely uncertain, it is about the wrong thing.
+
+    This is the case the README has always flagged, and it lands on exactly the
+    patients the TKR protocols exist for. The fix is not a better grade — it is
+    not using one. A replaced knee's limits come from the surgical protocol and
+    the week they are in, which is what a surgeon would say anyway.
+    """
+    return surgery_type not in REPLACED_JOINT_SURGERIES
+
+
+def protocol_ceiling(phase: dict) -> int:
+    """
+    The furthest any exercise in this phase asks the knee to bend.
+
+    Used as the ceiling when a KL grade does not apply: it caps nothing that the
+    protocol did not already cap, which is the point — the protocol becomes the
+    only restriction rather than the X-ray.
+    """
+    return max((ex.get("protocol_angle_limit", 120) for ex in phase["exercises"]), default=120)
+
+
+def merge_bilateral(left: dict, right: dict) -> dict:
+    """
+    Combine two single-knee prescriptions into one bilateral answer.
+
+    Each knee keeps its own grade, its own ceiling and its own exercise limits.
+    That is the whole point: `knee_side` has been collected since the first
+    version of this app and never used for anything, so "both" quietly held the
+    better knee to the worse one's limit — or, worse, the worse knee to the
+    better one's.
+
+    The top level carries **the more restrictive side**. Anything reading only
+    the flat fields — an older client, the tracker launched without a side, the
+    denormalised columns on the stored record — then gets the cautious answer
+    rather than a number that is too high for one of the two knees.
+    """
+    strict = left if left["max_angle"] <= right["max_angle"] else right
+
+    merged = dict(strict)
+    merged["bilateral"] = True
+    merged["knee_side"] = "both"
+    merged["sides"] = [_as_side(left), _as_side(right)]
+
+    if left["max_angle"] != right["max_angle"]:
+        merged["rationale"] = (
+            f"Your knees were assessed separately and they are not the same. "
+            f"Left: grade {left['kl_grade']}, safe to {left['max_angle']}°. "
+            f"Right: grade {right['kl_grade']}, safe to {right['max_angle']}°. "
+            f"Work each leg to its own limit — the exercise list below shows both. "
+            f"The summary above shows the more restricted side ({strict['knee_side']}), "
+            f"so anything that ignores the split still errs on the safe side.\n\n"
+        ) + strict["rationale"]
+    else:
+        merged["rationale"] = (
+            f"Both knees were assessed separately and came out the same: "
+            f"safe to {strict['max_angle']}°.\n\n"
+        ) + strict["rationale"]
+
+    return merged
+
+
+def _as_side(prescription: dict) -> dict:
+    """One knee's half of a bilateral answer."""
+    return {
+        "knee_side":           prescription["knee_side"],
+        "kl_grade":            prescription["kl_grade"],
+        "health_score":        prescription["health_score"],
+        "max_angle":           prescription["max_angle"],
+        "confidence":          prescription["confidence"],
+        "confidence_band":     prescription["confidence_band"],
+        "calibrated":          prescription["calibrated"],
+        "grade_probabilities": prescription["grade_probabilities"],
+        "within_one_grade":    prescription["within_one_grade"],
+        "kl_applicable":       prescription["kl_applicable"],
+        "hardware_suspected":  prescription["hardware_suspected"],
+        "ood_suspected":       prescription["ood_suspected"],
+        "explanation":         prescription.get("explanation"),
+        "exercise_list":       prescription["exercise_list"],
+        "excluded_exercises":  prescription["excluded_exercises"],
+    }
+
+
 def build_prescription(
     kl_grade:     int,
     health_score: int,
@@ -230,16 +333,48 @@ def build_prescription(
     confidence_band: str  = "low",
     calibrated:      bool = False,
     ood_suspected:   bool = False,
+    hardware_suspected: bool = False,
+    hardware_reason:    Optional[str] = None,
+    grade_probabilities: Optional[list] = None,
+    within_one_grade:    float = 0.0,
 ) -> dict:
     """Full prescription from X-ray analysis. Matches AnalyseXrayResponse schema."""
-    phase                 = get_phase(surgery_type, weeks_post_op, kl_grade)
-    exercises, excluded   = _cap_exercises(phase["exercises"], max_angle)
+    phase = get_phase(surgery_type, weeks_post_op, kl_grade)
+
+    # ── The prosthesis gate ──────────────────────────────────────────────────
+    # A declared replacement is certain, so the grade is set aside and the
+    # protocol governs. Suspected hardware is only a heuristic over pixel
+    # brightness (see model/prosthesis.py) and is never allowed to loosen
+    # anything on its own — it warns, and the X-ray ceiling stands. Relaxing a
+    # real restriction on a guess is the one mistake that cannot be walked back.
+    applies = kl_applies(surgery_type)
+    if applies:
+        effective_ceiling = max_angle
+        # A ceiling is only worth as much as the grade it came from.
+        #
+        # Below 50% confidence the model is barely favouring one grade over the
+        # next, and a low grade read that way hands out the most permissive
+        # ceiling there is. A chest radiograph uploaded by mistake came back as
+        # grade 0 at 36% confidence: 120 degrees and a full-squat programme,
+        # with the doubt mentioned only in a sentence of prose underneath.
+        #
+        # So an uncertain read is not allowed to unlock more range than a
+        # moderate arthritic knee gets. It can still restrict — a low-confidence
+        # grade 4 keeps its 45 degrees — because caution only ever moves one
+        # way. Being made to work at 90 degrees when 120 was available costs a
+        # confident patient some progress; the reverse costs a joint.
+        if confidence_band == "low":
+            effective_ceiling = min(effective_ceiling, UNCERTAIN_READ_CEILING)
+    else:
+        effective_ceiling = protocol_ceiling(phase)
+
+    exercises, excluded   = _cap_exercises(phase["exercises"], effective_ceiling)
     any_capped            = any(e["angle_capped"] for e in exercises)
 
     rationale = _build_rationale(
         kl_grade      = kl_grade,
         health_score  = health_score,
-        max_angle     = max_angle,
+        max_angle     = effective_ceiling,
         surgery_type  = surgery_type,
         weeks_post_op = weeks_post_op,
         phase_label   = phase["label"],
@@ -252,10 +387,30 @@ def build_prescription(
         ood_suspected   = ood_suspected,
     )
 
+    if not applies:
+        # Replaces the rationale rather than appending to it: the original
+        # explains a ceiling that was never applied, and leaving that in front of
+        # the correction would be worse than saying nothing.
+        rationale = (
+            f"Your knee has been replaced, so the X-ray was not used to set your limits. "
+            f"A Kellgren–Lawrence grade measures wear on a natural joint surface, and yours "
+            f"has been resurfaced — that reading would be about something that is no longer "
+            f"there. Your limits come from the {phase['label']} protocol and the week you are "
+            f"in, which is what a surgeon would go by. Follow the exercises below, and take "
+            f"any range-of-motion targets from your surgical team."
+        )
+    elif hardware_suspected:
+        rationale += (
+            " ⚠ This image looks like it may contain a joint replacement. If your knee has "
+            "been replaced, tell your physiotherapist — the grade above is based on wear in a "
+            "natural joint and would not apply to you. Your limits have been left unchanged "
+            "in the meantime."
+        )
+
     return {
         "kl_grade":          kl_grade,
         "health_score":      health_score,
-        "max_angle":         max_angle,
+        "max_angle":         effective_ceiling,
         "confidence":        confidence,
         "confidence_band":   confidence_band,
         "calibrated":        calibrated,
@@ -272,6 +427,15 @@ def build_prescription(
         "disclaimer":          DISCLAIMER,
         "model_version":       model_version,
         "demo_mode":           demo_mode,
+        # False for a replaced joint: the grade is still reported, because it is
+        # what the model said, but it set nothing.
+        "bilateral":           False,
+        "sides":               [],
+        "grade_probabilities": list(grade_probabilities or [0.0] * 5),
+        "within_one_grade":    within_one_grade,
+        "kl_applicable":       applies,
+        "hardware_suspected":  bool(hardware_suspected),
+        "hardware_note":       hardware_reason,
     }
 
 

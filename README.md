@@ -39,12 +39,16 @@ knee-physiotherapy/
 │   │                              ExerciseSet, ShareLink, Clinician, CareLink
 │   ├── auth.py                    Argon2id hashing, JWT, request dependencies
 │   ├── triage.py                  Red-flag rules — torch-free, database-free, unit tested
+│   ├── outcome_measures.py        KOOS-JR items, Rasch lookup, MCID/MDC — torch-free, DB-free
+│   ├── summary_pdf.py             The one-page appointment sheet — layout only, no DB, no torch
 │   ├── alembic.ini                Migration config — URL comes from db.py, not here
 │   ├── migrations/                Schema history; init_db() runs it at startup
 │   │
 │   ├── model/
 │   │   ├── inference.py           EfficientNet (B0–B5) inference, calibration, OOD screen
 │   │   ├── image_checks.py        Upload quality checks — torch-free on purpose
+│   │   ├── prosthesis.py          Metalwork screen — heuristic, advisory, torch-free
+│   │   ├── gradcam.py             Where the model looked — opt-in, never load-bearing
 │   │   ├── train.py               Training script (run on GPU / Kaggle)
 │   │   ├── prepare_dataset.py     Splits raw dataset → train/val/test
 │   │   ├── fetch_weights.py       Downloads + verifies the checkpoint
@@ -55,29 +59,42 @@ knee-physiotherapy/
 │   ├── kl_constants.py            KL grade tables — single source of truth, torch-free
 │   ├── tests/                     pytest — clinical logic, tracker, calibration, API
 │   ├── requirements.txt
-│   ├── Dockerfile
-│   ├── .dockerignore
 │   └── README.md                  Backend-specific docs
 │
+├── docs/
+│   ├── explanation.md             How the whole system fits together, in plain English
+│   ├── model_explanation.md       The training pipeline, in plain English
+│   └── NEXT-clinician-ui.md       Brief for the screens items 09-11 still lack
+│
+├── Dockerfile                     one image: API + pages, built from this directory
 ├── .github/workflows/ci.yml       lint + tests + large-file guard
 ├── ruff.toml                      lint config
 │
 └── frontend/
-    ├── index.html                 Landing page
-    ├── login.html                 Log in / create account / guest access
-    ├── upload.html                X-ray upload + results + exercise plan
+    ├── index.html                 Landing page, with the log in / create account / guest popup
+    ├── login.html                 Redirect to the popup (old links)
+    ├── upload.html                X-ray upload + results + exercise plan; ?view=plan reopens the saved plan
+    ├── reset-password.html        Ask for a reset link, or set a new password from one
+    ├── animations.html            Every exercise, animated, at its own angle limit
+    ├── exercise-animations.js     The animated figure used by the guide, the plan and the landing page
     ├── progress.html              Range of motion, consistency, per-exercise history
     ├── tracker.html               Webcam safety tracker (MediaPipe pose landmarker)
     ├── share.html                 What a clinician sees through a share link
-    ├── progress.html              Range of motion, consistency, pain
+    ├── manifest.webmanifest       Installable to a phone's home screen
+    ├── sw.js                      App-shell cache — never caches an API response
     ├── assets/
     │   ├── theme.css              Brand tokens, type stacks, reset — shared by every page
     │   ├── progress-view.css      Charts, tiles and tables — shared by progress + share
+    │   ├── <page>.css             Each page's own styles: index, upload, tracker, share, reset-password, animations
+    │   ├── motion.js              Scroll reveal, loaded before first paint
     │   ├── progress-view.js       Renders a progress payload; used by both pages
     │   ├── config.js              Resolves the API base URL
     │   ├── api.js                 The only place the frontend calls the backend
-    │   └── pose-gate.js           Joint geometry + camera-view validation
-    ├── tests/pose-gate.test.mjs   `node --test` — run from frontend/
+    │   ├── pose-gate.js           Joint geometry + camera-view validation
+    │   ├── voice.js               Spoken cues — what to say, decided apart from saying it
+    │   ├── form-check.js          Sagittal-plane form faults; see its header on valgus
+    │   └── outcome-form.js        Renders the questionnaire from the server's own definition
+    ├── tests/*.test.mjs           `node --test` — run from frontend/
     ├── package.json               No build step; marks assets/*.js as ES modules
     └── logo.png / logo-dark.png   Branding assets
 ```
@@ -119,6 +136,10 @@ for local development:
 | `CORS_ORIGINS` | localhost ports | Comma-separated allow-list |
 | `MAX_UPLOAD_BYTES` | `10485760` | Upload ceiling, enforced while streaming |
 | `RATE_LIMIT_REQUESTS` / `RATE_LIMIT_WINDOW_S` | `20` / `60` | Per-IP sliding window |
+| `SUMMARY_PDF_FONT` | *unset — Helvetica* | TTF for the summary PDF. Set it to serve names outside Latin-1 |
+| `ENV` | *unset* | Set to `production` and the server refuses to start without `JWT_SECRET` and real weights |
+| `FRONTEND_DIR` | `frontend/` beside `backend/` | Pages served by the API itself, same-origin. Unset it to serve them elsewhere |
+| `TRUST_PROXY` | *unset* | Take the client IP from `X-Forwarded-For`. Set it only behind a proxy you control |
 
 The database file is created on first start and is git-ignored — it holds real
 patient rows and password hashes.
@@ -203,11 +224,34 @@ Back up the repo first — `git filter-repo` is not reversible.
 ### `POST /analyse-xray`
 Multipart form: `image` (file, JPEG/PNG ≤10MB), `knee_side` (left/right/both), `surgery_type` (acl/tkr/meniscus/arthroscopy/none), `weeks_post_op` (int, required unless surgery_type=none).
 
+`knee_side=both` requires a second file, `image_right` — one film cannot be
+graded for two joints. Each knee is read, screened and prescribed for
+independently, and `sides` carries both. The flat fields carry **the more
+restrictive knee**, so a client that ignores `sides` still gets a safe answer.
+
 Returns KL grade, health score, safe angle ceiling, confidence, rehab phase, a full exercise list with per-exercise angle limits, and a plain-English rationale.
+
+`kl_applicable` is false for a declared total knee replacement: the grade is
+still reported, but it sets nothing. `hardware_suspected` warns about a
+replacement that was not declared — advisory only, and it never raises a limit.
+
+`grade_probabilities` carries the calibrated probability for every KL grade, and
+`within_one_grade` the mass at the chosen grade or either neighbour. The model
+was trained with an ordinal loss and scores 70.3% exact against 95.3% within one
+grade, so a single confidence figure describes it as far less useful than it is —
+and hides the readings where it is genuinely torn.
+
+Send `explain=true` for a Grad-CAM overlay showing which part of the image drove
+the grade, returned as a PNG data URI. Off by default: it costs a backward pass,
+roughly doubling inference time (measured 750 ms → 1.7 s). It never fails the
+analysis — if the overlay cannot be produced, the reading comes back without it.
 
 Authentication is optional. With a bearer token the analysis is saved to the
 account and `prescription_id` names the stored record; as a guest it is returned
-and forgotten. The X-ray image itself is never stored either way.
+and forgotten. The server never stores the X-ray image either way. A signed-in
+browser keeps its own copy in IndexedDB, keyed by `prescription_id`, so a plan
+reopened later (`upload.html?view=plan`, the dashboard's "My plan") can draw the
+Grad-CAM overlay on it again; deleting the account clears that copy too.
 
 `weeks_post_op` may be omitted by a signed-in patient with a surgery date on
 file — it is derived from the date. An explicitly supplied value always wins,
@@ -295,6 +339,53 @@ range of motion that never happened.
 ### `DELETE /me/clinicians/{id}` · `DELETE /clinician/patients/{id}`
 Either side can end the link, and `revoked_by` records which. "My physiotherapist
 discharged me" and "I withdrew access" are different events.
+
+### `GET /outcome-measures`
+The KOOS-JR questionnaire as it should be asked: the seven items, their wording,
+and the response options. The frontend renders from this rather than hardcoding
+the items, so the wording has one source.
+
+### `POST /me/outcome-scores` · `GET /me/outcome-scores`
+Records a completed questionnaire and returns the derived score, or lists the
+history with whether another is due.
+
+All seven answers are required — **a partly completed form is refused, not
+imputed.** KOOS-JR has no published rule for a missing item, and averaging the
+six that were answered produces something indistinguishable from a real score
+that is not one.
+
+Re-answering within **14 days** returns 409: real week-to-week movement is
+smaller than the instrument can detect, so a score that soon would be noise
+presented as progress. Two knees are two questionnaires — KOOS-JR asks about
+"your knee", singular.
+
+A score is **never a gate and never moves a movement ceiling.** That stays with
+the radiograph and the surgical protocol; there is a test asserting it.
+
+### `GET /clinician/patients/{id}/outcome-scores`
+The same history for a patient on the clinician's caseload. The trend also rides
+on `/me/progress` and the caseload row, and flows through to a share link.
+
+### `GET /me/summary.pdf` · `GET /share/{token}/summary.pdf` · `GET /clinician/patients/{id}/summary.pdf`
+The offline counterpart to the share link: **one page**, to print or to show on a
+phone with no signal. A link works when the physiotherapist has a screen and a
+spare hand, and a good many appointments have neither.
+
+Same sheet, three readers — and what differs is only what each may put at the
+top of it. The patient's own copy falls back to their email address when no
+display name is set; the shared and clinician copies never do. A share link is a
+bearer token, so an account identifier printed on it would turn a read-only link
+into the first half of an attack on the account.
+
+**One page is enforced, not hoped for.** Vertical space is handed out by a cursor
+that can refuse, and anything dropped for want of room is *named in the notes* —
+a reader cannot otherwise tell an exercise the patient never did from one that
+fell off the bottom.
+
+**Every caveat is printed**, because paper has no tooltips: the count of sessions
+excluded from the angles and why, whether a clinician has actually approved the
+limits, whether the grade came from demonstration mode, and that a webcam is not
+a goniometer. `?days=` and `?tz_offset_minutes=` match `/me/progress`.
 
 ### `GET /me/flags` · `GET /clinician/patients/{id}/flags`
 Why someone might need looking at: severe or rising pain, range of motion going
@@ -391,6 +482,20 @@ Full schema and interactive testing at `/docs` once the server is running.
 
 ---
 
+## Installing it on a phone
+
+Serve the frontend over **https** (a service worker will not register otherwise)
+and open it in a mobile browser — the install prompt appears from the browser
+menu. The app shell is cached so it opens without a connection; **no API response
+is ever cached**, because a stale prescription is a stale movement ceiling.
+
+The tracker offers a camera switcher when the device has more than one, keeps the
+screen awake during a session, and re-fits the pose overlay when the phone is
+rotated.
+
+> The launcher icons are upscaled from a 68×68 logo, so they are soft at 512px.
+> A vector or high-resolution source would fix that; nothing else is blocked on it.
+
 ## Tech stack
 
 | Layer | Technology |
@@ -415,14 +520,23 @@ Full schema and interactive testing at `/docs` once the server is running.
 | Backend API | ✅ Complete |
 | Clinical logic + exercise database | ✅ Complete |
 | Frontend (landing, login, upload/results) | ✅ Complete |
-| Webcam safety tracker (live angle + red-screen alert) | ✅ Complete |
+| Webcam safety tracker (live angle + red-screen alert) | ✅ Complete — stops and says so if the camera feed freezes; holds counted per rep; a 20° floor on straight-leg limits a webcam cannot measure |
 | Model training pipeline | ✅ Complete — see [backend/model/TRAINING.md](backend/model/TRAINING.md) |
-| Confidence calibration + OOD screening | ✅ Complete — temperature scaling, energy screen |
-| Test suite | ✅ 482 pytest + 17 node — clinical logic, tracker, calibration, API security, accounts, sessions, progress, pain, surgery dates, sharing, clinicians, review, triage, migrations, pose gate |
+| Confidence calibration + OOD screening | ✅ Complete — temperature scaling, energy screen at both ends (photos and screenshots are refused) |
+| Test suite | ✅ 702 pytest + 128 node — clinical logic, tracker, calibration, API security, accounts, sessions, progress, pain, surgery dates, sharing, clinicians, review, triage, outcome measures, appointment summary, prosthesis gate, Grad-CAM, grade distribution, bilateral, migrations, pose gate, voice cues, form checks, service-worker routing |
 | CI | ✅ GitHub Actions — ruff + pytest, and a guard against large tracked files |
 | Trained model weights | ✅ Calibrated — 70.3% test accuracy, 95.3% within-one-grade, ECE 0.041 |
+| Replaced-joint gate | ✅ A declared TKR is never graded; undeclared metalwork warns but never loosens |
+| Explainability | ✅ Grad-CAM overlay on the uploaded X-ray, with a fade control |
+| Grade distribution | ✅ All five grades with calibrated probability, plus within-one-grade |
+| Bilateral assessment | ✅ Two X-rays, two grades, two ceilings; the summary shows the stricter knee |
+| Voice cues + rest timers | ✅ Spoken counts, countdowns and safety warnings; a real 45s rest between sets |
+| Form coaching | ✅ Trunk lean, hip lift, unlocked knee, sway — sagittal only (valgus needs a front-on camera) |
+| Installable / phone | ✅ Manifest, offline app shell, camera switcher, screen wake lock, rotation handling |
+| Outcome measures | ✅ KOOS-JR — Rasch-scored 0–100, MCID/MDC-aware, charted and shared; never a gate |
+| Appointment summary | ✅ One-page PDF for patient, share link and clinician — one page enforced, omissions named |
 | Real authentication | ✅ Argon2id + JWT — register, log in, guest access still supported |
-| Persistence | ✅ SQLAlchemy + SQLite (Postgres via `DATABASE_URL`); analyses saved per account |
+| Persistence | ✅ SQLAlchemy + SQLite (Postgres via `DATABASE_URL`); analyses saved per account, and the plan reopens without a second upload |
 | Rate limiting / request-size limits | ✅ Sliding-window limiter + streaming upload cap |
 | Camera-view validation in the tracker | ✅ Session will not start until the camera sees the leg side-on |
 | Exercise session logging | ✅ Every set stored — peak flexion, breaches, hold time, tracking quality |
@@ -436,11 +550,55 @@ Full schema and interactive testing at `/docs` once the server is running.
 | Audit trail | ✅ Every ceiling decision recorded — the model's included — with what it replaced and why |
 | Red-flag triage | ✅ Pain, ROM regression, breaches and lapses — on the caseload and on the patient's own page |
 
-> **Known gap:** a post-TKR X-ray shows a prosthesis, not a native knee. The
-> classifier is trained on native knees, so grading a replaced joint is
-> out-of-distribution — which makes the safe ceiling unreliable for exactly the
-> TKR patients the rehab protocols target. The energy screen will flag these
-> once weights carry a reference, but the underlying modelling question is open.
+> **Replaced joints don't get graded.** A post-TKR X-ray shows a prosthesis, not
+> a native knee, so a Kellgren–Lawrence grade — a measure of wear on a natural
+> joint surface — describes something that is no longer there. For a declared
+> TKR the grade is reported but sets nothing: the ceiling comes from the surgical
+> protocol and the week instead. An undeclared replacement is caught by a
+> brightness heuristic in `model/prosthesis.py`, which warns and is never allowed
+> to loosen a restriction on its own.
+>
+> **The summary PDF cannot print a name outside Latin-1 without a font.** The
+> base-14 PDF fonts stop at Latin-1, and the faces bundled with reportlab cover
+> no more — no Devanagari, no CJK, no Arabic. So a patient named in one of those
+> scripts gets "?" where the characters should be, *with a line on the sheet
+> saying so and naming the fix*, rather than a silently mangled name on their own
+> medical summary. The fix is one variable:
+>
+> ```
+> SUMMARY_PDF_FONT=/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf
+> ```
+>
+> Point it at a font covering the scripts you serve and names render properly.
+> An unreadable path falls back to Helvetica and logs a warning rather than
+> failing the download. The RFC 5987 `filename*` is unaffected either way, so the
+> saved file keeps the real name even when the page cannot draw it.
+>
+> **The Oxford Knee Score is not included, for licensing reasons.** The roadmap
+> item said "KOOS-JR or Oxford Knee Score". The OKS is © Oxford University
+> Innovation and needs a licence beyond non-commercial research, so its twelve
+> items cannot ship in this repository. KOOS-JR is free to use, is seven items
+> rather than twelve for something asked repeatedly over a year, is
+> Rasch-calibrated onto an interval 0–100 scale (so a ten-point change means the
+> same thing at either end, which an ordinal 0–48 sum does not), and is what the
+> American Joint Replacement Registry and CMS collect — so a score here lines up
+> with the national comparison. Everything downstream of `score()` is
+> instrument-agnostic, so a licensed deployment can add the OKS as a second
+> instrument without touching the storage, the charts or the triage rule.
+>
+> **Knee valgus is not detected, and cannot be from this camera position.**
+> Valgus and hip hiking are frontal-plane movements — seeing them needs a camera
+> in front of the patient. The tracker requires the opposite: a knee angle from
+> 2D landmarks is only valid side-on, so the session will not start until the
+> camera is in the one position from which valgus is invisible. Detecting it
+> properly means a second camera position and a separate assessment mode.
+> `assets/form-check.js` covers the sagittal-plane faults instead — trunk
+> compensation, hips lifting, a "straight" hold performed bent, and sway during
+> a balance exercise.
+>
+> **Still open:** a learned native-versus-replaced classifier. That needs a
+> labelled set of post-arthroplasty radiographs, which this project does not
+> have — the heuristic is a backstop, not a substitute.
 
 ---
 
