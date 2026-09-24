@@ -73,16 +73,20 @@ knee-physiotherapy/
 └── frontend/
     ├── index.html                 Landing page, with the log in / create account / guest popup
     ├── login.html                 Redirect to the popup (old links)
-    ├── upload.html                X-ray upload + results + exercise plan
+    ├── upload.html                X-ray upload + results + exercise plan; ?view=plan reopens the saved plan
+    ├── reset-password.html        Ask for a reset link, or set a new password from one
+    ├── animations.html            Every exercise, animated, at its own angle limit
+    ├── exercise-animations.js     The animated figure used by the guide, the plan and the landing page
     ├── progress.html              Range of motion, consistency, per-exercise history
     ├── tracker.html               Webcam safety tracker (MediaPipe pose landmarker)
     ├── share.html                 What a clinician sees through a share link
     ├── manifest.webmanifest       Installable to a phone's home screen
     ├── sw.js                      App-shell cache — never caches an API response
-    ├── progress.html              Range of motion, consistency, pain
     ├── assets/
     │   ├── theme.css              Brand tokens, type stacks, reset — shared by every page
     │   ├── progress-view.css      Charts, tiles and tables — shared by progress + share
+    │   ├── <page>.css             Each page's own styles: index, upload, tracker, share, reset-password, animations
+    │   ├── motion.js              Scroll reveal, loaded before first paint
     │   ├── progress-view.js       Renders a progress payload; used by both pages
     │   ├── config.js              Resolves the API base URL
     │   ├── api.js                 The only place the frontend calls the backend
@@ -90,7 +94,7 @@ knee-physiotherapy/
     │   ├── voice.js               Spoken cues — what to say, decided apart from saying it
     │   ├── form-check.js          Sagittal-plane form faults; see its header on valgus
     │   └── outcome-form.js        Renders the questionnaire from the server's own definition
-    ├── tests/pose-gate.test.mjs   `node --test` — run from frontend/
+    ├── tests/*.test.mjs           `node --test` — run from frontend/
     ├── package.json               No build step; marks assets/*.js as ES modules
     └── logo.png / logo-dark.png   Branding assets
 ```
@@ -244,7 +248,10 @@ analysis — if the overlay cannot be produced, the reading comes back without i
 
 Authentication is optional. With a bearer token the analysis is saved to the
 account and `prescription_id` names the stored record; as a guest it is returned
-and forgotten. The X-ray image itself is never stored either way.
+and forgotten. The server never stores the X-ray image either way. A signed-in
+browser keeps its own copy in IndexedDB, keyed by `prescription_id`, so a plan
+reopened later (`upload.html?view=plan`, the dashboard's "My plan") can draw the
+Grad-CAM overlay on it again; deleting the account clears that copy too.
 
 `weeks_post_op` may be omitted by a signed-in patient with a surgery date on
 file — it is derived from the date. An explicitly supplied value always wins,
@@ -513,10 +520,10 @@ rotated.
 | Backend API | ✅ Complete |
 | Clinical logic + exercise database | ✅ Complete |
 | Frontend (landing, login, upload/results) | ✅ Complete |
-| Webcam safety tracker (live angle + red-screen alert) | ✅ Complete |
+| Webcam safety tracker (live angle + red-screen alert) | ✅ Complete — stops and says so if the camera feed freezes; holds counted per rep; a 20° floor on straight-leg limits a webcam cannot measure |
 | Model training pipeline | ✅ Complete — see [backend/model/TRAINING.md](backend/model/TRAINING.md) |
-| Confidence calibration + OOD screening | ✅ Complete — temperature scaling, energy screen |
-| Test suite | ✅ 656 pytest + 117 node — clinical logic, tracker, calibration, API security, accounts, sessions, progress, pain, surgery dates, sharing, clinicians, review, triage, outcome measures, appointment summary, prosthesis gate, Grad-CAM, grade distribution, bilateral, migrations, pose gate, voice cues, form checks, service-worker routing |
+| Confidence calibration + OOD screening | ✅ Complete — temperature scaling, energy screen at both ends (photos and screenshots are refused) |
+| Test suite | ✅ 702 pytest + 128 node — clinical logic, tracker, calibration, API security, accounts, sessions, progress, pain, surgery dates, sharing, clinicians, review, triage, outcome measures, appointment summary, prosthesis gate, Grad-CAM, grade distribution, bilateral, migrations, pose gate, voice cues, form checks, service-worker routing |
 | CI | ✅ GitHub Actions — ruff + pytest, and a guard against large tracked files |
 | Trained model weights | ✅ Calibrated — 70.3% test accuracy, 95.3% within-one-grade, ECE 0.041 |
 | Replaced-joint gate | ✅ A declared TKR is never graded; undeclared metalwork warns but never loosens |
@@ -529,7 +536,7 @@ rotated.
 | Outcome measures | ✅ KOOS-JR — Rasch-scored 0–100, MCID/MDC-aware, charted and shared; never a gate |
 | Appointment summary | ✅ One-page PDF for patient, share link and clinician — one page enforced, omissions named |
 | Real authentication | ✅ Argon2id + JWT — register, log in, guest access still supported |
-| Persistence | ✅ SQLAlchemy + SQLite (Postgres via `DATABASE_URL`); analyses saved per account |
+| Persistence | ✅ SQLAlchemy + SQLite (Postgres via `DATABASE_URL`); analyses saved per account, and the plan reopens without a second upload |
 | Rate limiting / request-size limits | ✅ Sliding-window limiter + streaming upload cap |
 | Camera-view validation in the tracker | ✅ Session will not start until the camera sees the leg side-on |
 | Exercise session logging | ✅ Every set stored — peak flexion, breaches, hold time, tracking quality |

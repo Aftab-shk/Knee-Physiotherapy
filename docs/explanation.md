@@ -79,7 +79,9 @@ The frontend is implemented using vanilla HTML5, modern CSS design tokens, and J
   * Interactive drag-and-drop X-ray upload interface with real-time validation.
   * Communicates with backend endpoint `POST /analyse-xray`.
   * Dynamically populates diagnostic summaries (KL Grade, Health Score, Safe Ceiling, Phase Goals, Exercise Cards).
-  * Launches exercise tracking sessions by storing current exercise data in browser `sessionStorage` and redirecting to `tracker.html`.
+  * Launches exercise tracking sessions by storing current exercise data in browser `sessionStorage` and redirecting to `tracker.html`; coming back restores the same plan.
+  * For a signed-in patient, `upload.html?view=plan` (the dashboard's "My plan") reopens the latest saved prescription without a second upload, dated, with a warning once it is four weeks old.
+  * Keeps the uploaded X-ray in browser IndexedDB, keyed by prescription, so the Grad-CAM overlay shows again on a reopened plan. The server never stores the image.
 
 ---
 
@@ -99,9 +101,10 @@ The tracking module ([tracker.html](file:///c:/Users/aftab/OneDrive/Desktop/knee
    * Applies rolling 5-frame moving average smoothing to eliminate landmark jitter.
 3. **Repetition & Hold Logic:**
    * Dynamic exercises: State machine (`EXTENDED` $\rightarrow$ `FLEXING` $\rightarrow$ `FLEXED` $\rightarrow$ `EXTENDING`) tracks completed repetitions.
-   * Isometric exercises: Ring timer monitors target position hold duration.
+   * Isometric exercises: Ring timer monitors target position hold duration. Each hold is one rep, and a set ends after the prescribed number of them.
 4. **Real-Time Safety System ([handleSafetyCheck](file:///c:/Users/aftab/OneDrive/Desktop/knee-physiotherapy/frontend/tracker.html#L980)):**
-   * Continually compares real-time knee flexion angle against `exercise.angle_limit`.
+   * Continually compares real-time knee flexion angle against the alarm limit: `exercise.angle_limit`, floored at 20° because a locked-straight leg reads 8–11° on a webcam.
+   * If no new camera frame arrives for 700 ms, tracking stops and the screen says so, rather than holding the last angle while the knee keeps moving.
    * If limit is breached:
      * Triggers a full-screen red warning overlay.
      * Plays an audible alert using the browser's native **Web Audio API** oscillator.
