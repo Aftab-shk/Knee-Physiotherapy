@@ -28,6 +28,8 @@ env/
 **/model/history.json
 **/model/label_map.json
 **/model/predictions.json
+# The whole folder an eval run writes into, not only the files named above.
+**/model/outputs/
 
 # ── Datasets (large — never commit to git) ───────────────────────────────
 data/
@@ -60,6 +62,14 @@ desktop.ini
 .playwright-cli/
 # Local browser-driver config (fake camera device for testing tracker.html).
 .playwright/
+
+# Tool caches. Both write their own .gitignore inside, so this is belt and
+# braces - but it keeps them out of `git status -uall` and out of greps.
+.pytest_cache/
+.ruff_cache/
+
+# Design reference material kept locally, deliberately not part of the app.
+frontend/reference/
 
 # ── Agent skills ─────────────────────────────────────────────────────────
 # Vendored third-party skill packs (ui-ux-pro-max, apple-design and friends):
