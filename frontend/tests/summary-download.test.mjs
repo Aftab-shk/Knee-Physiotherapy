@@ -1,5 +1,5 @@
 /*
- * Tests for the appointment-summary download — the PDF half of assets/api.js.
+ * Tests for the appointment-summary download - the PDF half of assets/api.js.
  *
  * This is the one endpoint the client cannot reach with a plain link. It needs
  * the bearer token, so the file arrives as a blob and the page has to build the
@@ -25,7 +25,7 @@ const SOURCE = readFileSync(new URL("../assets/api.js", import.meta.url), "utf8"
  *
  * The browser globals are passed as *parameters* rather than set on the sandbox
  * object. api.js calls `fetch(...)` and `document.createElement(...)` bare, and
- * a bare identifier resolves past the sandbox to Node's own global — so a stub
+ * a bare identifier resolves past the sandbox to Node's own global - so a stub
  * hung on the sandbox is simply never consulted, and the test quietly makes a
  * real network call instead. Shadowing them as arguments is what actually binds.
  */

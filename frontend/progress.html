@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Your dashboard — Knee-Physiotherapy</title>
+  <title>Your dashboard · Knee-Physiotherapy</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="assets/theme.css">
@@ -28,6 +28,8 @@
     <symbol id="i-logout" viewBox="0 0 24 24"><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/></symbol>
     <symbol id="i-spark" viewBox="0 0 24 24"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.13-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.13a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.13 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.13a.5.5 0 0 1-.96 0z"/></symbol>
     <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+    <symbol id="i-trending" viewBox="0 0 24 24"><path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/></symbol>
     <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
   </svg>
 
@@ -111,7 +113,7 @@
 
       <!-- Hidden until "Change" is pressed. The date selects the whole rehab
            protocol, so it has to be correctable from the page the patient
-           actually opens — not only from inside a new analysis. -->
+           actually opens - not only from inside a new analysis. -->
       <div class="profile-edit hidden" id="profile-edit">
         <label class="profile-edit-label" for="surgery-date">Date of surgery</label>
         <input class="share-input" type="date" id="surgery-date">
@@ -129,7 +131,7 @@
 
     <!-- Sharing. A clinician will click a link; they will not create an account
          in their patient's app, so the link is the credential. Which makes
-         withdrawing it the part that matters — hence the list below. -->
+         withdrawing it the part that matters - hence the list below. -->
     <div class="card hidden" id="account-panel" style="margin-bottom:22px">
       <div class="card-head">
         <div class="card-title">Your account</div>
@@ -157,7 +159,7 @@
         <div class="account-block-title">Download your data</div>
         <div class="account-note">
           Everything held about you as a JSON file: your analyses, exercise sessions,
-          outcome scores and sharing history. Your X-ray images are not in it — our servers
+          outcome scores and sharing history. Your X-ray images are not in it. Our servers
           never stored them, only what was read off them. This browser keeps its own copy
           so your plan can show it; deleting your account removes that too.
         </div>
@@ -169,7 +171,7 @@
         <div class="account-block-title">Delete your account</div>
         <div class="account-note">
           Immediate and permanent. Your analyses, exercise history, outcome scores and any
-          clinician's access to them are destroyed — there is no grace period and no copy
+          clinician's access to them are destroyed. There is no grace period and no copy
           kept. Download your data first if you want it.
         </div>
         <div class="share-form">
@@ -189,8 +191,8 @@
         <button class="range-btn" type="button" id="share-close">Close</button>
       </div>
       <div class="card-sub">
-        Creates a read-only link to these charts. Whoever has the link can open it —
-        no account needed — until it expires or you withdraw it.
+        Creates a read-only link to these charts. Whoever has the link can open it,
+        no account needed, until it expires or you withdraw it.
       </div>
 
       <div class="share-form">
@@ -206,7 +208,7 @@
       </div>
 
       <div class="share-new hidden" id="share-new">
-        <div class="share-new-label">Copy this now — it is not shown again.</div>
+        <div class="share-new-label">Copy this now. It is not shown again.</div>
         <div class="share-new-row">
           <input class="share-input share-url" type="text" id="share-url" readonly>
           <button class="btn" type="button" id="share-copy">Copy</button>
@@ -221,18 +223,18 @@
          Empty for most people, most weeks. -->
     <div id="flags"></div>
 
-    <!-- The questionnaire. Shown only when one is actually due — every four
-         weeks, not every visit — and dismissable without consequence. Nothing
+    <!-- The questionnaire. Shown only when one is actually due - every four
+         weeks, not every visit - and dismissable without consequence. Nothing
          else on this page is withheld from someone who never fills it in. -->
     <div class="card om-prompt-card hidden" id="koos-panel"></div>
 
     <div class="notice notice-err hidden" id="error-notice">
-      <span aria-hidden="true">⚠</span>
+      <svg class="i" aria-hidden="true"><use href="#i-alert"/></svg>
       <span id="error-text"></span>
     </div>
 
     <div class="notice notice-warn hidden" id="unverified-notice">
-      <span aria-hidden="true">⚠</span>
+      <svg class="i" aria-hidden="true"><use href="#i-alert"/></svg>
       <span id="unverified-text"></span>
     </div>
 
@@ -242,7 +244,7 @@
     </div>
 
     <div id="empty" class="card empty hidden">
-      <div class="empty-icon" aria-hidden="true">📈</div>
+      <div class="empty-icon" aria-hidden="true"><svg class="i" aria-hidden="true"><use href="#i-trending"/></svg></div>
       <div class="empty-title">Nothing recorded yet</div>
       <p class="empty-text">
         Once you work through an exercise with the webcam tracker, this page fills in:
@@ -311,7 +313,7 @@
     // ── The appointment summary ────────────────────────────────────────────
     // Downloading is a fetch, not a link, because the endpoint wants the bearer
     // token. That means no browser progress indicator, so the button has to be
-    // its own — a sheet takes a moment to draw, and a button that looks inert is
+    // its own - a sheet takes a moment to draw, and a button that looks inert is
     // one people press twice.
     $('summary-pdf').addEventListener('click', async () => {
       const btn = $('summary-pdf');
@@ -335,7 +337,7 @@
 
     // Scoped to .ranges, not to the class. `range-btn` is this page's small-button
     // style and is worn by the share panel's Close button and the summary
-    // download too — neither of which carries a data-days, so an unscoped
+    // download too - neither of which carries a data-days, so an unscoped
     // selector set the range to NaN and reloaded the page into a 422.
     const rangeButtons = document.querySelectorAll('.ranges .range-btn');
     for (const btn of rangeButtons) {
@@ -564,7 +566,7 @@
           label: $('share-label').value.trim() || null,
           days: Number($('share-days').value),
         });
-        // The token exists nowhere else — only its hash was stored — so this is
+        // The token exists nowhere else - only its hash was stored - so this is
         // the one and only chance to hand it over.
         $('share-url').value = new URL(created.path, location.href).href;
         $('share-new').classList.remove('hidden');
@@ -626,7 +628,7 @@
     // KOOS-JR: seven questions, scored on the same 0-100 scale a joint registry
     // uses. It is the only thing on this page the patient supplies rather than
     // the app measuring, and the only one that answers whether the knee is
-    // getting better to live with — which bending further does not.
+    // getting better to live with - which bending further does not.
     //
     // Offered when one is due and never otherwise. Answered weekly it becomes a
     // mood reading (real movement is smaller than the instrument can detect),
@@ -634,7 +636,7 @@
     const koosPanel = $('koos-panel');
 
     // The knee the questionnaire is about. "Your knee" has to mean a particular
-    // one, and 'both' is not an answer KOOS-JR has — it asks about a single
+    // one, and 'both' is not an answer KOOS-JR has - it asks about a single
     // joint, so a bilateral patient answers it twice.
     //
     // Carried over from their last questionnaire, falling back to whichever knee
@@ -739,7 +741,7 @@
         koosSide = history.scores[0].knee_side;
       } else {
         // First time: take the side from their most recent analysis. A failure
-        // here just leaves the default — not worth blocking the card over.
+        // here just leaves the default - not worth blocking the card over.
         const past = await fetchLatestPrescription();
         const side = past && past.prescriptions && past.prescriptions[0] && past.prescriptions[0].knee_side;
         if (side === 'left' || side === 'right') koosSide = side;
@@ -762,7 +764,7 @@
     // ── Who you are, and what you are recovering from ──────────────────────
     //
     // Everything here is read back to the patient rather than assumed, because
-    // two of these facts — the surgery date and the safe limit — decide what the
+    // two of these facts - the surgery date and the safe limit - decide what the
     // app asks their knee to do. A wrong date is indistinguishable from a right
     // one until somebody sees it written down.
 
@@ -776,8 +778,8 @@
     /**
      * Run something whose failure must not take the page down with it.
      *
-     * Used for the profile card. Nothing in it is load-bearing — the charts,
-     * the triage flags and the questionnaire all stand on their own — so a bad
+     * Used for the profile card. Nothing in it is load-bearing - the charts,
+     * the triage flags and the questionnaire all stand on their own - so a bad
      * date, an unexpected surgery type or a missing element should cost the
      * patient a card, not the whole dashboard.
      */
@@ -817,7 +819,7 @@
         facts.appendChild(fact(
           'Recovery week',
           patient.weeks_post_op === null || patient.weeks_post_op === undefined
-            ? '—'
+            ? '-'
             : `Week ${patient.weeks_post_op}`,
           'sets which exercises you get',
         ));
@@ -826,7 +828,7 @@
       }
 
       // The safe limit is the one number here that can hurt someone, so it comes
-      // from the history endpoint — which reports the ceiling a clinician
+      // from the history endpoint - which reports the ceiling a clinician
       // approved, not whatever the model originally read off the film.
       if (latest) {
         facts.appendChild(fact('Latest reading', `KL grade ${latest.kl_grade}`, dayOf(latest.created_at)));
@@ -857,7 +859,7 @@
       try {
         const type = $('surgery-type').value;
         const updated = await PhysioAPI.setSurgery({
-          // "No surgery" clears the date too — a date with no operation attached
+          // "No surgery" clears the date too - a date with no operation attached
           // would still be feeding a week number into the protocol selector.
           surgeryDate: type === 'none' ? null : ($('surgery-date').value || null),
           surgeryType: type,
@@ -879,7 +881,7 @@
       }
       // The charts go first and are never gated behind the card. A throw while
       // rendering the profile used to mean load() was never reached, which left
-      // the skeleton spinning forever — the page looked hung when in fact only
+      // the skeleton spinning forever - the page looked hung when in fact only
       // the top card had failed. The card is the decoration here; the progress
       // is the page.
       load();
@@ -888,7 +890,7 @@
 
       $('nav-who').textContent = patient.display_name || patient.email;
       $('nav-avatar').textContent = String(patient.display_name || patient.email || '?').trim().charAt(0).toUpperCase();
-      // .split on a name is safe only once it is known to be a string — a
+      // .split on a name is safe only once it is known to be a string - a
       // display_name of "" is falsy and handled, but any other shape is not
       // worth trusting on a page that has already started rendering.
       const firstName = typeof patient.display_name === 'string'
@@ -911,7 +913,7 @@
   </script>
   <script>
     // Installable, and able to open without a connection. The worker caches the
-    // app shell only — never an API response, because a cached prescription is
+    // app shell only - never an API response, because a cached prescription is
     // a cached movement ceiling. See sw.js.
     // localhost is a secure context too, and gating on https alone meant the
     // entire offline path went live having never once run in development.

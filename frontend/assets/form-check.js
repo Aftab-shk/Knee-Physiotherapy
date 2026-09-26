@@ -1,12 +1,12 @@
 /*
- * form-check.js — is the exercise being done, or worked around?
+ * form-check.js - is the exercise being done, or worked around?
  * =============================================================
  *
  * The tracker measures how far the knee bent. A physiotherapist watching would
  * be looking at something else entirely: whether the movement came from the
  * right place. A straight leg raise performed by rocking the trunk backwards
  * hits the same knee angle as one performed properly and does almost none of
- * the same work — and the person doing it has no idea, because the counter went
+ * the same work - and the person doing it has no idea, because the counter went
  * up either way.
  *
  * What is NOT here, and why
@@ -17,7 +17,7 @@
  * front of the patient.
  *
  * The tracker requires the opposite. A knee flexion angle from 2D landmarks is
- * only valid side-on (see pose-gate.js — square to the camera, a 60-degree knee
+ * only valid side-on (see pose-gate.js - square to the camera, a 60-degree knee
  * reads 0), so the session will not even start until the camera is in the one
  * position from which valgus cannot be seen.
  *
@@ -55,7 +55,7 @@ export const FORM = {
   SWAY_FRACTION: 0.14,
 
   // Frames a fault must persist before it is worth mentioning. At ~30fps this
-  // is about half a second — long enough to skip a wobble, short enough to
+  // is about half a second - long enough to skip a wobble, short enough to
   // catch a rep being performed wrongly.
   SUSTAIN_FRAMES: 15,
 };
@@ -66,7 +66,7 @@ const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 /**
  * The trunk's tilt, in degrees from vertical.
  *
- * Signed, so leaning back and leaning forward are distinguishable — a
+ * Signed, so leaning back and leaning forward are distinguishable - a
  * comparison against a baseline needs to know which way it moved.
  */
 export function trunkAngle(lm) {
@@ -154,11 +154,11 @@ export function assessForm(lm, baseline, opts = {}) {
   }
 
   // A hold that is supposed to be straight, performed bent, is a different
-  // exercise doing different work — and the timer would happily run through it.
+  // exercise doing different work - and the timer would happily run through it.
   if (holdTarget === "straight" && kneeAngle !== null && kneeAngle > FORM.KNEE_NOT_LOCKED_DEG) {
     faults.push({
       code: "knee_not_locked",
-      message: "Straighten the knee fully — push the back of it down.",
+      message: "Straighten the knee fully. Push the back of it down.",
       value: Math.round(kneeAngle * 10) / 10,
       threshold: FORM.KNEE_NOT_LOCKED_DEG,
     });
@@ -181,7 +181,7 @@ export function assessForm(lm, baseline, opts = {}) {
  * Tracks how long each fault has persisted, so a wobble is not a correction.
  *
  * The tracker feeds every frame in and gets back only the faults that have held
- * long enough to be worth saying — the same shape of guard the camera-view gate
+ * long enough to be worth saying - the same shape of guard the camera-view gate
  * uses, and for the same reason.
  */
 export function createFormMonitor(sustainFrames = FORM.SUSTAIN_FRAMES) {

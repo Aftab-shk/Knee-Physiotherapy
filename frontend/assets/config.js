@@ -1,16 +1,16 @@
 /*
- * config.js — where the frontend finds its backend.
+ * config.js - where the frontend finds its backend.
  * =================================================
  *
  * The API base used to be a literal in upload.html, which meant a deployed copy
  * of these pages pointed at the developer's own laptop. Resolution order, first
  * match wins:
  *
- *   1. ?api=http://host:port        — per-load override, handy for testing
- *   2. window.PHYSIOAI_API_BASE     — set by a <script> before this one loads
- *   3. <meta name="physioai-api">   — per-deployment, no JS needed
- *   4. this page's own origin      — the API serves these pages
- *   5. http://127.0.0.1:8000        — local development default
+ *   1. ?api=http://host:port - per-load override, handy for testing
+ *   2. window.PHYSIOAI_API_BASE - set by a <script> before this one loads
+ *   3. <meta name="physioai-api"> - per-deployment, no JS needed
+ *   4. this page's own origin - the API serves these pages
+ *   5. http://127.0.0.1:8000 - local development default
  *
  * Load as a classic script before api.js, matching exercise-animations.js:
  *   <script src="assets/config.js"></script>
@@ -58,7 +58,7 @@
     // This used to guess port 8000 instead, which broke twice over. A page
     // served on any other port called across origins to a server that might not
     // be there, and now that the API sends a Content-Security-Policy of
-    // connect-src 'self' the browser blocks the guess outright — correctly,
+    // connect-src 'self' the browser blocks the guess outright - correctly,
     // because a page that talks to another origin for its clinical data is
     // exactly what that header exists to stop.
     //

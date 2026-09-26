@@ -21,7 +21,7 @@ from kl_constants import KL_DESCRIPTIONS, KL_HEALTH_SCORE, KL_MAX_ANGLE  # noqa:
 UNCERTAIN_READ_CEILING = KL_MAX_ANGLE[2]
 
 DISCLAIMER = (
-    "⚠️ This output is for informational purposes only and is not a substitute "
+    "This output is for informational purposes only and is not a substitute "
     "for professional medical advice. Always consult your physiotherapist or "
     "surgeon before starting any exercise programme."
 )
@@ -114,7 +114,7 @@ def _cap_exercises(raw_exercises: list, max_angle: int) -> tuple[list, list]:
         caution = ex.get("cautions") or ""
         if capped:
             cap_note = (
-                f"⚠️ Standard angle for this exercise is {proto_limit}°, "
+                f"Standard angle for this exercise is {proto_limit}°, "
                 f"reduced to {effective}° based on your X-ray (KL grade severity). "
             )
             caution = cap_note + caution if caution else cap_note.rstrip()
@@ -401,7 +401,7 @@ def build_prescription(
         )
     elif hardware_suspected:
         rationale += (
-            " ⚠ This image looks like it may contain a joint replacement. If your knee has "
+            " This image looks like it may contain a joint replacement. If your knee has "
             "been replaced, tell your physiotherapist — the grade above is based on wear in a "
             "natural joint and would not apply to you. Your limits have been left unchanged "
             "in the meantime."

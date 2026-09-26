@@ -1,11 +1,11 @@
 /*
- * Tests for the scroll-reveal gate — assets/motion.js and assets/theme.css.
+ * Tests for the scroll-reveal gate - assets/motion.js and assets/theme.css.
  *
  * Scroll reveal works by hiding content and then bringing it back. That is a
  * bargain with a sharp edge: every path where the "bring it back" half fails
  * leaves a patient staring at a blank panel where their grade, their range of
  * motion or their clinician's caution note should be. Nothing about that
- * failure looks like a bug from the inside — the page loads, the console is
+ * failure looks like a bug from the inside - the page loads, the console is
  * clean, and the content is simply not there.
  *
  * So the invariants worth defending are the ones that decide whether hidden
@@ -81,7 +81,7 @@ test("a normal browser gets the gate, so the reveal can run", () => {
 });
 
 test("a reader who asked for reduced motion is never gated", () => {
-  // Not "animated faster" — never hidden in the first place.
+  // Not "animated faster" - never hidden in the first place.
   assert.equal(run({ reducedMotion: true }).gated, false);
 });
 
@@ -110,7 +110,7 @@ test("the observer's rootMargin never shrinks the bottom of the root", () => {
 
 test("theme.css hides .reveal only behind the gate", () => {
   // A bare ".reveal { opacity: 0 }" would blank the page whenever motion.js
-  // fails to load — the exact failure this whole design is arranged to avoid.
+  // fails to load - the exact failure this whole design is arranged to avoid.
   const rules = themeSrc.match(/(^|\})\s*([^{}]*\.reveal[^{}]*)\{([^}]*)\}/g) || [];
   assert.ok(rules.length, "expected at least one .reveal rule in theme.css");
 

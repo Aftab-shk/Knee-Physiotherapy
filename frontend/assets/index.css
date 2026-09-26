@@ -1,4 +1,4 @@
-/* index.css — styles for index.html. Load after assets/theme.css. */
+/* index.css - styles for index.html. Load after assets/theme.css. */
     /* Palette and type come from assets/theme.css. */
     :root { --ease: cubic-bezier(.23, 1, .32, 1); }
 
@@ -67,7 +67,7 @@
     .dashboard-card:hover { transform: rotate(0deg) translateY(-6px); box-shadow: 0 40px 80px rgba(78, 102, 91, .2); }
     .dashboard-head { display: flex; align-items: flex-start; justify-content: space-between; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
     .dashboard-head h3 { font: 600 21px var(--body); letter-spacing: -.05em; margin-top: 7px; }
-    .dashboard-head h3 span { color: var(--coral); font-size: 14px; }
+    .dashboard-head h3 .i { color: var(--coral); width: 14px; height: 14px; }
     .status-chip { display: flex; gap: 6px; align-items: center; color: #4a825f; font-size: 10px; font-weight: 600; white-space: nowrap; }
     .status-dot { width: 6px; height: 6px; display: inline-block; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 4px rgba(105, 181, 128, .12); }
     .status-chip .status-dot { background: #69b580; }
@@ -94,6 +94,7 @@
     .next-session { display: flex; align-items: center; gap: 11px; margin-top: 18px; padding: 10px; background: #f4f4ec; border-radius: 13px; transition: transform .2s var(--ease), background .2s ease; }
     .next-session:hover { transform: translateY(-2px); background: #eef2e8; }
     .exercise-thumb { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; font: 23px var(--display); background: var(--lavender); }
+    .exercise-thumb .i { width: 18px; height: 18px; }
     .next-session .mini { font-size: 8px; display: block; margin-bottom: 4px; }
     .next-session strong { font-size: 12px; }
     .next-session > .i { margin-left: auto; color: #86948b; }
@@ -119,7 +120,7 @@
        110s for a half of five sets keeps the old pace of 22s per set. */
     .marquee-track { display: flex; width: max-content; font: 500 10px var(--mono); letter-spacing: .16em; animation: marquee 110s linear infinite; will-change: transform; }
     .marquee-track span { margin-right: 46px; white-space: nowrap; }
-    .marquee-track i { color: var(--coral); font-style: normal; margin-left: 22px; }
+    .marquee-track .i { color: var(--coral); width: 10px; height: 10px; margin-left: 22px; vertical-align: -1px; }
 
     /* ── Shared section intro ────────────────────────────────────────── */
     .section-intro { display: flex; justify-content: space-between; align-items: flex-end; gap: 50px; }
@@ -143,12 +144,15 @@
     .flip-eyebrow { margin-bottom: clamp(10px, 1.5vw, 22px); font: 600 10px var(--body); text-transform: uppercase; letter-spacing: .16em; opacity: .7; }
     .flip-bottom h3 { max-width: 16ch; font: 600 clamp(28px, 3.25vw, 48px)/.96 var(--display); letter-spacing: -.05em; }
     .flip-description { max-width: 670px; margin-top: clamp(16px, 1.8vw, 24px); font-size: clamp(13px, 1.1vw, 16px); line-height: 1.5; opacity: .82; }
-    .flip-art { position: relative; display: grid; place-items: center; min-height: 180px; margin: clamp(10px, 1.2vw, 18px) clamp(10px, 1.2vw, 18px) clamp(10px, 1.2vw, 18px) 0; overflow: hidden; border-radius: 17px; background: rgba(255, 255, 255, .1); }
-    .flip-art::before, .flip-art::after { content: ''; position: absolute; border: 1px solid currentColor; border-radius: 50%; opacity: .22; }
-    .flip-art::before { width: 70%; aspect-ratio: 1; }
-    .flip-art::after { width: 95%; aspect-ratio: 2.6; transform: rotate(-32deg); }
-    .flip-art-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255, 255, 255, .1) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, .1) 1px, transparent 1px); background-size: 28px 28px; mask-image: linear-gradient(to bottom, transparent, black); }
-    .flip-art .i { position: relative; width: 38%; height: auto; aspect-ratio: 1; stroke-width: 1.25; }
+    /* The four steps take the page's own fills, in the order the move cards use them. */
+    .flip-peach { background: #f4d5cc; color: var(--ink); }
+    .flip-mint { background: var(--mint); color: var(--ink); }
+    .flip-lavender { background: var(--lavender); color: var(--ink); }
+    .flip-ink { background: var(--ink); color: var(--paper); }
+    .flip-art { position: relative; min-height: 180px; margin: clamp(10px, 1.2vw, 18px) clamp(10px, 1.2vw, 18px) clamp(10px, 1.2vw, 18px) 0; overflow: hidden; border-radius: 17px; background: var(--paper); box-shadow: 0 0 0 1px rgba(36, 50, 47, .08); }
+    /* A phone-width screenshot of that step. Pinned to the top so the part
+       that matters survives the wide, short crop on small screens. */
+    .flip-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top center; }
     .flip-hint { display: none; }
 
     .js-motion .flip-stack { height: 555vh; margin: 62px -1vw 0; }
@@ -159,6 +163,7 @@
     .js-motion .flip-hint { position: absolute; top: clamp(24px, 6vh, 70px); left: 50%; display: flex; align-items: center; gap: 15px; transform: translateX(-50%); color: #8a8177; font: 500 10px var(--mono); text-transform: uppercase; letter-spacing: .15em; white-space: nowrap; }
     .flip-hint span:first-child, .flip-hint span:last-child { color: var(--coral); font-size: 20px; animation: gentle-bounce 1.5s ease-in-out infinite; }
     .flip-hint span:last-child { animation-delay: .2s; }
+    .flip-hint .i { display: block; width: 1em; height: 1em; }
 
     /* ── Safety ──────────────────────────────────────────────────────── */
     .protocol-section { display: grid; grid-template-columns: minmax(460px, 1fr) minmax(320px, .7fr); gap: clamp(58px, 11vw, 170px); align-items: center; padding-top: 110px; padding-bottom: 135px; background: #e8f1e9; position: relative; }
@@ -266,6 +271,7 @@
     .move-art.lavender { background: #e1d9eb; }
     .move-art.peach { background: #f4d5cc; }
     .move-art > span { z-index: 1; font: 500 83px var(--display); transform: rotate(-11deg); color: rgba(36, 50, 47, .84); transition: transform .3s var(--ease); }
+    .move-art .i { width: 1em; height: 1em; stroke-width: 1.25; }
     .move-card:hover .move-art > span { transform: rotate(2deg) scale(1.12); }
     .move-meta { padding: 18px 18px 19px; position: relative; }
     .move-meta > span:first-child { color: #8a918b; font: 9px var(--mono); }
@@ -315,6 +321,7 @@
     /* Server-side failures: wrong password, address already taken, backend down */
     .form-error { display: none; align-items: flex-start; gap: 9px; margin-top: 20px; padding: 11px 13px; border: 1px solid #f3c7bd; border-radius: 10px; background: #fff0eb; font-size: 12px; line-height: 1.5; color: #9c3a28; }
     .form-error.visible { display: flex; }
+    .form-error .i { margin-top: 1px; }
 
     #login-form { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
     .field.hidden { display: none; }
@@ -425,7 +432,6 @@
       .flip-bottom h3 { font-size: clamp(27px, 8vw, 38px); }
       .flip-description { font-size: 12px; }
       .flip-art { margin: 0 12px 12px; min-height: 0; border-radius: 13px; }
-      .flip-art .i { width: 30%; }
       .js-motion .flip-hint { top: 16px; font-size: 8px; gap: 9px; }
       .flip-hint span:first-child, .flip-hint span:last-child { font-size: 16px; }
       .protocol-section { gap: 54px; }

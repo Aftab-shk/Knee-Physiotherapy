@@ -1,16 +1,16 @@
 /*
- * voice.js — the tracker talking, so the patient does not have to look.
+ * voice.js - the tracker talking, so the patient does not have to look.
  * =====================================================================
  *
  * Someone doing a straight leg raise is lying on the floor with their head on
  * the carpet. Someone doing a mini squat is watching their own knee. Neither is
- * reading a screen, which means every count, every countdown and — most of all —
+ * reading a screen, which means every count, every countdown and - most of all -
  * every "you have gone too far" arrives too late to be useful.
  *
  * Two halves, deliberately separated:
  *
  *   `cueFor…`  pure functions deciding *what should be said*, if anything.
- *              No browser, no speech, testable directly — see
+ *              No browser, no speech, testable directly - see
  *              frontend/tests/voice.test.mjs.
  *   `speak`    the thin part that actually makes noise.
  *

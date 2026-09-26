@@ -1,11 +1,11 @@
 /*
- * theme.css — brand tokens and the base reset, shared by every page.
+ * theme.css - brand tokens and the base reset, shared by every page.
  * ==================================================================
  *
  * This file holds only what is genuinely common: the palette, the type stacks
  * and the reset. Page layout stays in each page's own <style> block, because
  * a landing page, a login form, an upload wizard and a fullscreen camera view
- * have almost no layout in common — pretending otherwise would produce a
+ * have almost no layout in common - pretending otherwise would produce a
  * shared stylesheet that every page then had to fight.
  *
  * Load it before the page's own <style> so page rules win:
@@ -52,7 +52,7 @@
   --coral-dark: #e86b58;   /* hover, large display text                    */
   --coral-ink:  #c24f3d;   /* small text and white-on-coral buttons: this is
                               the shade that clears 4.5:1 against white     */
-  --good:       #4a825f;   /* "within range" — a status, never the accent   */
+  --good:       #4a825f;   /* "within range" - a status, never the accent   */
   --line:       rgba(36, 50, 47, .14);
 
   /* ── Legacy names, pointed at the palette above ─────────────────────
@@ -78,7 +78,7 @@
   /* ── Type ──────────────────────────────────────────────────────────────
      Faces come from the Google Fonts <link> in each page's <head>; the
      fallbacks matter because that request can fail. Display is the serif,
-     for headings and large numbers only — buttons and labels use --body. */
+     for headings and large numbers only - buttons and labels use --body. */
   --mono:    'DM Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
   --display: 'Playfair Display', Georgia, 'Times New Roman', serif;
   --body:    'DM Sans', 'Segoe UI', system-ui, sans-serif;
@@ -97,7 +97,7 @@
   --t-base:  240ms;  /* hover, card lift                */
   --t-slow:  420ms;  /* scroll reveal, panel enter      */
 
-  /* Skeleton greys. Same two values the progress charts have always used —
+  /* Skeleton greys. Same two values the progress charts have always used -
      named here so the shimmer can be shared instead of re-declared. */
   --skeleton-base:  #eef0e9;
   --skeleton-sheen: #f7f7f2;

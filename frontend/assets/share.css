@@ -1,6 +1,6 @@
-/* share.css — styles for share.html. Load after assets/theme.css. */
+/* share.css - styles for share.html. Load after assets/theme.css. */
     /* Only what this page adds. Every chart, tile and table style comes from
-       assets/progress-view.css, shared with progress.html — a clinician and a
+       assets/progress-view.css, shared with progress.html - a clinician and a
        patient look at the same charts, so they read the same code. */
     .shared-banner {
       display: flex;
@@ -26,7 +26,7 @@
       margin-left: auto;
     }
 
-    /* The .spinner disc comes from assets/theme.css — until it was defined
+    /* The .spinner disc comes from assets/theme.css - until it was defined
        there, this container held an empty div and the page looked hung. */
     #loading {
       padding: 64px 0;

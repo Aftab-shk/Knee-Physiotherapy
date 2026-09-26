@@ -1,4 +1,4 @@
-/* upload.css — styles for upload.html. Load after assets/theme.css. */
+/* upload.css - styles for upload.html. Load after assets/theme.css. */
 
     html {
       scroll-behavior: smooth;
@@ -310,7 +310,7 @@
     }
 
     /* ── Per-knee results ─────────────────────────────────────────────
-       Two knees routinely differ by two grades — 90 degrees down to 45 — so
+       Two knees routinely differ by two grades - 90 degrees down to 45 - so
        each gets its own heading, its own ceiling and its own exercise list. */
     .side-tabs {
       display: flex;
@@ -950,7 +950,7 @@
       border: 1px solid #e0e5dd;
       border-radius: 15px;
       padding: 19px 16px;
-      text-align: left;
+      text-align: center;
     }
 
     .summary-card-value {
@@ -1183,9 +1183,9 @@
       border-top: 1px solid var(--border);
     }
 
-    /* Opening a row used to snap. Height still jumps — display cannot be
+    /* Opening a row used to snap. Height still jumps - display cannot be
        transitioned, and restructuring an accordion whose body is built
-       from a template string is not worth the risk — but fading the
+       from a template string is not worth the risk - but fading the
        content in over that jump is enough to read as an expansion rather
        than a redraw. */
     .exercise-card.open .exercise-body {
@@ -1252,7 +1252,7 @@
       counter-reset: step;
     }
 
-    /* Withheld exercises — hidden unless the ceiling screened something out */
+    /* Withheld exercises - hidden unless the ceiling screened something out */
     .excluded-section {
       display: none;
       margin-top: 28px;
@@ -1487,6 +1487,14 @@
     .i { width: 16px; height: 16px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .secure-chip { display: flex; align-items: center; gap: 5px; flex-shrink: 0; color: var(--good); font: 9px var(--mono); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
     .secure-chip .i { width: 12px; height: 12px; }
+    .i-fill { fill: currentColor; stroke: none; }
+    .demo-banner > .i, .saved-banner > .i { margin-top: 1px; }
+    .error-icon .i { width: 20px; height: 20px; color: var(--red); }
+    .disclaimer-icon .i { margin-top: 1px; color: #b45309; }
+    .caution-box .i { margin-top: 2px; }
+    .angle-badge .i { width: 12px; height: 12px; vertical-align: -2px; }
+    .exercise-chevron .i { display: block; width: 14px; height: 14px; }
+    .btn-tutorial .i, .btn-start-exercise .i { width: 10px; height: 10px; margin-right: 3px; vertical-align: -1px; }
     .drop-icon .i { width: 22px; height: 22px; }
     .upload-footer { display: flex; justify-content: space-between; gap: 20px; padding: 18px clamp(20px, 6vw, 96px); border-top: 1px solid var(--line); color: #7f8a83; font-size: 11px; }
     .upload-footer span { display: flex; align-items: center; gap: 6px; }

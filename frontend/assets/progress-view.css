@@ -1,5 +1,5 @@
 /*
- * progress-view.css — the charts, tiles and tables of the progress view.
+ * progress-view.css - the charts, tiles and tables of the progress view.
  * ======================================================================
  *
  * Shared by progress.html (the patient's own view) and share.html (what a
@@ -14,11 +14,11 @@
      * Coral is the brand accent, and it is exactly the wrong colour for a data
      * mark here: the one status this chart has to make unmissable is the breach
      * red, and coral sits right next to it. So the range-of-motion series stays
-     * the blue it has always been — checked against the breach red for
+     * the blue it has always been - checked against the breach red for
      * colour-vision separation (ΔE 18.7 protan, 31.9 normal) and for contrast
      * against the card it sits on.
      *
-     * The adherence ramp is sequential — one hue, light to dark, three steps
+     * The adherence ramp is sequential - one hue, light to dark, three steps
      * because a patient does one, two, or three-plus sessions in a day. It is
      * green, the palette's "doing well" hue; the heatmap never shows a breach,
      * so there is no red for it to be confused with. The lightest step clears
@@ -27,7 +27,7 @@
     :root {
       --data:        #1d6fa5;  /* the one data series: range of motion */
       --data-soft:   rgba(29, 111, 165, .12);
-      --breach:      #dc2626;  /* status, reserved — never a series colour */
+      --breach:      #dc2626;  /* status, reserved - never a series colour */
       --breach-soft: rgba(220, 38, 38, .10);
 
       --heat-0: #eef0e9;       /* no session: absence, not a value */
@@ -123,8 +123,8 @@
     .range-btn:focus-visible { outline: 2px solid var(--coral); outline-offset: 2px; }
 
     /* progress.html only: the range group sits beside the summary download.
-       A .range-btn is transparent by design — it is a segment inside the grey
-       .ranges track — so one standing on its own has to bring its own surface. */
+       A .range-btn is transparent by design - it is a segment inside the grey
+       .ranges track - so one standing on its own has to bring its own surface. */
     .head-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
     .head-actions > .range-btn {
@@ -171,6 +171,7 @@
       border: 1px solid #e0e5dd;
       border-radius: 15px;
       padding: 19px;
+      text-align: center;
     }
 
     .kpi-label {
@@ -295,7 +296,7 @@
     .num { text-align: right; font-variant-numeric: tabular-nums; }
     .ex-name { font-weight: 600; color: var(--ink); }
 
-    /* Inline magnitude, same hue as the chart — it is the same measure. */
+    /* Inline magnitude, same hue as the chart - it is the same measure. */
     .bar-track { display: block; height: 6px; width: 72px; background: var(--heat-0); border-radius: 3px; overflow: hidden; }
     .bar-fill { display: block; height: 100%; background: var(--data); border-radius: 3px; }
 
@@ -328,7 +329,10 @@
 
     /* ── Empty + loading ─────────────────────────────────────────────── */
     .empty { text-align: center; padding: 54px 24px; }
-    .empty-icon { font-size: 40px; margin-bottom: 14px; }
+    .empty-icon { font-size: 40px; margin-bottom: 14px; color: var(--coral-ink); }
+    .empty-icon .i { width: 1em; height: 1em; stroke-width: 1.5; }
+    .notice > .i { width: 16px; height: 16px; margin-top: 1px; }
+    .breach-chip .i, .tip-title .i { width: 12px; height: 12px; vertical-align: -2px; }
     .empty-title { font: 500 30px/1.05 var(--display); letter-spacing: -.05em; color: var(--ink); margin-bottom: 10px; }
     .empty-text { font-size: 13px; color: #6f7a72; max-width: 420px; margin: 0 auto 22px; line-height: 1.65; }
 
@@ -473,7 +477,7 @@
 /* ── The KOOS-JR questionnaire ──────────────────────────────────────────────
  *
  * Patient-side only. share.html loads this stylesheet for the charts above and
- * simply never renders a form — a clinician reads the score, they do not answer
+ * simply never renders a form - a clinician reads the score, they do not answer
  * it on somebody's behalf.
  *
  * Sized for a phone held one-handed on the floor between sets, which is where
@@ -486,7 +490,7 @@
  *
  * Patient-side only; share.html loads this stylesheet for the charts and never
  * renders the card. Sits at the top of the dashboard, so it is the first thing
- * a returning patient reads — which is why the surgery date and the safe limit
+ * a returning patient reads - which is why the surgery date and the safe limit
  * are given as much weight as the name.
  */
 
@@ -623,7 +627,7 @@
 
 .om-scale { display: flex; gap: 6px; }
 
-/* The input is the accessible control — keyboard, screen reader, arrow keys
+/* The input is the accessible control - keyboard, screen reader, arrow keys
    within the group. It is only visually replaced by its label, never removed
    from the accessibility tree. */
 .om-radio {

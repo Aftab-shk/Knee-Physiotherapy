@@ -1,12 +1,12 @@
 /*
- * motion.js — scroll reveal and card transitions, applied product-wide.
+ * motion.js - scroll reveal and card transitions, applied product-wide.
  * ====================================================================
  *
  * Load from <head> WITHOUT defer:
  *   <script src="assets/motion.js"></script>
  *
  * The no-defer placement is deliberate. This script's first act is to set
- * .js-motion on <html>, and that has to happen before the first paint —
+ * .js-motion on <html>, and that has to happen before the first paint -
  * deferred, the page would paint every section visible and then blank them
  * as the observer took over, which is a worse flash than no animation.
  * Nothing here touches the body at parse time, so running early costs a
@@ -15,7 +15,7 @@
  * The gate cuts the other way too: assets/theme.css hides .reveal only
  * under .js-motion. If this file 404s, throws, or is blocked, the class is
  * never set and every section renders plainly. Content is never invisible
- * by default — which matters on a page a patient may be reading to decide
+ * by default - which matters on a page a patient may be reading to decide
  * whether to seek care.
  *
  * Why a MutationObserver and not a single querySelectorAll: the cards on
@@ -34,7 +34,7 @@
   var root = document.documentElement;
 
   // Asked for reduced motion? Then never set the gate. Sections stay
-  // visible and unanimated, which is the request itself — not a degraded
+  // visible and unanimated, which is the request itself - not a degraded
   // version of the animation.
   var reduced = window.matchMedia &&
                 window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -59,7 +59,7 @@
      than REVEAL, because a lift is an affordance and not a decoration: it
      promises the card does something. The stat tiles on upload are read,
      not pressed, and its exercise rows are accordions that keep their own
-     flatter hover — lifting either would promise a click that is not
+     flatter hover - lifting either would promise a click that is not
      there. */
   var LIFT = ['.feature-card', '.step'].join(',');
 
@@ -94,7 +94,7 @@
        once the page is scrolled to its maximum, anything inside that band
        can never intersect, and a card that was hidden on tag would stay
        hidden for good. A positive margin only ever enlarges the root, so
-       every element that is on screen intersects — the reveal cannot strand
+       every element that is on screen intersects - the reveal cannot strand
        content. On a page a patient reads to judge their own recovery, an
        invisible card is not a cosmetic bug. */
     threshold: 0,

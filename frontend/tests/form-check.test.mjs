@@ -2,7 +2,7 @@
  * Tests for assets/form-check.js.
  *
  * The tracker measures how far the knee bent. A physiotherapist would be
- * watching whether the movement came from the right place — a straight leg raise
+ * watching whether the movement came from the right place - a straight leg raise
  * performed by rocking the trunk hits the same knee angle as a proper one and
  * does almost none of the same work.
  *

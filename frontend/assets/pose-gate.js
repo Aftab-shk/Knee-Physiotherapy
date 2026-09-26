@@ -1,5 +1,5 @@
 /*
- * pose-gate.js — joint geometry and camera-view validation for the tracker.
+ * pose-gate.js - joint geometry and camera-view validation for the tracker.
  * ==========================================================================
  *
  * Extracted from tracker.html so the geometry that decides whether a knee angle
@@ -10,7 +10,7 @@
  * calcKneeAngle() measures a *projected* angle: it uses only the x and y of each
  * landmark, so it is the angle of the leg as it appears in the image, not the
  * angle of the leg in space. The two coincide only when the camera looks along
- * the knee's axis of rotation — that is, when it sees the leg side-on.
+ * the knee's axis of rotation - that is, when it sees the leg side-on.
  *
  * Square to the camera, femur and tibia project onto nearly the same line: a
  * knee bent to 90 degrees reads close to 0. Nothing about that reading looks
@@ -64,7 +64,7 @@ export const isHardFail = (code) => HARD_FAIL_CODES.includes(code);
  *
  * Landmarks come back normalised to 0–1 by frame *width* for x and frame
  * *height* for y. On anything but a square frame those are different real
- * distances, and every piece of geometry below — angles, lengths, ratios —
+ * distances, and every piece of geometry below - angles, lengths, ratios -
  * silently reads the leg as though the image had been squashed. A true 60°
  * knee measured this way reports 44° on a 1280×720 webcam, and under-reading
  * is the direction that lets a patient past their ceiling with no alarm.
@@ -92,8 +92,8 @@ export function jointAngle(a, b, c) {
 
 // The same cosine rule in three dimensions. MediaPipe's world landmarks are
 // metric and hip-centred, so this is a true anatomical angle rather than a
-// projected one. It is noisier than the 2D value — which is why it does not
-// drive the safety check — but it cannot be fooled by foreshortening, which
+// projected one. It is noisier than the 2D value - which is why it does not
+// drive the safety check - but it cannot be fooled by foreshortening, which
 // makes it a useful cross-check.
 export function jointAngle3D(a, b, c) {
   const v1 = { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
@@ -106,7 +106,7 @@ export function jointAngle3D(a, b, c) {
 }
 
 // Knee flexion: straight leg = 0°, fully bent ≈ 135°.
-// `aspect` is the frame's width ÷ height — pass it or the reading is distorted
+// `aspect` is the frame's width ÷ height - pass it or the reading is distorted
 // by the frame's shape rather than by the knee. See squareUp().
 export function calcKneeAngle(hip, knee, ankle, aspect = 1) {
   return 180 - jointAngle(squareUp(hip, aspect), squareUp(knee, aspect), squareUp(ankle, aspect));
@@ -148,7 +148,7 @@ export function landmarkIndices(kneeSide) {
  *          `code` is stable for logic; `message` is the single next thing the
  *          patient should do about it; `visibility` is the weakest landmark the
  *          angle depends on, which is how well the reading can be trusted at
- *          all — the tracker averages it across a set and stores it beside the
+ *          all - the tracker averages it across a set and stores it beside the
  *          measurement.
  */
 export function assessView(lm, world, idx, opts = {}) {
@@ -160,7 +160,7 @@ export function assessView(lm, world, idx, opts = {}) {
   const aspect        = opts.aspect ?? 1;
 
   if (!lm || [11, 12, 23, 24, idx.hip, idx.knee, idx.ankle].some(i => !lm[i])) {
-    return { ok: false, code: 'no-pose', visibility: 0, message: 'Step into frame — we can’t see you yet.' };
+    return { ok: false, code: 'no-pose', visibility: 0, message: 'Step into frame. We can’t see you yet.' };
   }
 
   const hip = lm[idx.hip], knee = lm[idx.knee], ankle = lm[idx.ankle];
@@ -185,7 +185,7 @@ export function assessView(lm, world, idx, opts = {}) {
   //    landmark is extrapolated and drifts.
   const M = POSE_GATE.FRAME_MARGIN;
   if ([hip, knee, ankle].some(p => p.x < M || p.x > 1 - M || p.y < M || p.y > 1 - M)) {
-    return { ok: false, code: 'out-of-frame', visibility, message: 'Move back — your whole leg needs to be in frame.' };
+    return { ok: false, code: 'out-of-frame', visibility, message: 'Move back. Your whole leg needs to be in frame.' };
   }
 
   // 3. Torso length is the scale reference for the test below. A very short one
@@ -203,13 +203,13 @@ export function assessView(lm, world, idx, opts = {}) {
   //    independent of how far away the patient is and of their build.
   const spread = Math.max(dist2(sq(lm[23]), sq(lm[24])), dist2(sq(lm[11]), sq(lm[12]))) / torso;
   if (spread > spreadCeiling) {
-    return { ok: false, code: 'not-sagittal', visibility, message: 'Turn side-on to the camera — we need a profile view of your leg.' };
+    return { ok: false, code: 'not-sagittal', visibility, message: 'Turn side-on to the camera. We need a profile view of your leg.' };
   }
 
   // 5. Backstop for the oblique angles step 4 lets through: compare the
   //    projected knee angle against the metric one. A large gap means the leg is
-  //    pointing towards or away from the camera, and the 2D number — the one the
-  //    safety check uses — is reading low.
+  //    pointing towards or away from the camera, and the 2D number - the one the
+  //    safety check uses - is reading low.
   if (world && world[idx.hip] && world[idx.knee] && world[idx.ankle]) {
     const raw3d = jointAngle3D(world[idx.hip], world[idx.knee], world[idx.ankle]);
     if (raw3d !== null &&

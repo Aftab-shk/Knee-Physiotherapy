@@ -1,15 +1,15 @@
 /*
- * Tests for the KOOS-JR questionnaire — assets/outcome-form.js.
+ * Tests for the KOOS-JR questionnaire - assets/outcome-form.js.
  *
  * The failure mode worth designing against is a form that submits something it
  * should not. KOOS-JR has no published rule for a missing item, so six answers
- * out of seven cannot be scored — and a client that quietly filled the gap would
+ * out of seven cannot be scored - and a client that quietly filled the gap would
  * be inventing clinical data that then looks exactly like a real reading, on the
  * same scale a joint registry uses.
  *
  * So most of what follows checks that it refuses: no partial submissions, no
  * padding, no treating a skipped question as a zero (which is "no symptoms at
- * all" — the single most flattering answer on the scale).
+ * all" - the single most flattering answer on the scale).
  *
  * The decision functions are pure, so they are tested directly. `render()` is
  * the thin part that touches the DOM.
@@ -52,7 +52,7 @@ test("a skipped question is reported by position", () => {
 
 test("zero is an answer, not a blank", () => {
   /*
-   * "None" scores 0 — the most favourable response on the scale. Treating it as
+   * "None" scores 0 - the most favourable response on the scale. Treating it as
    * unanswered would block a patient with a good knee from ever submitting; the
    * inverse mistake, treating a blank as 0, would score seven skipped questions
    * as a perfect knee.
@@ -133,7 +133,7 @@ test("a falling score is worse", () => {
 test("a change inside the instrument's noise is not reported as a change", () => {
   /*
    * The server has already decided this one. Rendering it as "3 points worse"
-   * would invite a conclusion the questionnaire cannot support — week-to-week
+   * would invite a conclusion the questionnaire cannot support - week-to-week
    * movement that small is measurement noise, not a knee getting worse.
    */
   assert.equal(F.deltaText({ delta: -3, direction: "unchanged" }), "about the same");
@@ -152,8 +152,8 @@ test("a first score has nothing to compare against and says nothing", () => {
 // answered, and a failed request has to leave the answers on screen. Neither is
 // visible from the pure functions, and both are what a patient actually meets.
 //
-// Rather than a DOM library — this project has no build step and no
-// dependencies — a shim of the handful of methods the module touches. It is
+// Rather than a DOM library - this project has no build step and no
+// dependencies - a shim of the handful of methods the module touches. It is
 // enough to click through a form, and small enough to read.
 
 function makeDocument() {
@@ -321,7 +321,7 @@ test("an incomplete form does not submit even if the event fires", async () => {
 test("a failed save keeps the answers and lets the patient try again", async () => {
   /*
    * Nobody should have to answer seven questions twice because a request timed
-   * out — which is exactly what clearing the form on error would cost them.
+   * out - which is exactly what clearing the form on error would cost them.
    */
   const { host, radios, form } = mount(DEFINITION, {
     onSubmit: async () => { throw new Error("The request timed out."); },

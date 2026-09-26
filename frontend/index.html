@@ -35,14 +35,16 @@
     <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
     <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></symbol>
     <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
-    <symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/><path d="M9 9h.01"/><path d="M15 15h.01"/></symbol>
-    <symbol id="i-clipboard" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></symbol>
-    <symbol id="i-video" viewBox="0 0 24 24"><path d="m22 8-5 4 5 4V8Z"/><rect width="15" height="12" x="2" y="6" rx="2"/></symbol>
     <symbol id="i-spark" viewBox="0 0 24 24"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.13-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.13a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.13 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.13a.5.5 0 0 1-.96 0z"/></symbol>
     <symbol id="i-mail" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></symbol>
     <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
     <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
     <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+    <symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></symbol>
+    <symbol id="i-circle-dashed" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-dasharray="3.2 3.2"/></symbol>
+    <symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></symbol>
+    <symbol id="i-armchair" viewBox="0 0 24 24"><path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"/><path d="M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v1.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V11a2 2 0 0 0-4 0z"/><path d="M5 18v2"/><path d="M19 18v2"/></symbol>
     <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="m2 2 20 20"/></symbol>
   </svg>
 
@@ -92,7 +94,7 @@
       <div class="hero-dashboard reveal" aria-label="Example of a daily recovery dashboard">
         <div class="dashboard-card">
           <div class="dashboard-head">
-            <div><span class="mini">Today's recovery</span><h3 id="greeting">Good morning <span>✦</span></h3></div>
+            <div><span class="mini">Today's recovery</span><h3 id="greeting">Good morning <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></h3></div>
             <div class="status-chip"><span class="status-dot"></span> On track</div>
           </div>
           <div class="dashboard-grid">
@@ -111,7 +113,7 @@
               <div class="plan-progress"><span></span></div>
               <div class="plan-stats"><strong>2 of 3</strong><span>exercises done</span><b>67%</b></div>
               <a class="next-session" href="#signup">
-                <div class="exercise-thumb"><span>↗</span></div>
+                <div class="exercise-thumb"><svg class="i" aria-hidden="true"><use href="#i-arrow"/></svg></div>
                 <div><span class="mini">Next up · 08 min</span><strong>Heel slides</strong></div>
                 <svg class="i"><use href="#i-arrow"/></svg>
               </a>
@@ -133,16 +135,16 @@
            has to be wider than the screen, or the end of the track shows as a
            gap before the loop. -->
       <div class="marquee-track">
-        <span>X-RAY INFORMED <i>✦</i></span><span>SAFE ANGLE LIMITS <i>✦</i></span><span>LIVE FORM TRACKING <i>✦</i></span>
-        <span aria-hidden="true">X-RAY INFORMED <i>✦</i></span><span aria-hidden="true">SAFE ANGLE LIMITS <i>✦</i></span><span aria-hidden="true">LIVE FORM TRACKING <i>✦</i></span>
-        <span aria-hidden="true">X-RAY INFORMED <i>✦</i></span><span aria-hidden="true">SAFE ANGLE LIMITS <i>✦</i></span><span aria-hidden="true">LIVE FORM TRACKING <i>✦</i></span>
-        <span aria-hidden="true">X-RAY INFORMED <i>✦</i></span><span aria-hidden="true">SAFE ANGLE LIMITS <i>✦</i></span><span aria-hidden="true">LIVE FORM TRACKING <i>✦</i></span>
-        <span aria-hidden="true">X-RAY INFORMED <i>✦</i></span><span aria-hidden="true">SAFE ANGLE LIMITS <i>✦</i></span><span aria-hidden="true">LIVE FORM TRACKING <i>✦</i></span>
-        <span aria-hidden="true">X-RAY INFORMED <i>✦</i></span><span aria-hidden="true">SAFE ANGLE LIMITS <i>✦</i></span><span aria-hidden="true">LIVE FORM TRACKING <i>✦</i></span>
-        <span aria-hidden="true">X-RAY INFORMED <i>✦</i></span><span aria-hidden="true">SAFE ANGLE LIMITS <i>✦</i></span><span aria-hidden="true">LIVE FORM TRACKING <i>✦</i></span>
-        <span aria-hidden="true">X-RAY INFORMED <i>✦</i></span><span aria-hidden="true">SAFE ANGLE LIMITS <i>✦</i></span><span aria-hidden="true">LIVE FORM TRACKING <i>✦</i></span>
-        <span aria-hidden="true">X-RAY INFORMED <i>✦</i></span><span aria-hidden="true">SAFE ANGLE LIMITS <i>✦</i></span><span aria-hidden="true">LIVE FORM TRACKING <i>✦</i></span>
-        <span aria-hidden="true">X-RAY INFORMED <i>✦</i></span><span aria-hidden="true">SAFE ANGLE LIMITS <i>✦</i></span><span aria-hidden="true">LIVE FORM TRACKING <i>✦</i></span>
+        <span>X-RAY INFORMED <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span><span>SAFE ANGLE LIMITS <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span><span>LIVE FORM TRACKING <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span>
+        <span aria-hidden="true">X-RAY INFORMED <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span><span aria-hidden="true">SAFE ANGLE LIMITS <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span><span aria-hidden="true">LIVE FORM TRACKING <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span>
+        <span aria-hidden="true">X-RAY INFORMED <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span><span aria-hidden="true">SAFE ANGLE LIMITS <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span><span aria-hidden="true">LIVE FORM TRACKING <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span>
+        <span aria-hidden="true">X-RAY INFORMED <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span><span aria-hidden="true">SAFE ANGLE LIMITS <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span><span aria-hidden="true">LIVE FORM TRACKING <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span>
+        <span aria-hidden="true">X-RAY INFORMED <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span><span aria-hidden="true">SAFE ANGLE LIMITS <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span><span aria-hidden="true">LIVE FORM TRACKING <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span>
+        <span aria-hidden="true">X-RAY INFORMED <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span><span aria-hidden="true">SAFE ANGLE LIMITS <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span><span aria-hidden="true">LIVE FORM TRACKING <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span>
+        <span aria-hidden="true">X-RAY INFORMED <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span><span aria-hidden="true">SAFE ANGLE LIMITS <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span><span aria-hidden="true">LIVE FORM TRACKING <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span>
+        <span aria-hidden="true">X-RAY INFORMED <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span><span aria-hidden="true">SAFE ANGLE LIMITS <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span><span aria-hidden="true">LIVE FORM TRACKING <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span>
+        <span aria-hidden="true">X-RAY INFORMED <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span><span aria-hidden="true">SAFE ANGLE LIMITS <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span><span aria-hidden="true">LIVE FORM TRACKING <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span>
+        <span aria-hidden="true">X-RAY INFORMED <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span><span aria-hidden="true">SAFE ANGLE LIMITS <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span><span aria-hidden="true">LIVE FORM TRACKING <svg class="i i-fill" aria-hidden="true"><use href="#i-spark"/></svg></span>
       </div>
     </section>
 
@@ -155,30 +157,30 @@
 
       <div class="flip-stack" id="flip-stack">
         <div class="flip-sticky">
-          <div class="flip-hint" aria-hidden="true"><span>↓</span><span>Scroll through the flow</span><span>↓</span></div>
+          <div class="flip-hint" aria-hidden="true"><span><svg class="i" aria-hidden="true"><use href="#i-arrow-down"/></svg></span><span>Scroll through the flow</span><span><svg class="i" aria-hidden="true"><use href="#i-arrow-down"/></svg></span></div>
           <div class="flip-stage">
             <article class="flip-card">
-              <div class="flip-inner" style="background:#a94808;color:#fff7ed">
+              <div class="flip-inner flip-peach">
                 <div class="flip-copy"><div class="flip-number">01</div><div class="flip-bottom"><p class="flip-eyebrow">X-ray upload</p><h3>Start with the image of your knee.</h3><p class="flip-description">Photograph or scan your knee X-ray and upload it. Choose left, right or both. The model grades it on the Kellgren–Lawrence scale, from 0 to 4.</p></div></div>
-                <div class="flip-art" aria-hidden="true"><div class="flip-art-grid"></div><svg class="i"><use href="#i-scan"/></svg></div>
+                <div class="flip-art"><img src="assets/flow/01-upload.webp" alt="The upload screen: drop an X-ray, pick the knee and the surgery." width="1040" height="1380" loading="lazy" decoding="async"></div>
               </div>
             </article>
             <article class="flip-card">
-              <div class="flip-inner" style="background:#067b8f;color:#ecfeff">
+              <div class="flip-inner flip-mint">
                 <div class="flip-copy"><div class="flip-number">02</div><div class="flip-bottom"><p class="flip-eyebrow">Surgery details</p><h3>Add the context behind the movement.</h3><p class="flip-description">Select your procedure: ACL reconstruction, total knee replacement, meniscus repair, arthroscopy or OA management. Then add how many weeks it has been.</p></div></div>
-                <div class="flip-art" aria-hidden="true"><div class="flip-art-grid"></div><svg class="i"><use href="#i-clipboard"/></svg></div>
+                <div class="flip-art"><img src="assets/flow/02-surgery.webp" style="object-position: center 55%" alt="The surgery form with ACL reconstruction selected, four weeks after surgery." width="1040" height="1380" loading="lazy" decoding="async"></div>
               </div>
             </article>
             <article class="flip-card">
-              <div class="flip-inner" style="background:#ba075f;color:#fff1f7">
+              <div class="flip-inner flip-lavender">
                 <div class="flip-copy"><div class="flip-number">03</div><div class="flip-bottom"><p class="flip-eyebrow">Personalised plan</p><h3>Turn the grade into a plan with limits.</h3><p class="flip-description">Your KL grade and recovery stage set the exercises, the repetitions, and a safe angle limit for each exercise.</p></div></div>
-                <div class="flip-art" aria-hidden="true"><div class="flip-art-grid"></div><svg class="i"><use href="#i-target"/></svg></div>
+                <div class="flip-art"><img src="assets/flow/03-plan.webp" alt="A plan: KL grade 2, health score 60, a 90 degree safe ceiling and the rehab phase." width="1040" height="1380" loading="lazy" decoding="async"></div>
               </div>
             </article>
             <article class="flip-card">
-              <div class="flip-inner" style="background:#3322a8;color:#f3f1ff">
+              <div class="flip-inner flip-ink">
                 <div class="flip-copy"><div class="flip-number">04</div><div class="flip-bottom"><p class="flip-eyebrow">Live oversight</p><h3>Exercise with a second set of eyes.</h3><p class="flip-description">The webcam tracks your knee angle in real time. Go past your limit and the screen turns red and an alarm sounds, instantly.</p></div></div>
-                <div class="flip-art" aria-hidden="true"><div class="flip-art-grid"></div><svg class="i"><use href="#i-video"/></svg></div>
+                <div class="flip-art"><img src="assets/flow/04-tracker.webp" alt="The tracker's red alarm: the knee is at 58 degrees, past a 45 degree limit." width="1040" height="1380" loading="lazy" decoding="async"></div>
               </div>
             </article>
           </div>
@@ -240,10 +242,10 @@
         <div class="reveal"><p>Every exercise in your plan comes with an animated demonstration, so you know the movement before the camera starts.</p><a class="underlined-link" href="animations.html">See the exercise animations <svg class="i"><use href="#i-arrow"/></svg></a></div>
       </div>
       <div class="move-grid">
-        <div class="reveal"><a class="move-card" href="animations.html#heel-slides" data-limit="90"><div class="move-art sand"><span>↗</span></div><div class="move-meta"><span>Mobility</span><h3>Heel slides</h3><span class="circle-arrow"><svg class="i"><use href="#i-arrow"/></svg></span></div></a></div>
-        <div class="reveal"><a class="move-card" href="animations.html#quad-sets-isometric" data-limit="5"><div class="move-art mint"><span>◌</span></div><div class="move-meta"><span>Activation</span><h3>Quad sets</h3><span class="circle-arrow"><svg class="i"><use href="#i-arrow"/></svg></span></div></a></div>
-        <div class="reveal"><a class="move-card" href="animations.html#straight-leg-raise" data-limit="5"><div class="move-art lavender"><span>⌁</span></div><div class="move-meta"><span>Strength</span><h3>Straight leg raise</h3><span class="circle-arrow"><svg class="i"><use href="#i-arrow"/></svg></span></div></a></div>
-        <div class="reveal"><a class="move-card" href="animations.html#seated-knee-bend" data-limit="90"><div class="move-art peach"><span>⌂</span></div><div class="move-meta"><span>Mobility</span><h3>Seated knee bend</h3><span class="circle-arrow"><svg class="i"><use href="#i-arrow"/></svg></span></div></a></div>
+        <div class="reveal"><a class="move-card" href="animations.html#heel-slides" data-limit="90"><div class="move-art sand"><span><svg class="i" aria-hidden="true"><use href="#i-arrow"/></svg></span></div><div class="move-meta"><span>Mobility</span><h3>Heel slides</h3><span class="circle-arrow"><svg class="i"><use href="#i-arrow"/></svg></span></div></a></div>
+        <div class="reveal"><a class="move-card" href="animations.html#quad-sets-isometric" data-limit="5"><div class="move-art mint"><span><svg class="i" aria-hidden="true"><use href="#i-circle-dashed"/></svg></span></div><div class="move-meta"><span>Activation</span><h3>Quad sets</h3><span class="circle-arrow"><svg class="i"><use href="#i-arrow"/></svg></span></div></a></div>
+        <div class="reveal"><a class="move-card" href="animations.html#straight-leg-raise" data-limit="5"><div class="move-art lavender"><span><svg class="i" aria-hidden="true"><use href="#i-activity"/></svg></span></div><div class="move-meta"><span>Strength</span><h3>Straight leg raise</h3><span class="circle-arrow"><svg class="i"><use href="#i-arrow"/></svg></span></div></a></div>
+        <div class="reveal"><a class="move-card" href="animations.html#seated-knee-bend" data-limit="90"><div class="move-art peach"><span><svg class="i" aria-hidden="true"><use href="#i-armchair"/></svg></span></div><div class="move-meta"><span>Mobility</span><h3>Seated knee bend</h3><span class="circle-arrow"><svg class="i"><use href="#i-arrow"/></svg></span></div></a></div>
       </div>
     </section>
 
@@ -284,7 +286,7 @@
       </div>
 
       <div class="form-error" id="form-error" role="alert">
-        <span aria-hidden="true">⚠</span>
+        <svg class="i" aria-hidden="true"><use href="#i-alert"/></svg>
         <span id="form-error-text"></span>
       </div>
 
@@ -337,7 +339,7 @@
 
       <div class="card-footer" id="signup-footer">
         Don't have an account?
-        <a href="#signup" id="signup-link">Create one — it's free</a>
+        <a href="#signup" id="signup-link">Create one, it's free</a>
       </div>
 
       <!--
@@ -351,7 +353,7 @@
         <svg class="i" aria-hidden="true"><use href="#i-shield"/></svg>
         <span>
           <strong>How your data is handled.</strong>
-          Your X-ray image is graded in memory and discarded — our servers never store it.
+          Your X-ray image is graded in memory and discarded. Our servers never store it.
           If you are signed in, the <em>result</em> (grade, safe angle and exercise plan)
           is saved to your account so you can see your progress, and this browser keeps
           its own copy of the image so your plan can show it again; as a guest, nothing
@@ -647,7 +649,7 @@
           // Signing in lands on the dashboard, not straight into an upload. A
           // returning patient opens this app to see how the knee is doing far more
           // often than to grade a new X-ray, and the dashboard carries the upload
-          // button anyway. The guest route below still goes direct — a guest has no
+          // button anyway. The guest route below still goes direct - a guest has no
           // account, so the dashboard would only bounce them back here.
           window.location.href = 'progress.html';
 
@@ -659,7 +661,7 @@
           // 409 is the one failure with an obvious next step, so it gets one.
           if (err instanceof PhysioAPI.ApiError && err.status === 409) {
             // setMode() ends in clearErrors(), so it has to run BEFORE the message
-            // is set — the other order wipes the only explanation the user gets and
+            // is set - the other order wipes the only explanation the user gets and
             // leaves them typing a new password at an account that already has one.
             setMode('login');
             showFormError('An account already exists for that email. Log in with the password you set when you created it.');
@@ -689,7 +691,7 @@
   </script>
   <script>
     // Installable, and able to open without a connection. The worker caches the
-    // app shell only — never an API response, because a cached prescription is
+    // app shell only - never an API response, because a cached prescription is
     // a cached movement ceiling. See sw.js.
     // localhost is a secure context too, and gating on https alone meant the
     // entire offline path went live having never once run in development.

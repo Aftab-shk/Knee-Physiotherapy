@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Analyse X-ray — Knee-Physiotherapy</title>
+  <title>Analyse X-ray · Knee-Physiotherapy</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="assets/theme.css">
@@ -24,6 +24,12 @@
     <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 13v8"/><path d="M4 14.9A7 7 0 1 1 15.7 8h1.8a4.5 4.5 0 0 1 2.5 8.2"/><path d="m8 17 4-4 4 4"/></symbol>
     <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
     <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-x-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M6 3 20 12 6 21Z"/></symbol>
     <symbol id="i-back" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
   </svg>
 
@@ -54,14 +60,15 @@
 
     <!-- Demo mode banner (shown if API returns demo_mode: true) -->
     <div class="demo-banner" id="demo-banner">
-      ⚠️ <strong>Demo mode active</strong> — the model hasn't been trained yet, so grades are simulated. All clinical
-      logic (exercise selection, angle limits) runs normally.
+      <svg class="i" aria-hidden="true"><use href="#i-alert"/></svg>
+      <span><strong>Demo mode active.</strong> The model hasn't been trained yet, so grades are simulated. All clinical
+      logic (exercise selection, angle limits) runs normally.</span>
     </div>
 
     <!-- Shown when this page opens the plan stored against the account rather
          than one graded a moment ago. -->
     <div class="saved-banner" id="saved-banner">
-      <span aria-hidden="true">✔</span>
+      <svg class="i" aria-hidden="true"><use href="#i-check-circle"/></svg>
       <div>
         <strong id="saved-banner-title">Your current plan</strong>
         <span id="saved-banner-text"></span>
@@ -97,8 +104,8 @@
           <div class="drop-preview" id="drop-preview">
             <img class="drop-preview-img" id="preview-img" src="" alt="X-ray preview">
             <div class="drop-preview-info">
-              <div class="drop-preview-name" id="preview-name">—</div>
-              <div class="drop-preview-size" id="preview-size">—</div>
+              <div class="drop-preview-name" id="preview-name">-</div>
+              <div class="drop-preview-size" id="preview-size">-</div>
               <div class="drop-preview-change" onclick="clearFile()">Change file</div>
             </div>
           </div>
@@ -116,8 +123,8 @@
           <div class="drop-preview" id="drop-preview-right">
             <img class="drop-preview-img" id="preview-img-right" src="" alt="Right knee X-ray preview">
             <div class="drop-preview-info">
-              <div class="drop-preview-name" id="preview-name-right">—</div>
-              <div class="drop-preview-size" id="preview-size-right">—</div>
+              <div class="drop-preview-name" id="preview-name-right">-</div>
+              <div class="drop-preview-size" id="preview-size-right">-</div>
               <div class="drop-preview-change" onclick="clearFileRight()">Change file</div>
             </div>
           </div>
@@ -161,7 +168,7 @@
               <option value="tkr">Total Knee Replacement (TKR)</option>
               <option value="meniscus">Meniscus Repair</option>
               <option value="arthroscopy">Knee Arthroscopy</option>
-              <option value="none">No surgery — OA management only</option>
+              <option value="none">No surgery (OA management only)</option>
             </select>
           </div>
 
@@ -174,7 +181,7 @@
 
             <div class="derived-weeks hidden" id="derived-weeks">
               <div>
-                <div class="derived-weeks-value" id="derived-weeks-value">—</div>
+                <div class="derived-weeks-value" id="derived-weeks-value">-</div>
                 <div class="derived-weeks-from" id="derived-weeks-from"></div>
               </div>
               <button type="button" class="link-button" id="change-surgery-date">Change date</button>
@@ -193,7 +200,7 @@
 
         <!-- Error panel -->
         <div class="error-panel" id="error-panel">
-          <span class="error-icon">❌</span>
+          <span class="error-icon"><svg class="i" aria-hidden="true"><use href="#i-x-circle"/></svg></span>
           <div>
             <div class="error-title" id="error-title">Something went wrong</div>
             <div class="error-desc" id="error-desc">Please check your inputs and try again.</div>
@@ -260,8 +267,8 @@
           <div class="looked-title">Where the model looked</div>
         </div>
         <p class="looked-sub">
-          The warm areas are what pushed the grade. This does not explain the decision —
-          it shows which part of the image drove it. If the heat sits on the joint, the
+          The warm areas are what pushed the grade. This does not explain the decision.
+          It shows which part of the image drove it. If the heat sits on the joint, the
           reading is at least looking at the right thing; if it sits on a label or the
           edge of the film, treat the grade with suspicion and say so to your
           physiotherapist.
@@ -306,13 +313,13 @@
 
       <!-- Disclaimer -->
       <div class="disclaimer-box">
-        <span class="disclaimer-icon">⚠️</span>
+        <span class="disclaimer-icon"><svg class="i" aria-hidden="true"><use href="#i-alert"/></svg></span>
         <span id="disclaimer-text"></span>
       </div>
 
       <!-- New analysis -->
       <div class="new-analysis-bar">
-        <button class="btn-new" onclick="resetForm()">← Analyse a different X-ray</button>
+        <button class="btn-new" onclick="resetForm()">Analyse a different X-ray</button>
       </div>
 
     </div>
@@ -471,7 +478,7 @@
     // ── Weeks post-op, from a date on file ───────────────────────────────
     // That number selects the entire rehab protocol, and it was being retyped
     // from memory on every visit. A plausible wrong week looks exactly like a
-    // plausible right one, so nothing catches the mistake — the patient is
+    // plausible right one, so nothing catches the mistake - the patient is
     // simply prescribed a phase they are not in.
     const derivedBox = document.getElementById('derived-weeks');
     const derivedValue = document.getElementById('derived-weeks-value');
@@ -543,7 +550,7 @@
       validateForm();
 
       // Saved so it never has to be entered again. A failure here is not worth
-      // interrupting the analysis for — the week has already been filled in.
+      // interrupting the analysis for - the week has already been filled in.
       if (window.PhysioAPI && PhysioAPI.isSignedIn()) {
         try {
           await PhysioAPI.setSurgery({
@@ -577,7 +584,7 @@
       weeksEl.disabled = isNone || isEmpty;
       weeksEl.value = '';
       if (isNone) {
-        weeksEl.placeholder = 'N/A — no surgery';
+        weeksEl.placeholder = 'N/A, no surgery';
       } else if (!isEmpty) {
         weeksEl.placeholder = 'e.g. 4';
       }
@@ -670,7 +677,7 @@
      *
      * The flat fields carry the more restricted knee, so rendering them for the
      * better knee would understate what it is allowed to do. Everything not
-     * specific to a side — the phase, the rationale, the disclaimer — is shared.
+     * specific to a side - the phase, the rationale, the disclaimer - is shared.
      */
     function viewForSide(data, side) {
       if (!data.bilateral || !side) return data;
@@ -721,7 +728,7 @@
     //
     // sessionStorage, not localStorage: it dies with the tab, so nobody is
     // shown a movement ceiling from last week. A new analysis overwrites it and
-    // "Analyse a different X-ray" clears it. The heat map is not restored — it
+    // "Analyse a different X-ray" clears it. The heat map is not restored - it
     // is drawn over the uploaded file, which the browser no longer has.
     const PLAN_KEY = 'physioai_last_analysis';
 
@@ -843,12 +850,14 @@
       banner.classList.add('visible');
     }
 
+    const stripEmoji = (s) => (s || '').replace(/^\s*\u26a0\ufe0f?\s*/, '');
+
     function renderResults(data) {
       rememberPlan(data);
       lastAnalysis = data;
       currentPrescriptionId = data.prescription_id || null;
 
-      // Default to the more restricted knee — the same one the flat fields
+      // Default to the more restricted knee - the same one the flat fields
       // describe, so nothing changes meaning between first paint and a tap.
       if (data.bilateral && !data.sides.some(s => s.knee_side === shownSide)) {
         shownSide = data.sides.reduce((a, b) => (a.max_angle <= b.max_angle ? a : b)).knee_side;
@@ -890,7 +899,7 @@
         <span class="summary-card-label">Safe Ceiling</span>
       </div>
       <div class="summary-card">
-        <span class="summary-card-value conf-${band}" style="font-size:16px">${bandLabel}</span>
+        <span class="summary-card-value conf-${band}">${bandLabel}</span>
         <span class="summary-card-label">Confidence${data.calibrated ? ` · ${Math.round(data.confidence * 100)}%` : ''}</span>
       </div>
     `;
@@ -920,15 +929,16 @@
 
         const badgeClass = ex.angle_capped ? 'angle-badge capped' : 'angle-badge normal';
         const badgeText = ex.angle_capped
-          ? `⚠ ${ex.angle_limit}° (capped)`
-          : `✓ Up to ${ex.angle_limit}°`;
+          ? `<svg class="i" aria-hidden="true"><use href="#i-alert"/></svg> ${ex.angle_limit}° (capped)`
+          : `<svg class="i" aria-hidden="true"><use href="#i-check"/></svg> Up to ${ex.angle_limit}°`;
 
         const instructionsHTML = ex.instructions
           .map(step => `<li>${step}</li>`)
           .join('');
 
+        // Plans saved before the page drew its own icon carry a leading emoji.
         const cautionHTML = ex.cautions
-          ? `<div class="caution-box">⚠️ ${ex.cautions}</div>`
+          ? `<div class="caution-box"><svg class="i" aria-hidden="true"><use href="#i-alert"/></svg><span>${stripEmoji(ex.cautions)}</span></div>`
           : '';
 
         card.innerHTML = `
@@ -943,7 +953,7 @@
           <div class="exercise-header-right">
             <span class="exercise-reps">${repText}</span>
             <span class="${badgeClass}">${badgeText}</span>
-            <span class="exercise-chevron">▾</span>
+            <span class="exercise-chevron"><svg class="i" aria-hidden="true"><use href="#i-chevron-down"/></svg></span>
           </div>
         </div>
         <div class="exercise-body">
@@ -963,15 +973,15 @@
             ${cautionHTML}
           </div>
           <div class="exercise-actions">
-            ${hasTutorial(ex.name) ? '<button class="btn-tutorial" type="button">▶ Tutorial</button>' : ''}
-            <button class="btn-start-exercise" data-idx="${idx}">▶ Start exercise with webcam tracker</button>
+            ${hasTutorial(ex.name) ? '<button class="btn-tutorial" type="button"><svg class="i i-fill" aria-hidden="true"><use href="#i-play"/></svg> Tutorial</button>' : ''}
+            <button class="btn-start-exercise" data-idx="${idx}"><svg class="i i-fill" aria-hidden="true"><use href="#i-play"/></svg> Start exercise with webcam tracker</button>
           </div>
         </div>
       `;
 
         listEl.appendChild(card);
 
-        // Wire the Start button — stops the header-toggle click from firing too
+        // Wire the Start button - stops the header-toggle click from firing too
         card.querySelector('.btn-start-exercise').addEventListener('click', (e) => {
           e.stopPropagation();
           launchTracker(ex, data.knee_side, data.rehab_phase_label);
@@ -987,7 +997,7 @@
       renderExcluded(data.excluded_exercises || []);
 
       // Disclaimer
-      document.getElementById('disclaimer-text').textContent = data.disclaimer;
+      document.getElementById('disclaimer-text').textContent = stripEmoji(data.disclaimer);
 
       // Show results
       document.getElementById('results').classList.add('visible');
@@ -1002,7 +1012,7 @@
      * Show the Grad-CAM overlay, if one came back.
      *
      * Absent in demo mode, and absent whenever the overlay could not be
-     * produced — the analysis is the point and the picture is a courtesy, so a
+     * produced - the analysis is the point and the picture is a courtesy, so a
      * missing one is simply not mentioned rather than explained away.
      */
     function renderExplanation(data) {
@@ -1038,14 +1048,14 @@
      *
      * A single confidence number collapses this to its largest bar. That hides
      * the two cases worth seeing: a model that is torn between adjacent grades
-     * (common, and mostly harmless — the answer is nearby) and one whose mass is
+     * (common, and mostly harmless - the answer is nearby) and one whose mass is
      * scattered across the scale (rare, and a reason to distrust the reading).
      */
     function renderDistribution(data) {
       const panel = document.getElementById('dist');
       const probs = data.grade_probabilities || [];
 
-      // Nothing to draw is not an error — an older stored analysis has no
+      // Nothing to draw is not an error - an older stored analysis has no
       // distribution, and a bar chart of zeroes would be a lie.
       if (probs.length !== 5 || probs.every(p => !p)) {
         panel.classList.add('hidden');
@@ -1106,7 +1116,7 @@
       foot.appendChild(document.createTextNode(
         near >= 85
           ? 'Even if the exact grade is off by one, the safe ceiling would barely move.'
-          : 'The model is spread across the scale here — worth having a physiotherapist confirm the ceiling before relying on it.'
+          : 'The model is spread across the scale here. It is worth having a physiotherapist confirm the ceiling before relying on it.'
       ));
 
       panel.classList.remove('hidden');
@@ -1124,7 +1134,7 @@
       }
       if (data.ood_suspected) {
         notes.push(
-          'This image sits outside the range the model normally sees — it may not be ' +
+          'This image sits outside the range the model normally sees. It may not be ' +
           'a standard front-on knee radiograph. Check you uploaded the right file.'
         );
       }
@@ -1151,7 +1161,7 @@
     }
 
     // Exercises withheld because their starting position exceeds the safe
-    // ceiling. Shown rather than silently dropped — a physiotherapist needs to
+    // ceiling. Shown rather than silently dropped - a physiotherapist needs to
     // see what was removed from the standard protocol and prescribe around it.
     function renderExcluded(excluded) {
       const section = document.getElementById('excluded-section');
@@ -1173,7 +1183,7 @@
           </div>
           <div class="excluded-item-reason"></div>
         `;
-        // textContent, not innerHTML — these strings are server-composed but
+        // textContent, not innerHTML - these strings are server-composed but
         // carry patient-facing prose; no reason to let markup through.
         row.querySelector('.excluded-item-name').textContent = ex.name;
         row.querySelector('.excluded-item-reason').textContent = ex.reason;
@@ -1202,7 +1212,7 @@
 
     function launchTracker(exercise, kneeSide, phaseLabel) {
       // 'both' is not a leg. The tracker picks landmarks from one side, so it
-      // gets the knee whose limits are being shown — which is also the knee
+      // gets the knee whose limits are being shown - which is also the knee
       // whose angle_limit is on this exercise.
       if (kneeSide === 'both') kneeSide = shownSide || 'right';
       sessionStorage.setItem('physioai_current_exercise', JSON.stringify(exercise));
@@ -1242,7 +1252,7 @@
       document.getElementById('tut-steps').innerHTML =
         ex.instructions.map(step => `<li>${step}</li>`).join('');
       document.getElementById('tut-caution').innerHTML =
-        ex.cautions ? `<div class="caution-box">⚠️ ${ex.cautions}</div>` : '';
+        ex.cautions ? `<div class="caution-box"><svg class="i" aria-hidden="true"><use href="#i-alert"/></svg><span>${stripEmoji(ex.cautions)}</span></div>` : '';
 
       tutAnim = PhysioAnimations.mount(document.getElementById('tut-anim'), {
         name: ex.name,
@@ -1333,7 +1343,7 @@
   </script>
   <script>
     // Installable, and able to open without a connection. The worker caches the
-    // app shell only — never an API response, because a cached prescription is
+    // app shell only - never an API response, because a cached prescription is
     // a cached movement ceiling. See sw.js.
     // localhost is a secure context too, and gating on https alone meant the
     // entire offline path went live having never once run in development.

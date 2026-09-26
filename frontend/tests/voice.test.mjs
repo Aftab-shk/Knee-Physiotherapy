@@ -1,15 +1,15 @@
 /*
- * Tests for the tracker's spoken cues — assets/voice.js.
+ * Tests for the tracker's spoken cues - assets/voice.js.
  *
  * The failure mode worth designing against is not silence, it is chatter. A
  * coach that calls out every one of thirty reps gets muted, and a muted coach
- * says nothing when the knee goes past its limit — which is the one cue the
+ * says nothing when the knee goes past its limit - which is the one cue the
  * whole feature exists for.
  *
  * So most of what follows checks that it stays quiet: no counting through long
  * sets, no repeating itself, nothing spoken twice for the same event.
  *
- * The cue functions are pure — they decide *what to say*, not how — so they are
+ * The cue functions are pure - they decide *what to say*, not how - so they are
  * tested directly. `speak()` is the thin part that touches the browser.
  *
  * Run:  node --test        (from frontend/)

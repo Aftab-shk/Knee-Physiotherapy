@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shared progress — Knee-Physiotherapy</title>
+  <title>Shared progress · Knee-Physiotherapy</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <!-- A share link is not for search engines. -->
@@ -23,6 +23,9 @@
 </head>
 
 <body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+  </svg>
 
   <nav class="topnav">
     <a href="index.html" class="nav-logo">
@@ -55,12 +58,12 @@
     </div>
 
     <div class="notice notice-err hidden" id="error-notice">
-      <span aria-hidden="true">⚠</span>
+      <svg class="i" aria-hidden="true"><use href="#i-alert"/></svg>
       <span id="error-text"></span>
     </div>
 
     <div class="notice notice-warn hidden" id="unverified-notice">
-      <span aria-hidden="true">⚠</span>
+      <svg class="i" aria-hidden="true"><use href="#i-alert"/></svg>
       <span id="unverified-text"></span>
     </div>
 
@@ -82,7 +85,7 @@
       are only recorded when the camera could see the leg side-on. Sessions performed
       from an unverified camera angle are counted towards consistency but excluded from
       every angle shown here. Pain and exertion are the patient's own ratings.
-      This is a record of what was done at home — it is not a clinical assessment.
+      This is a record of what was done at home. It is not a clinical assessment.
     </div>
 
   </div>
@@ -131,7 +134,7 @@
         const who = data.patient_name ? `${data.patient_name}'s` : 'A patient’s';
         $('head-title').textContent = data.patient_name || 'Shared progress';
         $('head-sub').textContent = `${who} knee rehabilitation, shared with you.`;
-        document.title = `${data.patient_name || 'Shared'} — progress`;
+        document.title = `${data.patient_name || 'Shared'} · progress`;
 
         $('shared-who').innerHTML = '';
         const label = data.label ? ` · ${data.label}` : '';
@@ -148,7 +151,7 @@
         render(data.progress);
 
       } catch (err) {
-        // A 404 covers expired, withdrawn and never-existed alike — the server
+        // A 404 covers expired, withdrawn and never-existed alike - the server
         // will not say which, so neither can this page.
         if (err instanceof PhysioAPI.ApiError && err.status === 404) {
           fail('This link is no longer valid. It may have expired, or the patient may have withdrawn it.');
@@ -171,7 +174,7 @@
   </script>
   <script>
     // Installable, and able to open without a connection. The worker caches the
-    // app shell only — never an API response, because a cached prescription is
+    // app shell only - never an API response, because a cached prescription is
     // a cached movement ceiling. See sw.js.
     // localhost is a secure context too, and gating on https alone meant the
     // entire offline path went live having never once run in development.

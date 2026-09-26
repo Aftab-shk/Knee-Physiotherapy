@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Exercise Animations — Knee-Physiotherapy</title>
+  <title>Exercise Animations · Knee-Physiotherapy</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="assets/theme.css">
@@ -84,7 +84,7 @@
       // A link can point at one exercise: "Heel Slides" is #heel-slides.
       card.id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       const view = PhysioAnimations.get(name)?.kfs[0].view === 'front' ? 'front view' : 'side view';
-      card.innerHTML = `<h2>${name}</h2><div class="meta">${view} · ceiling ${limit ?? '—'}°</div>`;
+      card.innerHTML = `<h2>${name}</h2><div class="meta">${view} · ceiling ${limit ?? '-'}°</div>`;
       grid.appendChild(card);
 
       const anim = PhysioAnimations.mount(card, { name, angleLimit: limit });

@@ -1,4 +1,4 @@
-/* tracker.css — styles for tracker.html. Load after assets/theme.css. */
+/* tracker.css - styles for tracker.html. Load after assets/theme.css. */
     /* The camera view sits on the ink ground. Its colours are status, not
        decoration, so they are split by meaning: mint for "tracking, holding,
        done", amber for a form correction, red for the safety alarm, and coral
@@ -16,6 +16,14 @@
     body {
       height: 100%;
     }
+
+    /* Sprite icons. Sized in em so each one follows its container's font-size. */
+    .i { width: 1em; height: 1em; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -.125em; }
+    .pre-start-icon, .setup-icon, .safety-icon-big, .complete-icon { line-height: 1; }
+    .pre-start-icon .i, .setup-icon .i, .safety-icon-big .i, .complete-icon .i { display: block; stroke-width: 1.5; }
+    .pre-start-icon, .setup-icon, .complete-icon { color: var(--teal-light); }
+    .safety-icon-big { color: var(--white); }
+    .view-warn > .i, .form-tip > .i { margin-top: .2em; }
 
     body {
       font-family: var(--body);
@@ -105,8 +113,8 @@
       height: 100%;
       /* Must match #video exactly. The video is cover-cropped to its box; a
          canvas left to stretch draws the skeleton through a different mapping,
-         so the joints land off the body — ankles above the feet, shoulders
-         across the upper arms — and nobody can tell by eye whether tracking is
+         so the joints land off the body - ankles above the feet, shoulders
+         across the upper arms - and nobody can tell by eye whether tracking is
          actually working. */
       object-fit: cover;
       transform: scaleX(-1);
@@ -301,7 +309,7 @@
     /* ── Phone ────────────────────────────────────────────────────────
        A propped phone is the realistic way to do this: nobody performs floor
        exercises in front of a laptop. The camera switcher matters because the
-       two cameras solve different problems — the front one lets the patient see
+       two cameras solve different problems - the front one lets the patient see
        the setup guidance while they position themselves, the rear one is
        sharper once the phone is propped and they have stepped away. */
     .cam-switch {
@@ -458,7 +466,7 @@
     /* ── Camera setup gate ───────────────────────────────────────────── */
     /* A knee angle computed from 2D landmarks is only valid when the camera
        sees the leg side-on. Square to the camera, femur and tibia project onto
-       nearly the same line and a knee bent to 90 degrees reads close to 0 — the
+       nearly the same line and a knee bent to 90 degrees reads close to 0 - the
        ceiling is never crossed and the alarm never fires. This overlay holds
        the session until the view is verified, and returns if it is lost. */
     .setup-overlay {
@@ -779,7 +787,7 @@
       background: #ef4444;
     }
 
-    /* ── SAFETY ALERT — full red screen ──────────────────────────────── */
+    /* ── SAFETY ALERT - full red screen ──────────────────────────────── */
     .safety-overlay {
       position: absolute;
       inset: 0;

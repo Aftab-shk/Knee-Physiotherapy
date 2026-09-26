@@ -3,7 +3,7 @@
  *
  * The regression these exist to prevent:
  *
- *   calcKneeAngle() measures a projected angle — the angle of the leg as it
+ *   calcKneeAngle() measures a projected angle - the angle of the leg as it
  *   appears in the image. Square to the camera, femur and tibia project onto
  *   nearly the same line, so a knee genuinely bent to 60° reads 0°. The HUD
  *   shows a small number, the safe ceiling is never crossed, and the alarm that
@@ -30,7 +30,7 @@ import {
 
 // ── A synthetic body, projected orthographically ────────────────────────────
 // theta is rotation about the vertical axis:
-//   90° = perfectly side-on (sagittal — the only view the 2D maths is valid in)
+//   90° = perfectly side-on (sagittal - the only view the 2D maths is valid in)
 //    0° = square to the camera, where knee flexion is invisible
 // Segment lengths are adult averages in metres; S maps metres to normalised
 // image units for a frame covering roughly 2 m of height.
@@ -222,7 +222,7 @@ test("landmark indices follow the knee being treated", () => {
 
 // ── Frame shape must not change the reading ─────────────────────────────────
 // MediaPipe normalises x by frame width and y by frame height. Treating those
-// as the same unit made a true 60° knee read 44° on a 1280×720 webcam — under
+// as the same unit made a true 60° knee read 44° on a 1280×720 webcam - under
 // -reading, which is the direction that lets a patient past their ceiling in
 // silence. Every body above is built square, so nothing here caught it.
 
@@ -267,7 +267,7 @@ test("the side-on test survives a non-square frame", () => {
   // makeBody() builds square coordinates (both axes divided by the same
   // number). In a W×H frame MediaPipe would divide y by H instead, which is the
   // square value times the aspect. Scaling that back to fit inside the frame is
-  // a uniform zoom, so it changes neither angles nor the spread ÷ torso ratio —
+  // a uniform zoom, so it changes neither angles nor the spread ÷ torso ratio -
   // only the anisotropy under test survives it.
   const squash = (b, aspect) => {
     const pts = b.lm.filter(Boolean);

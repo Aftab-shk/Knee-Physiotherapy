@@ -4,7 +4,7 @@
  * progress.html and share.html each own a <div id="content" class="hidden">
  * and unhide it once data arrives. The view's markup used to open with a
  * second element carrying the same id and the same class, so the page unhid
- * the outer one and every chart stayed inside a hidden inner one — on both
+ * the outer one and every chart stayed inside a hidden inner one - on both
  * pages, with no error anywhere.
  */
 import { test } from "node:test";

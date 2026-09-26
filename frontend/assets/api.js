@@ -1,5 +1,5 @@
 /*
- * api.js — the one place the frontend talks to the backend.
+ * api.js - the one place the frontend talks to the backend.
  * =========================================================
  *
  * Every page goes through here rather than calling fetch() directly, so that
@@ -39,7 +39,7 @@
   //
   // The token is kept in localStorage rather than an httpOnly cookie, because
   // the API deliberately runs with allow_credentials off (see the CORS note in
-  // backend/main.py) — a bearer header is what fits that decision. The trade is
+  // backend/main.py) - a bearer header is what fits that decision. The trade is
   // real: script running on this origin can read the token, so an XSS bug here
   // is an account compromise. Every value rendered from API data goes through
   // textContent, never innerHTML, for exactly that reason.
@@ -163,7 +163,7 @@
   }
 
   /**
-   * POST /analyse-xray — KL grade plus a full rehab prescription.
+   * POST /analyse-xray - KL grade plus a full rehab prescription.
    * `weeksPostOp` is required by the API unless surgeryType is 'none'.
    */
   function analyseXray({ file, kneeSide, surgeryType, weeksPostOp, imageRight = null, explain = false }) {
@@ -186,7 +186,7 @@
     return request('/analyse-xray', { method: 'POST', body: form });
   }
 
-  /** GET /exercises — the protocol for a surgery type and week, without an X-ray. */
+  /** GET /exercises - the protocol for a surgery type and week, without an X-ray. */
   function getExercises({ surgeryType, weeksPostOp = null, klGrade = 0 }) {
     const q = new URLSearchParams({ surgery_type: surgeryType, kl_grade: String(klGrade) });
     if (surgeryType !== 'none' && weeksPostOp !== null && weeksPostOp !== '') {
@@ -225,7 +225,7 @@
    * This used to only forget the local copy, which meant a token already taken
    * off the device carried on working for the rest of its fortnight. The server
    * now bumps the account's token version, so every token issued before this
-   * call stops being accepted — including ones this browser never saw.
+   * call stops being accepted - including ones this browser never saw.
    *
    * The local token is cleared either way. A network failure here should still
    * sign you out of the machine you are sitting at.
@@ -260,7 +260,7 @@
   /**
    * Ask for a reset link.
    *
-   * Always resolves the same way whether or not the address has an account —
+   * Always resolves the same way whether or not the address has an account -
    * the server refuses to say, and this must not leak it by handling the two
    * cases differently.
    */
@@ -324,7 +324,7 @@
   }
 
   /**
-   * PATCH /me/surgery — record (or clear) the operation being recovered from.
+   * PATCH /me/surgery - record (or clear) the operation being recovered from.
    *
    * Stored once so weeks-post-op stops being retyped on every visit. That number
    * selects the whole rehab protocol, and a plausible wrong week is
@@ -345,7 +345,7 @@
   }
 
   /**
-   * POST /sessions/sets — record one completed set from the tracker.
+   * POST /sessions/sets - record one completed set from the tracker.
    *
    * Sent per set rather than once at the end, so a patient who stops after two
    * of three sets still has those two saved. Re-posting the same set is a
@@ -360,7 +360,7 @@
   }
 
   /**
-   * POST /sessions/report — how a finished session felt.
+   * POST /sessions/report - how a finished session felt.
    *
    * The server merges rather than replaces, so calling this again with only an
    * exertion score will not wipe a pain score already recorded.
@@ -380,11 +380,11 @@
   //
   // KOOS-JR: seven questions, scored 0-100 with higher better, on the same scale
   // a joint registry uses. It is the one figure in this app the patient supplies
-  // rather than the app measuring — and the only one that answers whether the
+  // rather than the app measuring - and the only one that answers whether the
   // knee is getting better to live with, which range of motion cannot.
 
   /**
-   * GET /outcome-measures — the questionnaire itself.
+   * GET /outcome-measures - the questionnaire itself.
    *
    * The item wording lives server-side and is rendered from this response. A
    * frontend holding its own copy is a frontend that drifts, and a reworded
@@ -396,11 +396,11 @@
   }
 
   /**
-   * POST /me/outcome-scores — record a completed questionnaire.
+   * POST /me/outcome-scores - record a completed questionnaire.
    *
    * All seven answers, each 0 (none) to 4 (extreme), in the order the items
    * arrived. The server refuses a partial form and refuses one answered inside
-   * the minimum interval — a 409, not a validation error, and its `detail` is
+   * the minimum interval - a 409, not a validation error, and its `detail` is
    * written to be shown to the patient as-is.
    */
   function recordOutcomeScore({ responses, kneeSide = 'right', instrument = 'koos_jr' }) {
@@ -411,13 +411,13 @@
     });
   }
 
-  /** GET /me/outcome-scores — your scores, newest first, plus whether another is due. */
+  /** GET /me/outcome-scores - your scores, newest first, plus whether another is due. */
   function myOutcomeScores({ kneeSide = null } = {}) {
     const q = kneeSide ? `?knee_side=${encodeURIComponent(kneeSide)}` : '';
     return request(`/me/outcome-scores${q}`);
   }
 
-  /** GET /clinician/patients/{id}/outcome-scores — read-only, like every clinician view. */
+  /** GET /clinician/patients/{id}/outcome-scores - read-only, like every clinician view. */
   function getPatientOutcomeScores(patientId) {
     return request(`/clinician/patients/${encodeURIComponent(patientId)}/outcome-scores`);
   }
@@ -462,7 +462,7 @@
   }
 
   /**
-   * POST /clinician/invites — a code for a patient to redeem.
+   * POST /clinician/invites - a code for a patient to redeem.
    *
    * Returned once; only its hash is stored. The patient redeeming it is the
    * consent, which is why the code goes to them rather than the other way round.
@@ -475,28 +475,28 @@
     });
   }
 
-  /** GET /clinician/invites — codes issued but not yet redeemed. */
+  /** GET /clinician/invites - codes issued but not yet redeemed. */
   function listInvites() {
     return request('/clinician/invites');
   }
 
-  /** GET /clinician/patients — your caseload. */
+  /** GET /clinician/patients - your caseload. */
   function getCaseload() {
     return request('/clinician/patients');
   }
 
-  /** GET /clinician/patients/{id}/progress — one patient, in full. */
+  /** GET /clinician/patients/{id}/progress - one patient, in full. */
   function getPatientProgress(patientId, { days = 90, tzOffsetMinutes = -new Date().getTimezoneOffset() } = {}) {
     const q = new URLSearchParams({ days: String(days), tz_offset_minutes: String(tzOffsetMinutes) });
     return request(`/clinician/patients/${encodeURIComponent(patientId)}/progress?${q}`);
   }
 
-  /** DELETE /clinician/patients/{linkId} — discharge from your caseload. */
+  /** DELETE /clinician/patients/{linkId} - discharge from your caseload. */
   function dischargePatient(linkId) {
     return request(`/clinician/patients/${encodeURIComponent(linkId)}`, { method: 'DELETE' });
   }
 
-  /** POST /me/clinicians/redeem — give a clinician access. The patient's consent. */
+  /** POST /me/clinicians/redeem - give a clinician access. The patient's consent. */
   function redeemInvite(code) {
     return request('/me/clinicians/redeem', {
       method: 'POST',
@@ -505,18 +505,18 @@
     });
   }
 
-  /** GET /me/clinicians — who can see your progress. */
+  /** GET /me/clinicians - who can see your progress. */
   function myClinicians() {
     return request('/me/clinicians');
   }
 
-  /** DELETE /me/clinicians/{linkId} — withdraw a clinician's access. */
+  /** DELETE /me/clinicians/{linkId} - withdraw a clinician's access. */
   function withdrawClinician(linkId) {
     return request(`/me/clinicians/${encodeURIComponent(linkId)}`, { method: 'DELETE' });
   }
 
   /**
-   * GET /me/flags — anything worth raising with your physiotherapist.
+   * GET /me/flags - anything worth raising with your physiotherapist.
    *
    * Triage signals, not findings: they say a human should look, and decide
    * nothing on their own. Findings about the clinician's own workflow are left
@@ -526,34 +526,34 @@
     return request('/me/flags');
   }
 
-  /** GET /clinician/patients/{id}/flags — the same assessment, with the numbers. */
+  /** GET /clinician/patients/{id}/flags - the same assessment, with the numbers. */
   function getPatientFlags(patientId) {
     return request(`/clinician/patients/${encodeURIComponent(patientId)}/flags`);
   }
 
   // ── Clinical review ───────────────────────────────────────────────────────
   //
-  // The model drafts; a clinician approves. Raising any limit needs a reason —
+  // The model drafts; a clinician approves. Raising any limit needs a reason -
   // the server refuses without one, so collect it before submitting rather than
   // letting the request fail.
 
-  /** GET /exercises/catalogue — everything a clinician may add. No auth needed. */
+  /** GET /exercises/catalogue - everything a clinician may add. No auth needed. */
   function getCatalogue() {
     return request('/exercises/catalogue');
   }
 
-  /** GET /clinician/patients/{id}/prescriptions — newest first. */
+  /** GET /clinician/patients/{id}/prescriptions - newest first. */
   function getPatientPrescriptions(patientId) {
     return request(`/clinician/patients/${encodeURIComponent(patientId)}/prescriptions`);
   }
 
-  /** GET /clinician/prescriptions/{id} — draft and effective side by side, plus the audit trail. */
+  /** GET /clinician/prescriptions/{id} - draft and effective side by side, plus the audit trail. */
   function getPrescriptionDetail(prescriptionId) {
     return request(`/clinician/prescriptions/${encodeURIComponent(prescriptionId)}`);
   }
 
   /**
-   * POST /clinician/prescriptions/{id}/review — approve, with or without changes.
+   * POST /clinician/prescriptions/{id}/review - approve, with or without changes.
    *
    * Exercises left out of `decisions` are kept as drafted: a clinician editing
    * one of nine has approved the other eight, not deleted them.
@@ -566,7 +566,7 @@
     });
   }
 
-  /** GET /me/prescriptions/{id} — what you should follow, and who stands behind it. */
+  /** GET /me/prescriptions/{id} - what you should follow, and who stands behind it. */
   function getMyPrescription(prescriptionId) {
     return request(`/me/prescriptions/${encodeURIComponent(prescriptionId)}`);
   }
@@ -574,7 +574,7 @@
   // ── Sharing ───────────────────────────────────────────────────────────────
 
   /**
-   * POST /me/share-links — create a read-only link to your progress.
+   * POST /me/share-links - create a read-only link to your progress.
    *
    * The token comes back exactly once; only its hash is stored, so it cannot be
    * recovered afterwards. Show it, then let the patient copy it.
@@ -587,21 +587,21 @@
     });
   }
 
-  /** GET /me/share-links — links you have shared, newest first. Never includes tokens. */
+  /** GET /me/share-links - links you have shared, newest first. Never includes tokens. */
   function listShareLinks() {
     return request('/me/share-links');
   }
 
-  /** DELETE /me/share-links/{id} — stop a link working, immediately. */
+  /** DELETE /me/share-links/{id} - stop a link working, immediately. */
   function revokeShareLink(id) {
     return request(`/me/share-links/${encodeURIComponent(id)}`, { method: 'DELETE' });
   }
 
   /**
-   * GET /share/{token} — read a shared progress view.
+   * GET /share/{token} - read a shared progress view.
    *
    * No account and no token header: the link itself is the credential, which is
-   * the entire point. Every failure is a 404, deliberately — an expired link and
+   * the entire point. Every failure is a 404, deliberately - an expired link and
    * one that never existed look the same.
    */
   function getSharedProgress(token, { days = 90, tzOffsetMinutes = -new Date().getTimezoneOffset() } = {}) {
@@ -609,17 +609,17 @@
     return request(`/share/${encodeURIComponent(token)}?${q}`);
   }
 
-  /** GET /sessions — recent exercise sessions, newest first. */
+  /** GET /sessions - recent exercise sessions, newest first. */
   function mySessions({ limit = 20 } = {}) {
     return request(`/sessions?limit=${encodeURIComponent(limit)}`);
   }
 
   /**
-   * GET /me/progress — range of motion, adherence and per-exercise history.
+   * GET /me/progress - range of motion, adherence and per-exercise history.
    *
    * `tzOffsetMinutes` is minutes east of UTC. Days are bucketed in it so an
    * evening session lands on the evening it happened, rather than the next UTC
-   * day — which would split a streak the patient never broke.
+   * day - which would split a streak the patient never broke.
    */
   function getProgress({ days = 90, tzOffsetMinutes = -new Date().getTimezoneOffset() } = {}) {
     const q = new URLSearchParams({
@@ -630,11 +630,11 @@
   }
 
   /**
-   * GET /me/summary.pdf — the one-page sheet to bring to an appointment.
+   * GET /me/summary.pdf - the one-page sheet to bring to an appointment.
    *
    * Not routed through `request()`, which parses every reply as JSON. The
    * endpoint needs the Authorization header, so a plain <a href> cannot fetch
-   * it either — hence the blob, and hence `downloadSummary` below rather than
+   * it either - hence the blob, and hence `downloadSummary` below rather than
    * a link the page could have rendered directly.
    */
   async function getSummaryPdf({ days = 90, tzOffsetMinutes = -new Date().getTimezoneOffset() } = {}) {
@@ -656,7 +656,7 @@
 
     return {
       blob: await response.blob(),
-      // The server names the file — it knows the patient's name and the date the
+      // The server names the file - it knows the patient's name and the date the
       // figures were generated for, and those two should not be guessed at twice.
       filename: filenameFrom(response.headers.get('Content-Disposition')),
     };

@@ -1,4 +1,4 @@
-/* animations.css — styles for animations.html. Load after assets/theme.css. */
+/* animations.css - styles for animations.html. Load after assets/theme.css. */
     /* Palette and type come from assets/theme.css. */
     body { min-height: 100vh; background: var(--paper); color: var(--ink); font-family: var(--body); }
     a { color: inherit; text-decoration: none; }

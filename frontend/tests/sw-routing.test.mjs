@@ -1,13 +1,13 @@
 /*
- * Tests for the service worker's caching policy — sw.js.
+ * Tests for the service worker's caching policy - sw.js.
  *
  * The routing rules are the part of a service worker that can quietly do harm.
  * A cached prescription is a cached *movement ceiling*: a clinician lowers a
  * limit, and the patient's phone goes on handing them yesterday's number with
  * nothing to say it is out of date.
  *
- * So the rule these defend is blunt — **nothing clinical is ever served from
- * cache** — and it is tested here rather than only inside a browser, because
+ * So the rule these defend is blunt - **nothing clinical is ever served from
+ * cache** - and it is tested here rather than only inside a browser, because
  * "we thought it was network-only" is not a thing anyone can check by looking.
  *
  * Run:  node --test        (from frontend/)
@@ -68,7 +68,7 @@ test("a same-origin API call is never served from cache", () => {
 test("every prefix the backend routes is in the network-only list", () => {
   // The API serves these pages itself now, so same-origin is the normal case
   // and the origin check no longer catches anything. A route added to main.py
-  // and forgotten here would be cached like a stylesheet — which for
+  // and forgotten here would be cached like a stylesheet - which for
   // /me/prescriptions means a superseded movement ceiling, served offline with
   // nothing to say it is out of date.
   const main = readFileSync(new URL("../../backend/main.py", import.meta.url), "utf8");
@@ -124,7 +124,7 @@ test("a navigation is network-first whatever its path looks like", () => {
 });
 
 test("an old tracker page is a fallback, never a preference", () => {
-  // tracker.html carries the safety logic — the camera-view gate, the angle
+  // tracker.html carries the safety logic - the camera-view gate, the angle
   // ceiling, the alarm. Serving a cached copy in preference to a live one would
   // run last month's safety rules on this month's prescription.
   assert.equal(route(ORIGIN + "/tracker.html"), "network-first");
@@ -184,7 +184,7 @@ test("every shell entry is a real file", async () => {
   for (const path of paths) {
     assert.ok(
       existsSync(new URL(`../${path}`, import.meta.url)),
-      `${path} is listed in the shell but does not exist — install would fail wholesale`,
+      `${path} is listed in the shell but does not exist - install would fail wholesale`,
     );
   }
 });

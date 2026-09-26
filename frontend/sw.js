@@ -1,10 +1,10 @@
 /*
- * sw.js — the app shell, cached so it opens without a connection.
+ * sw.js - the app shell, cached so it opens without a connection.
  * ==============================================================
  *
  * What is cached, and what is emphatically not:
  *
- *   The shell — HTML, CSS, JS, icons — is cached, so the app opens on a bus.
+ *   The shell - HTML, CSS, JS, icons - is cached, so the app opens on a bus.
  *
  *   **Nothing from the API is ever cached.** Not a prescription, not a
  *   progress chart, not a caseload. A stale prescription is a stale *movement
@@ -21,9 +21,9 @@
 // Bump on every deploy. Old caches are deleted on activate, which is what makes
 // a stale build impossible rather than merely unlikely.
 // Bump on every change to a cached asset. Static assets are served cache-first,
-// so a deploy that leaves this alone keeps handing out the old pose-gate.js —
+// so a deploy that leaves this alone keeps handing out the old pose-gate.js -
 // which is where the camera-feed and view thresholds live.
-const CACHE = 'physioai-shell-v21';
+const CACHE = 'physioai-shell-v23';
 
 const SHELL = [
   './',
@@ -62,7 +62,7 @@ const SHELL = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     // addAll fails the whole install if one entry 404s, which would leave the
-    // worker uninstalled and the app working normally — the right failure.
+    // worker uninstalled and the app working normally - the right failure.
     caches.open(CACHE).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting()),
   );
 });
@@ -78,7 +78,7 @@ self.addEventListener('activate', (event) => {
 /**
  * Decide how one request should be handled.
  *
- * Split out and exported so the policy can be tested directly — the routing
+ * Split out and exported so the policy can be tested directly - the routing
  * rules are the part that would silently serve a stale clinical value, and they
  * should not only be verifiable inside a browser.
  */
@@ -92,12 +92,12 @@ function routeFor(request, selfOrigin) {
     return 'network-only';
   }
 
-  // Anything on another origin — the API, MediaPipe's CDN, Google Fonts — is
+  // Anything on another origin - the API, MediaPipe's CDN, Google Fonts - is
   // never served from cache. The API because its answers are clinical and
   // change; the CDN because a wasm model is not ours to version.
   if (url.origin !== selfOrigin) return 'network-only';
 
-  // A same-origin API call must not be cached either — and since the API now
+  // A same-origin API call must not be cached either - and since the API now
   // serves these pages itself, same-origin is the normal case rather than the
   // exception. This list is every prefix main.py routes; a new one added there
   // and forgotten here becomes a cached clinical value.
@@ -105,7 +105,7 @@ function routeFor(request, selfOrigin) {
     return 'network-only';
   }
 
-  // Pages: fresh when possible, cached when not. Never the other way round —
+  // Pages: fresh when possible, cached when not. Never the other way round -
   // an old tracker.html is old safety logic.
   if (request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
     return 'network-first';

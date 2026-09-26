@@ -1,10 +1,10 @@
 /*
- * outcome-form.js — the seven questions, and the rules for asking them.
+ * outcome-form.js - the seven questions, and the rules for asking them.
  * =====================================================================
  *
  * Everything else this app shows the patient is something it measured: how far
  * the knee bent, how many sets were finished, how long the safe angle was
- * exceeded. This is the one place the patient answers back — and the only place
+ * exceeded. This is the one place the patient answers back - and the only place
  * the question they actually came with gets asked, which is whether the knee is
  * getting better to live with.
  *
@@ -17,7 +17,7 @@
  * Split the same way voice.js is:
  *
  *   pure      `unanswered`, `isComplete`, `progressText`, `payloadFor`,
- *             `deltaText` — decide what the form is doing, no browser needed.
+ *             `deltaText` - decide what the form is doing, no browser needed.
  *             Tested directly in frontend/tests/outcome-form.test.mjs.
  *   `render`  the part that builds DOM.
  *
@@ -82,7 +82,7 @@
    *
    * The sign convention is the thing to get right: the score runs 0-100 with
    * higher better, so a positive delta is an improving knee. Anything the server
-   * called "unchanged" is rendered as such — a two-point move is inside the
+   * called "unchanged" is rendered as such - a two-point move is inside the
    * instrument's own noise, and showing it as "−2" invites a conclusion the
    * questionnaire cannot support.
    */

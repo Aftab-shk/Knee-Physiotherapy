@@ -1,9 +1,9 @@
 /*
- * progress-view.js — renders a progress payload into charts.
+ * progress-view.js - renders a progress payload into charts.
  * ==========================================================
  *
  * Shared by progress.html and share.html. Both draw the same things from the
- * same shape of data; the only difference is how they fetch it — one as the
+ * same shape of data; the only difference is how they fetch it - one as the
  * signed-in patient, the other through a share token. Keeping the drawing in one
  * place is what stops a clinician's view quietly diverging from the patient's.
  *
@@ -23,7 +23,7 @@
 
   // No wrapper of its own: the page supplies the host (#content) and shows or
   // hides it. A wrapper here once carried id="content" class="hidden" too, which
-  // duplicated the page's id — getElementById found the outer one, unhid it, and
+  // duplicated the page's id - getElementById found the outer one, unhid it, and
   // left every chart inside the inner one hidden for good.
   const MARKUP = `
         <div class="kpis">
@@ -63,7 +63,7 @@
           </div>
           <div class="card-sub">
             The furthest your knee bent each day, against the safe limit set from your X-ray.
-            Shown one exercise at a time — a straight-leg hold and a squat ask different things of the knee,
+            Shown one exercise at a time: a straight-leg hold and a squat ask different things of the knee,
             so their angles are not comparable.
           </div>
           <div class="ex-picker" id="ex-picker" role="group" aria-label="Exercise"></div>
@@ -84,7 +84,7 @@
             <div class="card-note" id="koos-note"></div>
           </div>
           <div class="card-sub">
-            Your own answers to the KOOS-JR questionnaire, scored 0 to 100 — the same scale
+            Your own answers to the KOOS-JR questionnaire, scored 0 to 100, the same scale
             a joint registry uses, where higher is better. This is the half of recovery that
             bending further does not measure.
           </div>
@@ -166,7 +166,7 @@
   }
 
     // A plain "2026-09-12" is a calendar day and is read as one, never through
-    // UTC — new Date('2026-09-12') would land on the 11th west of Greenwich.
+    // UTC - new Date('2026-09-12') would land on the 11th west of Greenwich.
     // A full timestamp (share links, created_at) is a moment, so it is placed
     // in the reader's own day. Splitting a timestamp on "-" as if it were a day
     // is what printed "Invalid Date" on the share page.
@@ -204,6 +204,13 @@
       return node;
     };
 
+    // A sprite icon. The page supplies the <symbol>.
+    const icon = (id) => {
+      const svg = svgEl('svg', { class: 'i', 'aria-hidden': 'true' });
+      svg.appendChild(svgEl('use', { href: `#${id}` }));
+      return svg;
+    };
+
     function statValue(target, value, unit, emptyText) {
       target.textContent = '';
       if (value === null || value === undefined) {
@@ -218,7 +225,7 @@
       target.appendChild(wrap);
     }
 
-    // ── Range of motion: a single series, so no legend box is needed for it —
+    // ── Range of motion: a single series, so no legend box is needed for it -
     //    the card title names it. The legend below only explains the reference
     //    line and the breach marker, which are not series.
     function drawRom(points) {
@@ -256,7 +263,7 @@
         svg.appendChild(label);
       }
 
-      // The safe ceiling. A threshold, not a series — dashed and in axis ink so
+      // The safe ceiling. A threshold, not a series - dashed and in axis ink so
       // it never competes with the measurement.
       const limitPath = points.map((p, i) => `${i ? 'L' : 'M'}${x(i)},${y(p.angle_limit)}`).join(' ');
       svg.appendChild(svgEl('path', { class: 'limit-line', d: limitPath }));
@@ -327,7 +334,11 @@
         row2.appendChild(el('span', 'tip-val', deg(p.angle_limit)));
         tip.appendChild(row2);
         if (p.sessions > 1) tip.appendChild(el('div', 'tip-title', plural(p.sessions, 'session', 'sessions')));
-        if (p.peak_flexion_deg > p.angle_limit) tip.appendChild(el('div', 'tip-title', '⚠ past the safe limit'));
+        if (p.peak_flexion_deg > p.angle_limit) {
+          const warn = el('div', 'tip-title');
+          warn.append(icon('i-alert'), ' past the safe limit');
+          tip.appendChild(warn);
+        }
 
         const wrapBox = wrap.getBoundingClientRect();
         tip.style.left = `${(x(best) / W) * box.width}px`;
@@ -347,7 +358,7 @@
         `against a safe limit of ${points[points.length - 1].angle_limit} degrees.`;
 
       // Legend: explains the two non-series marks. Identity is never colour
-      // alone — each swatch is labelled.
+      // alone - each swatch is labelled.
       const legend = $('rom-legend');
       legend.textContent = '';
       const items = [
@@ -371,7 +382,7 @@
     // Drawn against a fixed 0-100 axis rather than one scaled to the data. The
     // scale is the instrument's, not this chart's: a series running 44 to 51
     // auto-scaled would show a dramatic climb, when what actually happened is
-    // seven points on a hundred-point scale — inside what the questionnaire can
+    // seven points on a hundred-point scale - inside what the questionnaire can
     // reliably tell apart.
     //
     // The reference line is the patient's own first score, which is what every
@@ -516,7 +527,7 @@
       }
       card.classList.remove('hidden');
 
-      // One knee needs no chooser. Two do — KOOS-JR asks about "your knee",
+      // One knee needs no chooser. Two do - KOOS-JR asks about "your knee",
       // singular, and someone with two bad knees has two different answers.
       if (seriesList.length > 1) {
         if (!seriesList.some(s => s.knee_side === koosSide)) koosSide = seriesList[0].knee_side;
@@ -681,8 +692,8 @@
 
         const best = el('td', 'num');
         if (r.peak_flexion_deg === null) {
-          const q = el('span', 'quiet', '—');
-          q.title = 'No verified measurement — the camera angle was not confirmed';
+          const q = el('span', 'quiet', '-');
+          q.title = 'No verified measurement: the camera angle was not confirmed';
           best.appendChild(q);
         } else {
           best.textContent = deg(r.peak_flexion_deg);
@@ -695,7 +706,7 @@
         } else {
           // Status ships with a label, never colour alone.
           const chip = el('span', 'breach-chip');
-          chip.appendChild(el('span', null, '⚠'));
+          chip.appendChild(icon('i-alert'));
           chip.appendChild(el('span', null, `${r.breach_count}× · ${r.breach_seconds.toFixed(1)}s`));
           breach.appendChild(chip);
         }
@@ -716,7 +727,7 @@
         return;
       }
 
-      // A single exercise needs no chooser — the card title already names it.
+      // A single exercise needs no chooser - the card title already names it.
       if (series.length > 1) {
         if (!series.some(r => r.exercise_name === romExercise)) romExercise = series[0].exercise_name;
         for (const r of series) {
@@ -754,7 +765,7 @@
         ? 'needs a verified camera angle'
         : `over ${plural(data.range_days, 'day', 'days')}`;
 
-      statValue($('kpi-streak'), s.current_streak_days, s.current_streak_days === 1 ? ' day' : ' days', '—');
+      statValue($('kpi-streak'), s.current_streak_days, s.current_streak_days === 1 ? ' day' : ' days', '-');
       $('kpi-streak-foot').textContent = s.longest_streak_days > s.current_streak_days
         ? `best run ${plural(s.longest_streak_days, 'day', 'days')}`
         : 'your best run so far';
@@ -762,7 +773,7 @@
       statValue($('kpi-sessions'), s.sessions, '', '0');
       $('kpi-sessions-foot').textContent = `${plural(s.active_days, 'active day', 'active days')} · ${plural(s.sets, 'set', 'sets')}`;
 
-      // The patient's own verdict. Shown only once there is one — a "No data"
+      // The patient's own verdict. Shown only once there is one - a "No data"
       // tile for a questionnaire nobody has been offered reads as broken.
       const outcomes = data.outcome_measures || [];
       const koosTile = $('kpi-koos-tile');
@@ -802,8 +813,8 @@
       if (s.unverified_sessions > 0) {
         $('unverified-text').textContent =
           `${plural(s.unverified_sessions, 'session was', 'sessions were')} recorded with the camera angle ` +
-          `unverified. They count towards your consistency, but their angles are left out of the range-of-motion chart — ` +
-          `a knee filmed square-on to the camera reads much straighter than it really is, so including them ` +
+          `unverified. They count towards your consistency, but their angles are left out of the range-of-motion chart. ` +
+          `A knee filmed square-on to the camera reads much straighter than it really is, so including them ` +
           `would show progress you have not actually made.`;
         unverified.classList.remove('hidden');
       } else {
